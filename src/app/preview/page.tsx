@@ -50,32 +50,31 @@ export default function PreviewPage() {
   useEffect(() => {
     const raw = sessionStorage.getItem("intent-preview");
     if (!raw) { router.push("/"); return; }
-    const parsed = JSON.parse(raw) as ParsedIntent;
-    setIntent(parsed);
+    setIntent(JSON.parse(raw) as ParsedIntent);
+  }, [router]);
 
-    // 获取真实报价
-    if (parsed.amount && parsed.fromToken !== parsed.toToken) {
-      setQuoteLoading(true);
-      fetch("/api/swap-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromToken: parsed.fromToken,
-          toToken: parsed.toToken,
-          amount: parsed.amount,
-          slippagePref: parsed.slippagePref,
-          walletAddress: address ?? "0x0000000000000000000000000000000000000001",
-          quoteOnly: true,
-        }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.amountOut) setQuote({ amountOut: data.amountOut });
-        })
-        .catch(() => {})
-        .finally(() => setQuoteLoading(false));
-    }
-  }, [router, address]);
+  // 单独监听 intent，一旦解析完成就发报价请求（不依赖 address）
+  useEffect(() => {
+    if (!intent || !intent.amount || intent.fromToken === intent.toToken) return;
+    setQuoteLoading(true);
+    setQuote(null);
+    fetch("/api/swap-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fromToken: intent.fromToken,
+        toToken: intent.toToken,
+        amount: intent.amount,
+        slippagePref: intent.slippagePref,
+        walletAddress: "0x0000000000000000000000000000000000000001",
+        quoteOnly: true,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => { if (data.amountOut) setQuote({ amountOut: data.amountOut }); })
+      .catch(() => {})
+      .finally(() => setQuoteLoading(false));
+  }, [intent]);
 
   if (!intent) return null;
 
