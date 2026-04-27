@@ -12,6 +12,7 @@ import {
 } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
+import { friendlyError } from "@/lib/errors";
 
 type Status =
   | "idle"
@@ -131,18 +132,13 @@ export default function ExecutePage() {
         {
           onError: (err) => {
             setStatus("error");
-            const msg = (err as Error).message ?? "";
-            setErrorMsg(
-              msg.includes("rejected") || msg.includes("denied")
-                ? "Transaction rejected."
-                : "Swap failed. Please try again."
-            );
+            setErrorMsg(friendlyError(err));
           },
         }
       );
     } catch (err: unknown) {
       setStatus("error");
-      setErrorMsg(err instanceof Error ? err.message : "Unknown error");
+      setErrorMsg(friendlyError(err));
     }
   }, [address, sendTransaction]);
 
@@ -171,12 +167,7 @@ export default function ExecutePage() {
           {
             onError: (err) => {
               setStatus("error");
-              const msg = (err as Error).message ?? "";
-              setErrorMsg(
-                msg.includes("rejected") || msg.includes("denied")
-                  ? "Approval rejected."
-                  : "Approval failed."
-              );
+              setErrorMsg(friendlyError(err));
             },
           }
         );
