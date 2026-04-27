@@ -34,12 +34,7 @@ export function IntentInput() {
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       sessionStorage.setItem("intent-preview", JSON.stringify({ raw: value, ...data }));
-      // 条件单跳转到不同页面
-      if (data.intentType === "conditional") {
-        router.push("/orders/new");
-      } else {
-        router.push("/preview");
-      }
+      router.push("/preview");
     } catch {
       setError("Could not parse your intent. Try rephrasing.");
       setLoading(false);
