@@ -28,6 +28,7 @@ const SLIPPAGE_MAP = { low: 0.5, normal: 1.0, high: 3.0 };
 
 export default function PreviewPage() {
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
+  const [slippagePref, setSlippagePref] = useState<"low" | "normal" | "high">("normal");
   const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const router = useRouter();
@@ -51,9 +52,11 @@ export default function PreviewPage() {
     const raw = sessionStorage.getItem("intent-preview");
     if (!raw) { router.push("/"); return; }
     setIntent(JSON.parse(raw) as ParsedIntent);
+    const parsed = JSON.parse(raw) as ParsedIntent;
+    setSlippagePref(parsed.slippagePref ?? "normal");
   }, [router]);
 
-  // 单独监听 intent，一旦解析完成就发报价请求（不依赖 address）
+  // 单独监听 intent + slippagePref，变化时重新拉报价
   useEffect(() => {
     if (!intent || !intent.amount || intent.fromToken === intent.toToken) return;
     setQuoteLoading(true);
@@ -65,7 +68,7 @@ export default function PreviewPage() {
         fromToken: intent.fromToken,
         toToken: intent.toToken,
         amount: intent.amount,
-        slippagePref: intent.slippagePref,
+        slippagePref,
         walletAddress: "0x0000000000000000000000000000000000000001",
         quoteOnly: true,
       }),
@@ -74,11 +77,18 @@ export default function PreviewPage() {
       .then((data) => { if (data.amountOut || data.toAmount) setQuote({ amountOut: data.amountOut ?? data.toAmount }); })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
-  }, [intent]);
+  }, [intent, slippagePref]);
 
   if (!intent) return null;
 
-  const slippage = SLIPPAGE_MAP[intent.slippagePref];
+  const slippage = SLIPPAGE_MAP[slippagePref];
+
+  // 把 slippagePref 写回 sessionStorage，execute 页读取
+  const handleConfirm = () => {
+    const updated = { ...intent, slippagePref };
+    sessionStorage.setItem("intent-preview", JSON.stringify(updated));
+    router.push("/execute");
+  };
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 animate-fade-in">
@@ -97,6 +107,26 @@ export default function PreviewPage() {
           balance={balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : undefined}
         />
 
+        {/* 滑点调节 */}
+        <div className="flex items-center justify-between px-1">
+          <span className="text-stone-600 text-xs">Slippage</span>
+          <div className="flex gap-1">
+            {(["low", "normal", "high"] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setSlippagePref(opt)}
+                className={`px-3 py-1 rounded-lg text-xs transition-colors ${
+                  slippagePref === opt
+                    ? "bg-gold-500/20 text-gold-400 border border-gold-500/40"
+                    : "text-stone-600 hover:text-stone-400 border border-transparent"
+                }`}
+              >
+                {opt === "low" ? "0.5%" : opt === "normal" ? "1%" : "3%"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex gap-3">
           <button
             onClick={() => router.push("/")}
@@ -105,7 +135,7 @@ export default function PreviewPage() {
             ← Revise
           </button>
           <button
-            onClick={() => router.push("/execute")}
+            onClick={handleConfirm}
             disabled={insufficientBalance}
             className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
           >
