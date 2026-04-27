@@ -29,21 +29,23 @@ function resolveToken(symbol: string): `0x${string}` {
   return TOKEN_ADDRESSES[symbol];
 }
 
-// CoinGecko 价格估算（快速，用于 quoteOnly）
+// DeFiLlama 价格估算（无 API key，无速率限制）
 async function getPriceQuote(fromToken: string, toToken: string, amount: number): Promise<string | null> {
   try {
-    const ids = [COINGECKO_IDS[fromToken], COINGECKO_IDS[toToken]].filter(Boolean).join(",");
-    const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
-      { next: { revalidate: 30 } }
-    );
+    const fromAddr = fromToken === "ETH" ? TOKEN_ADDRESSES["WETH"] : TOKEN_ADDRESSES[fromToken];
+    const toAddr = toToken === "ETH" ? TOKEN_ADDRESSES["WETH"] : TOKEN_ADDRESSES[toToken];
+    if (!fromAddr || !toAddr) return null;
+
+    const url = `https://coins.llama.fi/prices/current/arbitrum:${fromAddr},arbitrum:${toAddr}`;
+    const res = await fetch(url, { next: { revalidate: 30 } });
     if (!res.ok) return null;
     const data = await res.json();
-    const fromPrice = data[COINGECKO_IDS[fromToken]]?.usd;
-    const toPrice = data[COINGECKO_IDS[toToken]]?.usd;
+
+    const fromPrice = data.coins[`arbitrum:${fromAddr}`]?.price;
+    const toPrice = data.coins[`arbitrum:${toAddr}`]?.price;
     if (!fromPrice || !toPrice) return null;
-    const amountOut = (amount * fromPrice) / toPrice;
-    return amountOut.toFixed(6);
+
+    return ((amount * fromPrice) / toPrice).toFixed(6);
   } catch {
     return null;
   }
