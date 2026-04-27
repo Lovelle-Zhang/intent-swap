@@ -37,7 +37,7 @@ async function getPriceQuote(fromToken: string, toToken: string, amount: number)
     if (!fromAddr || !toAddr) return null;
 
     const url = `https://coins.llama.fi/prices/current/arbitrum:${fromAddr},arbitrum:${toAddr}`;
-    const res = await fetch(url, { next: { revalidate: 30 } });
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
 
