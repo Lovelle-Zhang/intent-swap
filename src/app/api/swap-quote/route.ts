@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http, encodeFunctionData, parseUnits, formatUnits } from "viem";
+import { createPublicClient, http, fallback, encodeFunctionData, parseUnits, formatUnits } from "viem";
 import { arbitrum } from "viem/chains";
 
 // Uniswap V3 on Arbitrum
@@ -70,7 +70,15 @@ const ROUTER_ABI = [{
   outputs: [{ name: "amountOut", type: "uint256" }],
 }] as const;
 
-const client = createPublicClient({ chain: arbitrum, transport: http() });
+const client = createPublicClient({
+  chain: arbitrum,
+  transport: fallback([
+    http("https://arb1.arbitrum.io/rpc"),
+    http("https://arbitrum-one.publicnode.com"),
+    http("https://arbitrum.llamarpc.com"),
+    http(),
+  ]),
+});
 
 const FEE_TIERS = [500, 3000, 10000]; // 0.05%, 0.3%, 1%
 
