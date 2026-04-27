@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       tx: { to: SWAP_ROUTER, data: calldata, value: fromToken === "ETH" ? amountIn.toString() : "0" },
+      amountOut: formatUnits(bestAmountOut, decimalsOut),
       toAmount: formatUnits(bestAmountOut, decimalsOut),
       toToken, fromToken, fee: bestFee,
     });

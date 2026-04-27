@@ -71,7 +71,7 @@ export default function PreviewPage() {
       }),
     })
       .then((r) => r.json())
-      .then((data) => { if (data.amountOut) setQuote({ amountOut: data.amountOut }); })
+      .then((data) => { if (data.amountOut || data.toAmount) setQuote({ amountOut: data.amountOut ?? data.toAmount }); })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
   }, [intent]);
