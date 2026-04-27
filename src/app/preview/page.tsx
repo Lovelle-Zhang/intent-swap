@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useBalance } from "wagmi";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const TOKEN_ADDRESSES: Record<string, `0x${string}`> = {
   USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
@@ -37,7 +38,7 @@ export default function PreviewPage() {
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const router = useRouter();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
 
   // 余额查询
   const isNativeETH = intent?.fromToken === "ETH";
@@ -226,13 +227,28 @@ export default function PreviewPage() {
           >
             ← Revise
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={insufficientBalance}
-            className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
-          >
-            {insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
-          </button>
+          {isConnected ? (
+            <button
+              onClick={handleConfirm}
+              disabled={insufficientBalance}
+              className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
+            >
+              {insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
+            </button>
+          ) : (
+            <div className="flex-1">
+              <ConnectButton.Custom>
+                {({ openConnectModal }) => (
+                  <button
+                    onClick={openConnectModal}
+                    className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors"
+                  >
+                    Connect wallet to swap
+                  </button>
+                )}
+              </ConnectButton.Custom>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-stone-700 text-xs">
