@@ -12,6 +12,7 @@ interface Props {
   address?: string;
   quote?: { amountOut: string; priceImpact?: string } | null;
   quoteLoading?: boolean;
+  balance?: string;
 }
 
 function Row({ label, value, mono, highlight }: { label: string; value: React.ReactNode; mono?: boolean; highlight?: boolean }) {
@@ -25,7 +26,7 @@ function Row({ label, value, mono, highlight }: { label: string; value: React.Re
   );
 }
 
-export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading }: Props) {
+export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading, balance }: Props) {
   const fromIcon = TOKEN_ICONS[intent.fromToken] ?? "?";
   const toIcon = TOKEN_ICONS[intent.toToken] ?? "?";
 
@@ -80,6 +81,7 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
         <Row label="You receive" value={receiveDisplay} highlight={!!quote?.amountOut && !quoteLoading} />
         <Row label="Slippage" value={`${slippage}%`} />
         <Row label="Route" value="Uniswap V3 · Arbitrum" />
+        <Row label="Balance" value={balance ?? "—"} />
         <Row label="Wallet" value={address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "—"} mono />
       </div>
 
