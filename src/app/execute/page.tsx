@@ -152,7 +152,7 @@ export default function ExecutePage() {
       setStatus("checking");
       const decimals = TOKEN_DECIMALS[parsed.fromToken] ?? 18;
       const amountNeeded = parseUnits(String(parsed.amount ?? 0.01), decimals);
-      const currentAllowance = (allowance as bigint | undefined) ?? 0n;
+      const currentAllowance = (allowance as bigint | undefined) ?? BigInt(0);
 
       if (currentAllowance < amountNeeded) {
         setNeedsApproval(true);
