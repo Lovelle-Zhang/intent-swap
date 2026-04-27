@@ -76,7 +76,7 @@ const FEE_TIERS = [500, 3000, 10000]; // 0.05%, 0.3%, 1%
 
 export async function POST(req: NextRequest) {
   try {
-    const { fromToken, toToken, amount, slippagePref, walletAddress } = await req.json();
+    const { fromToken, toToken, amount, slippagePref, walletAddress, quoteOnly } = await req.json();
 
     const tokenIn = resolveToken(fromToken);
     const tokenOut = resolveToken(toToken);
@@ -112,6 +112,16 @@ export async function POST(req: NextRequest) {
 
     if (bestAmountOut === BigInt(0)) {
       return NextResponse.json({ error: "No liquidity found for this pair" }, { status: 400 });
+    }
+
+    // quoteOnly 模式：只返回报价，不生成 calldata
+    if (quoteOnly) {
+      return NextResponse.json({
+        amountOut: formatUnits(bestAmountOut, decimalsOut),
+        toToken,
+        fromToken,
+        fee: bestFee,
+      });
     }
 
     const slippageMap = { low: 0.5, normal: 1, high: 3 };

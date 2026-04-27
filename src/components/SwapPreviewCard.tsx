@@ -10,18 +10,22 @@ interface Props {
   intent: ParsedIntent;
   slippage: number;
   address?: string;
+  quote?: { amountOut: string; priceImpact?: string } | null;
+  quoteLoading?: boolean;
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Row({ label, value, mono, highlight }: { label: string; value: React.ReactNode; mono?: boolean; highlight?: boolean }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-stone-800/50 last:border-0">
       <span className="text-stone-600 text-xs uppercase tracking-wider">{label}</span>
-      <span className={`text-sm text-stone-300 ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+      <span className={`text-sm ${highlight ? "text-gold-400" : "text-stone-300"} ${mono ? "font-mono text-xs" : ""}`}>
+        {value}
+      </span>
     </div>
   );
 }
 
-export function SwapPreviewCard({ intent, slippage, address }: Props) {
+export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading }: Props) {
   const fromIcon = TOKEN_ICONS[intent.fromToken] ?? "?";
   const toIcon = TOKEN_ICONS[intent.toToken] ?? "?";
 
@@ -30,6 +34,12 @@ export function SwapPreviewCard({ intent, slippage, address }: Props) {
     : intent.amountType === "percentage" ? `${intent.amount}% of balance`
     : intent.amountType === "max" ? "Max balance"
     : `${intent.amount} ${intent.fromToken}`;
+
+  const receiveDisplay = quoteLoading
+    ? <span className="text-stone-600 text-xs animate-pulse">Fetching…</span>
+    : quote?.amountOut
+    ? `≈ ${Number(quote.amountOut).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${intent.toToken}`
+    : "—";
 
   return (
     <div className="bg-stone-900/30 border border-stone-800/60 rounded-2xl overflow-hidden">
@@ -40,11 +50,14 @@ export function SwapPreviewCard({ intent, slippage, address }: Props) {
             {fromIcon}
           </div>
           <div className="text-stone-300 text-sm font-medium">{intent.fromToken}</div>
+          {intent.amount && (
+            <div className="text-stone-600 text-xs">{intent.amount}</div>
+          )}
         </div>
 
         <div className="flex-1 flex items-center justify-center gap-1 px-4">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-stone-700 to-transparent" />
-          <span className="text-stone-600 text-xs">via Uniswap V3</span>
+          <span className="text-stone-600 text-xs">→</span>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-stone-700 to-transparent" />
         </div>
 
@@ -53,18 +66,23 @@ export function SwapPreviewCard({ intent, slippage, address }: Props) {
             {toIcon}
           </div>
           <div className="text-stone-300 text-sm font-medium">{intent.toToken}</div>
+          {quote?.amountOut && !quoteLoading && (
+            <div className="text-gold-500/70 text-xs">
+              ≈ {Number(quote.amountOut).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* 详情 */}
       <div className="px-6 pb-2">
-        <Row label="Amount" value={amountDisplay} />
+        <Row label="You pay" value={amountDisplay} />
+        <Row label="You receive" value={receiveDisplay} highlight={!!quote?.amountOut && !quoteLoading} />
         <Row label="Slippage" value={`${slippage}%`} />
-        <Row label="Network" value="Arbitrum One" />
+        <Row label="Route" value="Uniswap V3 · Arbitrum" />
         <Row label="Wallet" value={address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "—"} mono />
       </div>
 
-      {/* AI 摘要 */}
       {intent.summary && (
         <div className="px-6 py-3 border-t border-stone-800/40">
           <p className="text-stone-700 text-xs italic">{intent.summary}</p>
