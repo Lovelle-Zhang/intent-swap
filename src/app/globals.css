@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0c0a09;
+  --bg-surface: #161412;
+  --border-subtle: rgba(168, 162, 158, 0.08);
+  --text-muted: #57534e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg-primary);
+  min-height: 100vh;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* 噪点纹理背景 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* 顶部光晕 */
+body::after {
+  content: "";
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 确保内容在噪点上方 */
+#__next, main, header, footer { position: relative; z-index: 1; }
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #292524; border-radius: 2px; }
+
+/* RainbowKit 覆盖 */
+[data-rk] {
+  --rk-colors-accentColor: #f59e0b !important;
+  --rk-colors-accentColorForeground: #0c0a09 !important;
+  --rk-colors-modalBackground: #161412 !important;
+  --rk-colors-modalBorder: rgba(168,162,158,0.1) !important;
+  --rk-colors-modalText: #e7e5e4 !important;
+  --rk-colors-modalTextSecondary: #78716c !important;
+  --rk-colors-connectButtonBackground: #1c1917 !important;
+  --rk-colors-connectButtonText: #a8a29e !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in { animation: fadeIn 0.5s ease-out both; }
+.animate-shimmer { animation: shimmer 2s ease-in-out infinite; }
