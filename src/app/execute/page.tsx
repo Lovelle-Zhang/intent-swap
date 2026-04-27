@@ -162,7 +162,7 @@ export default function ExecutePage() {
             address: tokenAddress,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [SWAP_ROUTER, amountNeeded * 10n], // approve 10x 避免频繁授权
+            args: [SWAP_ROUTER, amountNeeded * BigInt(10)], // approve 10x 避免频繁授权
           },
           {
             onError: (err) => {
