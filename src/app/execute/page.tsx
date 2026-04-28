@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { addRecord } from "@/lib/history";
 import {
   useAccount,
   useSendTransaction,
@@ -64,6 +65,8 @@ export default function ExecutePage() {
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
   const [gasInfo, setGasInfo] = useState<{ costETH: string; costUSD: string } | null>(null);
+  const [amountOut, setAmountOut] = useState<string>("");
+  const recordedRef = useRef(false);
   const router = useRouter();
   const { address } = useAccount();
 
@@ -96,9 +99,22 @@ export default function ExecutePage() {
   }, [approveSuccess]);
 
   useEffect(() => {
-    if (swapSuccess) setStatus("success");
+    if (swapSuccess && intent && swapTxHash && !recordedRef.current) {
+      recordedRef.current = true;
+      setStatus("success");
+      addRecord({
+        timestamp: Date.now(),
+        fromToken: intent.fromToken,
+        toToken: intent.toToken,
+        amount: intent.amount ?? 0,
+        amountOut,
+        txHash: swapTxHash,
+        gasCostUSD: gasInfo?.costUSD,
+        summary: intent.summary,
+      });
+    }
     if (swapError) { setStatus("error"); setErrorMsg("Transaction failed on-chain."); }
-  }, [swapSuccess, swapError]);
+  }, [swapSuccess, swapError, intent, swapTxHash, amountOut, gasInfo]);
 
   useEffect(() => {
     if (swapTxHash) setStatus("confirming");
@@ -126,6 +142,7 @@ export default function ExecutePage() {
       if (data.gas) {
         setGasInfo({ costETH: data.gas.costETH, costUSD: data.gas.costUSD });
       }
+      if (data.amountOut) setAmountOut(data.amountOut);
 
       setStatus("signing");
       sendTransaction(

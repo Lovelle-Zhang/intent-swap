@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { IntentInput } from "@/components/IntentInput";
 
@@ -30,7 +31,10 @@ export default function Home() {
             Intent Swap
           </span>
         </div>
-        <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" />
+        <div className="flex items-center gap-4">
+          <Link href="/history" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">History</Link>
+          <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" />
+        </div>
       </header>
 
       {/* 主体 */}
