@@ -37,7 +37,11 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Link href="/history" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">History</Link>
-          {mounted && <ConnectButton showBalance={false} chainStatus="none" accountStatus="avatar" />}
+          {mounted ? (
+            <ConnectButton showBalance={false} chainStatus="none" accountStatus="full" />
+          ) : (
+            <div className="w-24 h-8 rounded-xl bg-stone-800/60 animate-pulse" />
+          )}
         </div>
       </header>
 
