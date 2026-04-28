@@ -5,7 +5,6 @@ import { RainbowKitProvider, getDefaultConfig, darkTheme } from "@rainbow-me/rai
 import { WagmiProvider } from "wagmi";
 import { arbitrum } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
 
 const config = getDefaultConfig({
   appName: "Intent Swap",
@@ -17,9 +16,6 @@ const config = getDefaultConfig({
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -31,7 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             fontStack: "system",
           })}
         >
-          {mounted ? children : null}
+          {children}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
