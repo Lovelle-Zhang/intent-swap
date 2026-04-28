@@ -161,11 +161,36 @@ export async function POST(req: NextRequest) {
       args: [{ tokenIn, tokenOut, fee: bestFee, recipient: walletAddress as `0x${string}`, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96: BigInt(0) }],
     });
 
+    // Gas 估算
+    let gasEstimate = BigInt(0);
+    let gasCostETH = "0";
+    let gasCostUSD = "0";
+    try {
+      gasEstimate = await client.estimateGas({
+        account: walletAddress as `0x${string}`,
+        to: SWAP_ROUTER,
+        data: calldata,
+        value: fromToken === "ETH" ? amountIn : BigInt(0),
+      });
+      const gasPrice = await client.getGasPrice();
+      const gasCost = gasEstimate * gasPrice;
+      gasCostETH = formatUnits(gasCost, 18);
+      
+      // 拉 ETH 价格转 USD
+      const ethPriceRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+      const ethPriceData = await ethPriceRes.json();
+      const ethPrice = ethPriceData.ethereum?.usd ?? 0;
+      gasCostUSD = (parseFloat(gasCostETH) * ethPrice).toFixed(2);
+    } catch {
+      // gas 估算失败不影响报价
+    }
+
     return NextResponse.json({
-      tx: { to: SWAP_ROUTER, data: calldata, value: fromToken === "ETH" ? amountIn.toString() : "0" },
+      tx: { to: SWAP_ROUTER, data: calldata, value: fromToken === "ETH" ? amountIn.toString() : "0", gas: gasEstimate.toString() },
       amountOut: formatUnits(bestAmountOut, decimalsOut),
       toAmount: formatUnits(bestAmountOut, decimalsOut),
       toToken, fromToken, fee: bestFee,
+      gas: { estimate: gasEstimate.toString(), costETH: gasCostETH, costUSD: gasCostUSD },
     });
   } catch (err) {
     console.error("swap-quote error:", err);

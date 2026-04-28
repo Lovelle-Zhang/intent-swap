@@ -63,6 +63,7 @@ export default function ExecutePage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
+  const [gasInfo, setGasInfo] = useState<{ costETH: string; costUSD: string } | null>(null);
   const router = useRouter();
   const { address } = useAccount();
 
@@ -120,6 +121,11 @@ export default function ExecutePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Quote failed");
+
+      // 保存 gas 信息
+      if (data.gas) {
+        setGasInfo({ costETH: data.gas.costETH, costUSD: data.gas.costUSD });
+      }
 
       setStatus("signing");
       sendTransaction(
@@ -260,6 +266,12 @@ export default function ExecutePage() {
                 <span className="text-stone-600 text-xs uppercase tracking-wider">Status</span>
                 <span className="text-green-400/80 text-xs">Confirmed</span>
               </div>
+              {gasInfo && (
+                <div className="flex justify-between">
+                  <span className="text-stone-600 text-xs uppercase tracking-wider">Gas paid</span>
+                  <span className="text-stone-500 text-xs">{parseFloat(gasInfo.costETH).toFixed(6)} ETH {gasInfo.costUSD !== "0" && `(~$${gasInfo.costUSD})`}</span>
+                </div>
+              )}
             </div>
             <Link href="/" className="block py-2.5 text-stone-600 hover:text-stone-400 text-sm transition-colors">
               New swap →
