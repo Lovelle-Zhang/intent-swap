@@ -20,6 +20,10 @@ function normalizeText(text: string): string {
 
 function extractToken(text: string, exclude?: string): string {
   const normalized = normalizeText(text);
+  // 精确词边界匹配，避免 ETH 匹配到 WETH
+  const exact = TOKENS.find((t) => t !== exclude && new RegExp(`\\b${t}\\b`).test(normalized));
+  if (exact) return exact;
+  // 降级：包含匹配（兜底）
   return TOKENS.find((t) => t !== exclude && normalized.includes(t)) ?? "USDC";
 }
 
