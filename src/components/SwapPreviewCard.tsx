@@ -7,7 +7,7 @@ const TOKEN_ICONS: Record<string, string> = {
 };
 
 interface Props {
-  intent: ParsedIntent;
+  intent: ParsedIntent & { parsedBy?: "llm" | "rules" };
   slippage: number;
   address?: string;
   quote?: { amountOut: string; priceImpact?: string } | null;
@@ -85,11 +85,20 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
         <Row label="Wallet" value={address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "—"} mono />
       </div>
 
-      {intent.summary && (
-        <div className="px-6 py-3 border-t border-stone-800/40">
-          <p className="text-stone-700 text-xs italic">{intent.summary}</p>
-        </div>
-      )}
+      <div className="px-6 py-3 border-t border-stone-800/40 flex items-center justify-between gap-2">
+        {intent.summary && (
+          <p className="text-stone-700 text-xs italic flex-1">{intent.summary}</p>
+        )}
+        {intent.parsedBy && (
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${
+            intent.parsedBy === "llm"
+              ? "text-emerald-500/70 border-emerald-800/50 bg-emerald-950/30"
+              : "text-stone-600 border-stone-800/50"
+          }`}>
+            {intent.parsedBy === "llm" ? "✦ AI" : "rules"}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

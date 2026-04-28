@@ -25,6 +25,7 @@ export interface ParsedIntent {
   summary: string;
   intentType?: "swap" | "conditional";
   condition?: { token: string; operator: "above" | "below"; targetPrice: number };
+  parsedBy?: "llm" | "rules";
 }
 
 const SLIPPAGE_MAP = { low: 0.5, normal: 1.0, high: 3.0 };
