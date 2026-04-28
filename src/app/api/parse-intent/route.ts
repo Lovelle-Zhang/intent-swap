@@ -127,8 +127,10 @@ export async function POST(req: NextRequest) {
       const result = await llmParse(intent);
       return NextResponse.json(result);
     } catch (llmErr) {
-      console.warn("[parse-intent] LLM failed, falling back to rules:", llmErr);
-      return NextResponse.json(ruleParse(intent));
+      const errMsg = llmErr instanceof Error ? llmErr.message : String(llmErr);
+      console.warn("[parse-intent] LLM failed:", errMsg);
+      // 把错误原因也返回，方便调试
+      return NextResponse.json({ ...ruleParse(intent), _llmError: errMsg });
     }
   } catch {
     return NextResponse.json({ error: "Parse failed" }, { status: 500 });
