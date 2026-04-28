@@ -58,6 +58,31 @@ function ruleParse(intent: string) {
   };
 }
 
+// ─── 市场价格（CoinGecko 免费 API） ──────────────────────────────────────
+
+const COINGECKO_IDS: Record<string, string> = {
+  ETH: "ethereum", WETH: "weth", WBTC: "wrapped-bitcoin", BTC: "bitcoin",
+  USDC: "usd-coin", USDT: "tether", DAI: "dai", ARB: "arbitrum",
+};
+
+async function fetchPrices(): Promise<Record<string, number>> {
+  try {
+    const ids = Object.values(COINGECKO_IDS).join(",");
+    const res = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+      { next: { revalidate: 60 } } // Next.js 缓存 60s
+    );
+    const data = await res.json();
+    const prices: Record<string, number> = {};
+    for (const [symbol, id] of Object.entries(COINGECKO_IDS)) {
+      if (data[id]?.usd) prices[symbol] = data[id].usd;
+    }
+    return prices;
+  } catch {
+    return {};
+  }
+}
+
 // ─── LLM 解析 ─────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a DeFi swap intent parser. Extract structured swap information from natural language.
@@ -86,7 +111,8 @@ Rules:
 - If a price condition is mentioned (when/if ETH drops below $X): intentType="conditional"
 - For Chinese input, write summary in Chinese
 - Default slippagePref to "normal" unless explicitly mentioned
-- If tokens are ambiguous, default fromToken="ETH", toToken="USDC"`;
+- If tokens are ambiguous, default fromToken="ETH", toToken="USDC"
+- If user asks advisory questions ("which is better", "what should I buy"), you may reference current prices to suggest a reasonable swap, but make it clear in the summary that this is not financial advice`;
 
 async function llmParse(intent: string) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -94,12 +120,18 @@ async function llmParse(intent: string) {
 
   const client = new OpenAI({ apiKey });
 
+  // 拉实时价格，注入 prompt
+  const prices = await fetchPrices();
+  const priceContext = Object.keys(prices).length > 0
+    ? `\nCurrent market prices (USD): ${Object.entries(prices).map(([k, v]) => `${k}=$${v.toLocaleString()}`).join(", ")}`
+    : "";
+
   const completion = await client.chat.completions.create({
     model: "gpt-4o-mini",
     temperature: 0,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + priceContext },
       { role: "user", content: intent },
     ],
   });
