@@ -50,17 +50,11 @@ export default function PreviewPage() {
       : undefined
   );
 
-  const insufficientBalance =
-    balance && resolvedAmount
-      ? Number(balance.formatted) < resolvedAmount
-      : false;
-
-  // 计算实际 swap 数量（处理 max/percentage）
+  // 计算实际 swap 数量（处理 max/percentage）— 必须在 insufficientBalance 之前
   const resolvedAmount = (() => {
     if (!intent) return null;
     const bal = balance ? Number(balance.formatted) : null;
     if (intent.amountType === "max" && bal !== null) {
-      // ETH 留 0.005 做 gas，其他 token 全部
       return intent.fromToken === "ETH" ? Math.max(0, bal - 0.005) : bal;
     }
     if (intent.amountType === "percentage" && bal !== null && intent.amount !== null) {
@@ -68,6 +62,11 @@ export default function PreviewPage() {
     }
     return intent.amount;
   })();
+
+  const insufficientBalance =
+    balance && resolvedAmount
+      ? Number(balance.formatted) < resolvedAmount
+      : false;
 
   useEffect(() => {
     const raw = sessionStorage.getItem("intent-preview");
