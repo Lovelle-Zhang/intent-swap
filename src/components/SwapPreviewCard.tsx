@@ -13,6 +13,7 @@ interface Props {
   quote?: { amountOut: string; priceImpact?: string } | null;
   quoteLoading?: boolean;
   balance?: string;
+  resolvedAmount?: number | null;
 }
 
 function Row({ label, value, mono, highlight }: { label: string; value: React.ReactNode; mono?: boolean; highlight?: boolean }) {
@@ -26,12 +27,14 @@ function Row({ label, value, mono, highlight }: { label: string; value: React.Re
   );
 }
 
-export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading, balance }: Props) {
+export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading, balance, resolvedAmount }: Props) {
   const fromIcon = TOKEN_ICONS[intent.fromToken] ?? "?";
   const toIcon = TOKEN_ICONS[intent.toToken] ?? "?";
 
   const amountDisplay =
-    intent.amount === null ? "—"
+    resolvedAmount !== null && resolvedAmount !== undefined
+      ? `${resolvedAmount.toFixed(6)} ${intent.fromToken}${intent.amountType === "max" ? " (all)" : intent.amountType === "percentage" ? ` (${intent.amount}%)` : ""}`
+    : intent.amount === null ? "—"
     : intent.amountType === "percentage" ? `${intent.amount}% of balance`
     : intent.amountType === "max" ? "Max balance"
     : `${intent.amount} ${intent.fromToken}`;

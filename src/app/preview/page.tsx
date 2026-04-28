@@ -51,9 +51,23 @@ export default function PreviewPage() {
   );
 
   const insufficientBalance =
-    balance && intent?.amount
-      ? Number(balance.formatted) < intent.amount
+    balance && resolvedAmount
+      ? Number(balance.formatted) < resolvedAmount
       : false;
+
+  // 计算实际 swap 数量（处理 max/percentage）
+  const resolvedAmount = (() => {
+    if (!intent) return null;
+    const bal = balance ? Number(balance.formatted) : null;
+    if (intent.amountType === "max" && bal !== null) {
+      // ETH 留 0.005 做 gas，其他 token 全部
+      return intent.fromToken === "ETH" ? Math.max(0, bal - 0.005) : bal;
+    }
+    if (intent.amountType === "percentage" && bal !== null && intent.amount !== null) {
+      return (bal * intent.amount) / 100;
+    }
+    return intent.amount;
+  })();
 
   useEffect(() => {
     const raw = sessionStorage.getItem("intent-preview");
@@ -65,7 +79,7 @@ export default function PreviewPage() {
 
   // 单独监听 intent + slippagePref，变化时重新拉报价
   useEffect(() => {
-    if (!intent || !intent.amount || intent.fromToken === intent.toToken) return;
+    if (!intent || !resolvedAmount || intent.fromToken === intent.toToken) return;
     setQuoteLoading(true);
     setQuote(null);
     fetch("/api/swap-quote", {
@@ -74,7 +88,7 @@ export default function PreviewPage() {
       body: JSON.stringify({
         fromToken: intent.fromToken,
         toToken: intent.toToken,
-        amount: intent.amount,
+        amount: resolvedAmount,
         slippagePref,
         walletAddress: "0x0000000000000000000000000000000000000001",
         quoteOnly: true,
@@ -84,7 +98,7 @@ export default function PreviewPage() {
       .then((data) => { if (data.amountOut || data.toAmount) setQuote({ amountOut: data.amountOut ?? data.toAmount }); })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
-  }, [intent, slippagePref]);
+  }, [intent, slippagePref, resolvedAmount]);
 
   if (!intent) return null;
 
@@ -179,7 +193,8 @@ export default function PreviewPage() {
 
   // 把 slippagePref 写回 sessionStorage，execute 页读取
   const handleConfirm = () => {
-    const updated = { ...intent, slippagePref };
+    // 把解析后的实际数量写入，execute 页直接用
+    const updated = { ...intent, slippagePref, amount: resolvedAmount ?? intent.amount };
     sessionStorage.setItem("intent-preview", JSON.stringify(updated));
     router.push("/execute");
   };
@@ -199,6 +214,7 @@ export default function PreviewPage() {
           quote={quote}
           quoteLoading={quoteLoading}
           balance={balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : undefined}
+          resolvedAmount={resolvedAmount}
         />
 
         {/* 滑点调节 */}
