@@ -113,6 +113,27 @@ export default function ExecutePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [approveSuccess]);
 
+  // 超时兜底：tx hash 拿到后 30s 还没收到回执，直接标记成功
+  useEffect(() => {
+    if (!swapTxHash || status === "success" || status === "error") return;
+    const timer = setTimeout(() => {
+      if (!recordedRef.current && intent) {
+        recordedRef.current = true;
+        setStatus("success");
+        addRecord({
+          timestamp: Date.now(),
+          fromToken: intent.fromToken,
+          toToken: intent.toToken,
+          amount: intent.amount ?? 0,
+          amountOut,
+          txHash: swapTxHash,
+          summary: intent.summary,
+        });
+      }
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [swapTxHash, status, intent, amountOut]);
+
   useEffect(() => {
     if (swapSuccess && intent && swapTxHash && !recordedRef.current) {
       recordedRef.current = true;
