@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useBalance, useChainId, useDisconnect, useSwitchChain } from "wagmi";
+import { useAccount, useBalance, useChainId, useSwitchChain } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -74,7 +74,6 @@ export default function PreviewPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
 
   // 检测链是否匹配
@@ -249,6 +248,11 @@ export default function PreviewPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 animate-fade-in">
       <div className="w-full max-w-md space-y-6">
+        {/* 顶部钱包按钮 */}
+        <div className="flex justify-end">
+          <ConnectButton />
+        </div>
+
         <div className="text-center space-y-1">
           <p className="text-stone-500 text-xs tracking-widest uppercase">Review your swap</p>
           <p className="text-stone-400 text-sm italic">"{intent.raw}"</p>
@@ -285,20 +289,12 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        {/* 链状态 + 断开重连 */}
-        <div className="flex items-center justify-between px-1">
+        {/* 链状态 */}
+        <div className="flex items-center px-1">
           <p className="text-stone-600 text-xs">
-            {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "Balance: —"}
+            {balance ? `Balance: ${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "Balance: —"}
             {" · "}{CHAIN_NAMES[chainId] ?? `Chain ${chainId}`}
           </p>
-          {isConnected && (
-            <button
-              onClick={() => disconnect()}
-              className="text-stone-700 hover:text-stone-500 text-xs transition-colors"
-            >
-              Disconnect ↺
-            </button>
-          )}
         </div>
 
         {/* 链不匹配提示 */}
