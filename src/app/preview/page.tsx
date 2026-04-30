@@ -3,9 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useBalance, useChainId, useDisconnect, useSwitchChain } from "wagmi";
-import { mainnet } from "wagmi/chains";
+import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+
+// 每个 token 推荐的链（流动性最好的）
+const TOKEN_PREFERRED_CHAIN: Record<string, number> = {
+  ETH: 1, WETH: 1, USDC: 1, USDT: 1, DAI: 1, WBTC: 1,
+  ARB: 42161,
+};
+
+function getPreferredChain(fromToken: string): number {
+  return TOKEN_PREFERRED_CHAIN[fromToken] ?? 1;
+}
+
+const CHAIN_NAMES: Record<number, string> = {
+  1: "Ethereum Mainnet",
+  42161: "Arbitrum",
+  59144: "Linea",
+};
 
 const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
   1: { // Ethereum Mainnet
@@ -59,24 +75,22 @@ export default function PreviewPage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { disconnect } = useDisconnect();
-  const { switchChain } = useSwitchChain();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
 
-  // 连接后自动切换到主网
-  useEffect(() => {
-    if (isConnected && chainId !== mainnet.id) {
-      switchChain({ chainId: mainnet.id });
-    }
-  }, [isConnected, chainId, switchChain]);
+  // 检测链是否匹配
+  const preferredChainId = intent ? getPreferredChain(intent.fromToken) : null;
+  const isWrongChain = isConnected && preferredChainId !== null && chainId !== preferredChainId;
 
   // 余额查询 — 等 intent 加载后再查，避免 tokenAddress 为 undefined 时误查 ETH
   const isNativeETH = intent?.fromToken === "ETH";
-  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[59144];
+  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[1];
   const tokenAddress = intent ? chainTokens[intent.fromToken] : undefined;
-  const { data: balance } = useBalance(
-    address && intent
-      ? { address, chainId, ...(isNativeETH ? {} : { token: tokenAddress }) }
-      : undefined
-  );
+  const { data: balance } = useBalance({
+    address: address,
+    chainId,
+    ...(isNativeETH || !tokenAddress ? {} : { token: tokenAddress }),
+    query: { enabled: !!address && !!intent },
+  });
 
   // 计算实际 swap 数量（处理 max/percentage）— 必须在 insufficientBalance 之前
   const resolvedAmount = (() => {
@@ -275,7 +289,7 @@ export default function PreviewPage() {
         <div className="flex items-center justify-between px-1">
           <p className="text-stone-600 text-xs">
             {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "Balance: —"}
-            {" · "}Chain: {chainId === 1 ? "Mainnet" : chainId === 59144 ? "Linea" : chainId === 42161 ? "Arbitrum" : chainId}
+            {" · "}{CHAIN_NAMES[chainId] ?? `Chain ${chainId}`}
           </p>
           {isConnected && (
             <button
@@ -287,6 +301,22 @@ export default function PreviewPage() {
           )}
         </div>
 
+        {/* 链不匹配提示 */}
+        {isWrongChain && preferredChainId && (
+          <div className="flex items-center justify-between bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3">
+            <p className="text-amber-400/80 text-xs">
+              Your {intent?.fromToken} is on {CHAIN_NAMES[preferredChainId]}
+            </p>
+            <button
+              onClick={() => switchChain({ chainId: preferredChainId })}
+              disabled={isSwitching}
+              className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors"
+            >
+              {isSwitching ? "Switching..." : `Switch →`}
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={() => router.push("/")}
@@ -297,10 +327,10 @@ export default function PreviewPage() {
           {isConnected ? (
             <button
               onClick={handleConfirm}
-              disabled={insufficientBalance}
+              disabled={insufficientBalance || isWrongChain}
               className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
             >
-              {insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
+              {isWrongChain ? "Wrong network" : insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
             </button>
           ) : (
             <div className="flex-1">

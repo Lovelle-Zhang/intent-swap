@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http, fallback, encodeFunctionData, parseUnits, formatUnits } from "viem";
-import { arbitrum, linea } from "viem/chains";
+import { arbitrum, linea, mainnet } from "viem/chains";
 
 // ─── 链配置 ────────────────────────────────────────────────────────────────
 
@@ -10,6 +10,20 @@ const CHAIN_CONFIG: Record<number, {
   tokens: Record<string, `0x${string}`>;
   rpcUrls: string[];
 }> = {
+  // Ethereum Mainnet
+  1: {
+    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    tokens: {
+      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    },
+    rpcUrls: ["https://eth.llamarpc.com", "https://ethereum.publicnode.com", "https://rpc.ankr.com/eth"],
+  },
   // Arbitrum One
   42161: {
     quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
@@ -41,7 +55,7 @@ const CHAIN_CONFIG: Record<number, {
   },
 };
 
-const DEFAULT_CHAIN_ID = 59144; // Linea 作为默认（用户资产在这里）
+const DEFAULT_CHAIN_ID = 1; // Ethereum Mainnet 作为默认
 
 const DECIMALS: Record<string, number> = {
   ETH: 18, WETH: 18, USDC: 6, USDT: 6, DAI: 18, WBTC: 8, ARB: 18,
@@ -53,7 +67,9 @@ function getChainConfig(chainId?: number) {
 }
 
 function getViemChain(chainId: number) {
-  return chainId === 42161 ? arbitrum : linea;
+  if (chainId === 42161) return arbitrum;
+  if (chainId === 59144) return linea;
+  return mainnet;
 }
 
 function resolveToken(symbol: string, tokens: Record<string, `0x${string}`>): `0x${string}` {
@@ -62,19 +78,21 @@ function resolveToken(symbol: string, tokens: Record<string, `0x${string}`>): `0
 }
 
 // DeFiLlama 价格估算（无 API key，无速率限制）
-async function getPriceQuote(fromToken: string, toToken: string, amount: number): Promise<string | null> {
+async function getPriceQuote(fromToken: string, toToken: string, amount: number, chainId: number): Promise<string | null> {
   try {
-    const fromAddr = fromToken === "ETH" ? TOKEN_ADDRESSES["WETH"] : TOKEN_ADDRESSES[fromToken];
-    const toAddr = toToken === "ETH" ? TOKEN_ADDRESSES["WETH"] : TOKEN_ADDRESSES[toToken];
+    const chainTokens = CHAIN_CONFIG[chainId]?.tokens ?? CHAIN_CONFIG[1].tokens;
+    const fromAddr = fromToken === "ETH" ? chainTokens["WETH"] : chainTokens[fromToken];
+    const toAddr = toToken === "ETH" ? chainTokens["WETH"] : chainTokens[toToken];
     if (!fromAddr || !toAddr) return null;
 
-    const url = `https://coins.llama.fi/prices/current/arbitrum:${fromAddr},arbitrum:${toAddr}`;
+    const chainSlug = chainId === 42161 ? "arbitrum" : chainId === 59144 ? "linea" : "ethereum";
+    const url = `https://coins.llama.fi/prices/current/${chainSlug}:${fromAddr},${chainSlug}:${toAddr}`;
     const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
 
-    const fromPrice = data.coins[`arbitrum:${fromAddr}`]?.price;
-    const toPrice = data.coins[`arbitrum:${toAddr}`]?.price;
+    const fromPrice = data.coins[`${chainSlug}:${fromAddr}`]?.price;
+    const toPrice = data.coins[`${chainSlug}:${toAddr}`]?.price;
     if (!fromPrice || !toPrice) return null;
 
     return ((amount * fromPrice) / toPrice).toFixed(6);
@@ -152,9 +170,9 @@ export async function POST(req: NextRequest) {
     const decimalsOut = DECIMALS[toToken] ?? 18;
     const amountIn = parseUnits(String(amount), decimalsIn);
 
-    // quoteOnly: 先用 CoinGecko 快速估算，失败再尝试链上
+    // quoteOnly: 先用 DeFiLlama 快速估算，失败再尝试链上
     if (quoteOnly) {
-      const priceQuote = await getPriceQuote(fromToken, toToken, amount);
+      const priceQuote = await getPriceQuote(fromToken, toToken, amount, chain.id);
       if (priceQuote) {
         return NextResponse.json({ amountOut: priceQuote, toToken, fromToken, source: "price" });
       }

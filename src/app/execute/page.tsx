@@ -85,7 +85,7 @@ export default function ExecutePage() {
   const router = useRouter();
   const { address } = useAccount();
   const chainId = useChainId();
-  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[59144];
+  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[1];
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
@@ -94,20 +94,15 @@ export default function ExecutePage() {
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
 
   // 读取 allowance
-  const SWAP_ROUTER_ADDR = chainId === 42161
-    ? "0xE592427A0AEce92De3Edee1F18E0157C05861564"
-    : "0xE592427A0AEce92De3Edee1F18E0157C05861564"; // Linea 上 Uniswap V3 router 地址相同
+  const SWAP_ROUTER_ADDR = "0xE592427A0AEce92De3Edee1F18E0157C05861564" as const;
   const tokenAddress = intent ? chainTokens[intent.fromToken] : undefined;
-  const { data: allowance } = useReadContract(
-    tokenAddress && address
-      ? {
-          address: tokenAddress,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [address, SWAP_ROUTER_ADDR],
-        }
-      : undefined
-  );
+  const { data: allowance } = useReadContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: address && tokenAddress ? [address, SWAP_ROUTER_ADDR] : undefined,
+    query: { enabled: !!address && !!tokenAddress },
+  });
 
   // approve 确认后继续 swap
   useEffect(() => {
