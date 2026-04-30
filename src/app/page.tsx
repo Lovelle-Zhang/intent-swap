@@ -1,13 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -37,11 +34,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Link href="/history" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">History</Link>
-          {mounted ? (
-            <ConnectButton showBalance={false} chainStatus="none" accountStatus="full" />
-          ) : (
-            <div className="w-24 h-8 rounded-xl bg-stone-800/60 animate-pulse" />
-          )}
+          <WalletButton />
         </div>
       </header>
 

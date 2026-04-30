@@ -10,6 +10,7 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
   useWriteContract,
+  useChainId,
 } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
@@ -26,14 +27,23 @@ type Status =
   | "success"
   | "error";
 
-// ERC20 token addresses on Arbitrum
-const TOKEN_ADDRESSES: Record<string, `0x${string}`> = {
-  USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-  USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-  DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-  WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-  ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
-  WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+// ERC20 token addresses by chainId
+const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
+  42161: { // Arbitrum
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+    ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
+    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+  },
+  59144: { // Linea
+    USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+    USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+    DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
+    WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
+    WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
+  },
 };
 
 const TOKEN_DECIMALS: Record<string, number> = {
@@ -64,11 +74,12 @@ export default function ExecutePage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
-  const [gasInfo, setGasInfo] = useState<{ costETH: string; costUSD: string } | null>(null);
   const [amountOut, setAmountOut] = useState<string>("");
   const recordedRef = useRef(false);
   const router = useRouter();
   const { address } = useAccount();
+  const chainId = useChainId();
+  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[59144];
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
@@ -77,14 +88,17 @@ export default function ExecutePage() {
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
 
   // 读取 allowance
-  const tokenAddress = intent ? TOKEN_ADDRESSES[intent.fromToken] : undefined;
+  const SWAP_ROUTER_ADDR = chainId === 42161
+    ? "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    : "0xE592427A0AEce92De3Edee1F18E0157C05861564"; // Linea 上 Uniswap V3 router 地址相同
+  const tokenAddress = intent ? chainTokens[intent.fromToken] : undefined;
   const { data: allowance } = useReadContract(
     tokenAddress && address
       ? {
           address: tokenAddress,
           abi: ERC20_ABI,
           functionName: "allowance",
-          args: [address, SWAP_ROUTER],
+          args: [address, SWAP_ROUTER_ADDR],
         }
       : undefined
   );
@@ -109,12 +123,11 @@ export default function ExecutePage() {
         amount: intent.amount ?? 0,
         amountOut,
         txHash: swapTxHash,
-        gasCostUSD: gasInfo?.costUSD,
         summary: intent.summary,
       });
     }
     if (swapError) { setStatus("error"); setErrorMsg("Transaction failed on-chain."); }
-  }, [swapSuccess, swapError, intent, swapTxHash, amountOut, gasInfo]);
+  }, [swapSuccess, swapError, intent, swapTxHash, amountOut]);
 
   useEffect(() => {
     if (swapTxHash) setStatus("confirming");
@@ -133,15 +146,12 @@ export default function ExecutePage() {
           amount: parsed.amount ?? 0.01,
           slippagePref: parsed.slippagePref,
           walletAddress: address,
+          chainId,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Quote failed");
 
-      // 保存 gas 信息
-      if (data.gas) {
-        setGasInfo({ costETH: data.gas.costETH, costUSD: data.gas.costUSD });
-      }
       if (data.amountOut) setAmountOut(data.amountOut);
 
       setStatus("signing");
@@ -150,7 +160,6 @@ export default function ExecutePage() {
           to: data.tx.to,
           data: data.tx.data,
           value: BigInt(data.tx.value ?? 0),
-          gas: BigInt(data.tx.gas ?? 0),
         },
         {
           onError: (err) => {
@@ -271,7 +280,7 @@ export default function ExecutePage() {
               <div className="flex justify-between">
                 <span className="text-stone-600 text-xs uppercase tracking-wider">Tx Hash</span>
                 <a
-                  href={`https://arbiscan.io/tx/${swapTxHash}`}
+                  href={`${chainId === 59144 ? "https://lineascan.build" : "https://arbiscan.io"}/tx/${swapTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gold-500/80 hover:text-gold-400 font-mono text-xs"
@@ -283,12 +292,6 @@ export default function ExecutePage() {
                 <span className="text-stone-600 text-xs uppercase tracking-wider">Status</span>
                 <span className="text-green-400/80 text-xs">Confirmed</span>
               </div>
-              {gasInfo && (
-                <div className="flex justify-between">
-                  <span className="text-stone-600 text-xs uppercase tracking-wider">Gas paid</span>
-                  <span className="text-stone-500 text-xs">{parseFloat(gasInfo.costETH).toFixed(6)} ETH {gasInfo.costUSD !== "0" && `(~$${gasInfo.costUSD})`}</span>
-                </div>
-              )}
             </div>
             <Link href="/" className="block py-2.5 text-stone-600 hover:text-stone-400 text-sm transition-colors">
               New swap →

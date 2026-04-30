@@ -106,8 +106,9 @@ Return ONLY valid JSON with this exact schema:
 }
 
 Rules:
-- If amount is "all", "max", "全部": amountType="max", amount=100
+- If amount is "all", "max", "全部", "所有", "全", "everything": amountType="max", amount=null (NOT 100)
 - If amount is "half", "一半", "50%": amountType="percentage", amount=50
+- IMPORTANT: When amountType="max", always set amount=null, never set amount=100
 - If a price condition is mentioned (when/if ETH drops below $X): intentType="conditional"
 - For Chinese input, write summary in Chinese
 - Default slippagePref to "normal" unless explicitly mentioned

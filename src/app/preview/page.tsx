@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount, useBalance, useChainId, useDisconnect } from "wagmi";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
-const TOKEN_ADDRESSES: Record<string, `0x${string}`> = {
-  USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-  USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-  DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-  WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-  ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
-  WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
+  42161: { // Arbitrum
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+    WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+    ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
+    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+  },
+  59144: { // Linea
+    USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+    USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+    DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
+    WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
+    WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
+  },
 };
 
 export interface ParsedIntent {
@@ -40,13 +49,16 @@ export default function PreviewPage() {
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { disconnect } = useDisconnect();
 
-  // 余额查询
+  // 余额查询 — 等 intent 加载后再查，避免 tokenAddress 为 undefined 时误查 ETH
   const isNativeETH = intent?.fromToken === "ETH";
-  const tokenAddress = intent ? TOKEN_ADDRESSES[intent.fromToken] : undefined;
+  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[59144];
+  const tokenAddress = intent ? chainTokens[intent.fromToken] : undefined;
   const { data: balance } = useBalance(
-    address
-      ? { address, ...(isNativeETH ? {} : { token: tokenAddress }) }
+    address && intent
+      ? { address, chainId, ...(isNativeETH ? {} : { token: tokenAddress }) }
       : undefined
   );
 
@@ -54,17 +66,22 @@ export default function PreviewPage() {
   const resolvedAmount = (() => {
     if (!intent) return null;
     const bal = balance ? Number(balance.formatted) : null;
-    if (intent.amountType === "max" && bal !== null) {
+    if (intent.amountType === "max") {
+      if (bal === null) return null;
       return intent.fromToken === "ETH" ? Math.max(0, bal - 0.005) : bal;
     }
     if (intent.amountType === "percentage" && bal !== null && intent.amount !== null) {
       return (bal * intent.amount) / 100;
     }
+    // 如果 amount 远大于余额（超过余额10倍），认为是 LLM 误解析的 max
+    if (intent.amount !== null && bal !== null && intent.amount > bal * 10) {
+      return intent.fromToken === "ETH" ? Math.max(0, bal - 0.005) : bal;
+    }
     return intent.amount;
   })();
 
   const insufficientBalance =
-    balance && resolvedAmount
+    balance !== undefined && resolvedAmount !== null && resolvedAmount > 0
       ? Number(balance.formatted) < resolvedAmount
       : false;
 
@@ -91,6 +108,7 @@ export default function PreviewPage() {
         slippagePref,
         walletAddress: "0x0000000000000000000000000000000000000001",
         quoteOnly: true,
+        chainId,
       }),
     })
       .then((r) => r.json())
@@ -214,6 +232,7 @@ export default function PreviewPage() {
           quoteLoading={quoteLoading}
           balance={balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : undefined}
           resolvedAmount={resolvedAmount}
+          chainId={chainId}
         />
 
         {/* 滑点调节 */}
@@ -234,6 +253,22 @@ export default function PreviewPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 链状态 + 断开重连 */}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-stone-600 text-xs">
+            {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "Balance: —"}
+            {" · "}Chain: {chainId === 59144 ? "Linea" : chainId === 42161 ? "Arbitrum" : chainId}
+          </p>
+          {isConnected && (
+            <button
+              onClick={() => disconnect()}
+              className="text-stone-700 hover:text-stone-500 text-xs transition-colors"
+            >
+              Disconnect ↺
+            </button>
+          )}
         </div>
 
         <div className="flex gap-3">

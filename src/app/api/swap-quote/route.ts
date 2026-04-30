@@ -1,32 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http, fallback, encodeFunctionData, parseUnits, formatUnits } from "viem";
-import { arbitrum } from "viem/chains";
+import { arbitrum, linea } from "viem/chains";
 
-const QUOTER_V2 = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e";
-const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+// ─── 链配置 ────────────────────────────────────────────────────────────────
 
-const TOKEN_ADDRESSES: Record<string, `0x${string}`> = {
-  ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-  WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-  USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-  DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-  WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-  ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
+const CHAIN_CONFIG: Record<number, {
+  quoter: `0x${string}`;
+  router: `0x${string}`;
+  tokens: Record<string, `0x${string}`>;
+  rpcUrls: string[];
+}> = {
+  // Arbitrum One
+  42161: {
+    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    tokens: {
+      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+      USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+      ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
+    },
+    rpcUrls: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com", "https://arbitrum.llamarpc.com"],
+  },
+  // Linea Mainnet
+  59144: {
+    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    tokens: {
+      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
+      USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
+      WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
+    },
+    rpcUrls: ["https://rpc.linea.build", "https://linea.drpc.org"],
+  },
 };
+
+const DEFAULT_CHAIN_ID = 59144; // Linea 作为默认（用户资产在这里）
 
 const DECIMALS: Record<string, number> = {
   ETH: 18, WETH: 18, USDC: 6, USDT: 6, DAI: 18, WBTC: 8, ARB: 18,
 };
 
-const COINGECKO_IDS: Record<string, string> = {
-  ETH: "ethereum", WETH: "weth", USDC: "usd-coin", USDT: "tether",
-  DAI: "dai", WBTC: "wrapped-bitcoin", ARB: "arbitrum",
-};
+function getChainConfig(chainId?: number) {
+  const id = chainId ?? DEFAULT_CHAIN_ID;
+  return { id, ...CHAIN_CONFIG[id] ?? CHAIN_CONFIG[DEFAULT_CHAIN_ID] };
+}
 
-function resolveToken(symbol: string): `0x${string}` {
-  if (symbol === "ETH") return TOKEN_ADDRESSES["WETH"];
-  return TOKEN_ADDRESSES[symbol];
+function getViemChain(chainId: number) {
+  return chainId === 42161 ? arbitrum : linea;
+}
+
+function resolveToken(symbol: string, tokens: Record<string, `0x${string}`>): `0x${string}` {
+  if (symbol === "ETH") return tokens["WETH"];
+  return tokens[symbol];
 }
 
 // DeFiLlama 价格估算（无 API key，无速率限制）
@@ -101,13 +133,20 @@ const FEE_TIERS = [500, 3000, 10000];
 
 export async function POST(req: NextRequest) {
   try {
-    const { fromToken, toToken, amount, slippagePref, walletAddress, quoteOnly } = await req.json();
+    const { fromToken, toToken, amount, slippagePref, walletAddress, quoteOnly, chainId: reqChainId } = await req.json();
 
-    const tokenIn = resolveToken(fromToken);
-    const tokenOut = resolveToken(toToken);
+    const chain = getChainConfig(reqChainId);
+    const tokenIn = resolveToken(fromToken, chain.tokens);
+    const tokenOut = resolveToken(toToken, chain.tokens);
     if (!tokenIn || !tokenOut) {
       return NextResponse.json({ error: "Unsupported token" }, { status: 400 });
     }
+
+    // 动态创建对应链的 client
+    const chainClient = createPublicClient({
+      chain: getViemChain(chain.id),
+      transport: fallback(chain.rpcUrls.map((url) => http(url))),
+    });
 
     const decimalsIn = DECIMALS[fromToken] ?? 18;
     const decimalsOut = DECIMALS[toToken] ?? 18;
@@ -127,8 +166,8 @@ export async function POST(req: NextRequest) {
 
     for (const fee of FEE_TIERS) {
       try {
-        const result = await client.simulateContract({
-          address: QUOTER_V2,
+        const result = await chainClient.simulateContract({
+          address: chain.quoter,
           abi: QUOTER_ABI,
           functionName: "quoteExactInputSingle",
           args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: BigInt(0) }],
@@ -161,36 +200,11 @@ export async function POST(req: NextRequest) {
       args: [{ tokenIn, tokenOut, fee: bestFee, recipient: walletAddress as `0x${string}`, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96: BigInt(0) }],
     });
 
-    // Gas 估算
-    let gasEstimate = BigInt(0);
-    let gasCostETH = "0";
-    let gasCostUSD = "0";
-    try {
-      gasEstimate = await client.estimateGas({
-        account: walletAddress as `0x${string}`,
-        to: SWAP_ROUTER,
-        data: calldata,
-        value: fromToken === "ETH" ? amountIn : BigInt(0),
-      });
-      const gasPrice = await client.getGasPrice();
-      const gasCost = gasEstimate * gasPrice;
-      gasCostETH = formatUnits(gasCost, 18);
-      
-      // 拉 ETH 价格转 USD
-      const ethPriceRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-      const ethPriceData = await ethPriceRes.json();
-      const ethPrice = ethPriceData.ethereum?.usd ?? 0;
-      gasCostUSD = (parseFloat(gasCostETH) * ethPrice).toFixed(2);
-    } catch {
-      // gas 估算失败不影响报价
-    }
-
     return NextResponse.json({
-      tx: { to: SWAP_ROUTER, data: calldata, value: fromToken === "ETH" ? amountIn.toString() : "0", gas: gasEstimate.toString() },
+      tx: { to: chain.router, data: calldata, value: fromToken === "ETH" ? amountIn.toString() : "0" },
       amountOut: formatUnits(bestAmountOut, decimalsOut),
       toAmount: formatUnits(bestAmountOut, decimalsOut),
-      toToken, fromToken, fee: bestFee,
-      gas: { estimate: gasEstimate.toString(), costETH: gasCostETH, costUSD: gasCostUSD },
+      toToken, fromToken, fee: bestFee, chainId: chain.id,
     });
   } catch (err) {
     console.error("swap-quote error:", err);

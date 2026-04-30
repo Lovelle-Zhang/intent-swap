@@ -43,7 +43,7 @@ body::after {
 }
 
 /* 确保内容在噪点上方 */
-#__next, main, header, footer { position: relative; z-index: 1; }
+main, footer { position: relative; z-index: 1; }
 
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -57,8 +57,8 @@ body::after {
   --rk-colors-modalBorder: rgba(168,162,158,0.1) !important;
   --rk-colors-modalText: #e7e5e4 !important;
   --rk-colors-modalTextSecondary: #78716c !important;
-  --rk-colors-connectButtonBackground: #1c1917 !important;
-  --rk-colors-connectButtonText: #a8a29e !important;
+  --rk-colors-connectButtonBackground: #292524 !important;
+  --rk-colors-connectButtonText: #e7e5e4 !important;
 }
 
 @keyframes fadeIn {

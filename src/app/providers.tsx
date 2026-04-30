@@ -1,16 +1,14 @@
 "use client";
 
-import "@rainbow-me/rainbowkit/styles.css";
 import { RainbowKitProvider, getDefaultConfig, darkTheme } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
-import { arbitrum } from "wagmi/chains";
+import { arbitrum, linea } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const config = getDefaultConfig({
   appName: "Intent Swap",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo",
-  chains: [arbitrum],
-  ssr: true,
+  chains: [linea, arbitrum],
 });
 
 const queryClient = new QueryClient();
