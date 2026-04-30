@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useBalance, useChainId, useDisconnect } from "wagmi";
+import { useAccount, useBalance, useChainId, useDisconnect, useSwitchChain } from "wagmi";
+import { linea } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
@@ -51,6 +52,14 @@ export default function PreviewPage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { disconnect } = useDisconnect();
+  const { switchChain } = useSwitchChain();
+
+  // 连接后自动切换到 Linea
+  useEffect(() => {
+    if (isConnected && chainId !== linea.id) {
+      switchChain({ chainId: linea.id });
+    }
+  }, [isConnected, chainId, switchChain]);
 
   // 余额查询 — 等 intent 加载后再查，避免 tokenAddress 为 undefined 时误查 ETH
   const isNativeETH = intent?.fromToken === "ETH";
