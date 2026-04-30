@@ -22,7 +22,7 @@ const CHAIN_CONFIG: Record<number, {
       DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
       WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
     },
-    rpcUrls: ["https://eth.llamarpc.com", "https://ethereum.publicnode.com", "https://rpc.ankr.com/eth"],
+    rpcUrls: ["https://rpc.ankr.com/eth", "https://ethereum.publicnode.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"],
   },
   // Arbitrum One
   42161: {

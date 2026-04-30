@@ -11,7 +11,7 @@ const config = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo",
   chains: [mainnet, linea, arbitrum],
   transports: {
-    [mainnet.id]: http("https://eth.llamarpc.com"),
+    [mainnet.id]: http("https://cloudflare-eth.com"),
     [linea.id]: http("https://rpc.linea.build"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
   },
