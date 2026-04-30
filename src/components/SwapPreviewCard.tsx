@@ -32,7 +32,7 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
   const fromIcon = TOKEN_ICONS[intent.fromToken] ?? "?";
   const toIcon = TOKEN_ICONS[intent.toToken] ?? "?";
 
-  const routeLabel = chainId === 59144 ? "Izumi Finance · Linea" : "Uniswap V3 · Arbitrum";
+  const routeLabel = chainId === 59144 ? "Izumi Finance · Linea" : chainId === 1 ? "Uniswap V3 · Mainnet" : "Uniswap V3 · Arbitrum";
 
   const amountDisplay =
     resolvedAmount !== null && resolvedAmount !== undefined

@@ -27,8 +27,14 @@ type Status =
   | "success"
   | "error";
 
-// ERC20 token addresses by chainId
 const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
+  1: { // Ethereum Mainnet
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  },
   42161: { // Arbitrum
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -280,7 +286,7 @@ export default function ExecutePage() {
               <div className="flex justify-between">
                 <span className="text-stone-600 text-xs uppercase tracking-wider">Tx Hash</span>
                 <a
-                  href={`${chainId === 59144 ? "https://lineascan.build" : "https://arbiscan.io"}/tx/${swapTxHash}`}
+                  href={`${chainId === 59144 ? "https://lineascan.build" : chainId === 1 ? "https://etherscan.io" : "https://arbiscan.io"}/tx/${swapTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gold-500/80 hover:text-gold-400 font-mono text-xs"

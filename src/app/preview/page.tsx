@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useBalance, useChainId, useDisconnect, useSwitchChain } from "wagmi";
-import { linea } from "wagmi/chains";
+import { mainnet } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
+  1: { // Ethereum Mainnet
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  },
   42161: { // Arbitrum
     USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -54,10 +61,10 @@ export default function PreviewPage() {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
 
-  // 连接后自动切换到 Linea
+  // 连接后自动切换到主网
   useEffect(() => {
-    if (isConnected && chainId !== linea.id) {
-      switchChain({ chainId: linea.id });
+    if (isConnected && chainId !== mainnet.id) {
+      switchChain({ chainId: mainnet.id });
     }
   }, [isConnected, chainId, switchChain]);
 
@@ -268,7 +275,7 @@ export default function PreviewPage() {
         <div className="flex items-center justify-between px-1">
           <p className="text-stone-600 text-xs">
             {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : "Balance: —"}
-            {" · "}Chain: {chainId === 59144 ? "Linea" : chainId === 42161 ? "Arbitrum" : chainId}
+            {" · "}Chain: {chainId === 1 ? "Mainnet" : chainId === 59144 ? "Linea" : chainId === 42161 ? "Arbitrum" : chainId}
           </p>
           {isConnected && (
             <button
