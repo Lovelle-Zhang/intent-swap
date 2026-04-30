@@ -246,14 +246,14 @@ export default function PreviewPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 animate-fade-in">
+    <main className="min-h-screen flex flex-col items-center px-4 py-8 animate-fade-in">
       <div className="w-full max-w-md space-y-6">
         {/* 顶部钱包按钮 */}
         <div className="flex justify-end">
           <ConnectButton />
         </div>
 
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-1 pt-4">
           <p className="text-stone-500 text-xs tracking-widest uppercase">Review your swap</p>
           <p className="text-stone-400 text-sm italic">"{intent.raw}"</p>
         </div>
