@@ -49,6 +49,11 @@ export default function Home() {
             </Link>
           </div>
           
+          {/* 桌面端：钱包按钮 */}
+          <div className="hidden md:block">
+            <WalletButton />
+          </div>
+
           {/* 移动端：汉堡菜单 */}
           <div className="md:hidden relative">
             <button 
@@ -61,7 +66,7 @@ export default function Home() {
             </button>
             {/* 下拉菜单 */}
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[120px] py-2 z-50">
+              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[160px] py-2 z-50">
                 <Link 
                   href="/history" 
                   onClick={() => setMenuOpen(false)}
@@ -76,11 +81,13 @@ export default function Home() {
                 >
                   Orders
                 </Link>
+                <div className="border-t border-stone-800 my-2" />
+                <div className="px-4 py-2">
+                  <WalletButton />
+                </div>
               </div>
             )}
           </div>
-
-          <WalletButton />
         </div>
       </header>
 
