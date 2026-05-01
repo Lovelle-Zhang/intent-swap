@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 
 export default function Home() {
+  const [mode, setMode] = useState<"swap" | "conditional">("swap");
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -34,6 +36,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Link href="/history" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">History</Link>
+          <Link href="/orders" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">Orders</Link>
           <WalletButton />
         </div>
       </header>
@@ -63,8 +66,32 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Tab 切换 */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <button
+              onClick={() => setMode("swap")}
+              className={`px-6 py-2 rounded-lg text-sm transition-all duration-200 ${
+                mode === "swap"
+                  ? "bg-stone-800 text-stone-200 border border-stone-700"
+                  : "text-stone-600 hover:text-stone-400"
+              }`}
+            >
+              Instant Swap
+            </button>
+            <button
+              onClick={() => setMode("conditional")}
+              className={`px-6 py-2 rounded-lg text-sm transition-all duration-200 ${
+                mode === "conditional"
+                  ? "bg-stone-800 text-stone-200 border border-stone-700"
+                  : "text-stone-600 hover:text-stone-400"
+              }`}
+            >
+              Conditional Order
+            </button>
+          </div>
+
           {/* 输入区 */}
-          <IntentInput />
+          <IntentInput mode={mode} />
 
           {/* 底部特性 */}
           <div className="mt-12 flex items-center justify-center gap-8">

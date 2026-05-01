@@ -3,18 +3,33 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const EXAMPLES = [
+const SWAP_EXAMPLES = [
   "Swap 0.1 ETH to USDC",
-  "When ETH drops to 3000, buy 0.1 ETH",
   "500 USDC to ARB, low slippage",
+  "Convert all my DAI to WETH",
 ];
 
-export function IntentInput() {
+const CONDITIONAL_EXAMPLES = [
+  "When ETH drops to 3000, buy 0.1 ETH",
+  "If BTC goes above 100k, sell 0.01 WBTC",
+  "Alert me when USDC/ETH reaches 0.0003",
+];
+
+interface IntentInputProps {
+  mode: "swap" | "conditional";
+}
+
+export function IntentInput({ mode }: IntentInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
   const router = useRouter();
+
+  const examples = mode === "swap" ? SWAP_EXAMPLES : CONDITIONAL_EXAMPLES;
+  const placeholder = mode === "swap" 
+    ? "Describe your swap intent..." 
+    : "Set a price condition (e.g., when ETH drops to $3000...)";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +73,7 @@ export function IntentInput() {
               onChange={(e) => setValue(e.target.value)}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Describe your swap intent..."
+              placeholder={placeholder}
               rows={3}
               className="w-full bg-transparent text-stone-200 placeholder-stone-700 resize-none focus:outline-none text-base leading-relaxed font-light"
               onKeyDown={(e) => {
@@ -97,7 +112,7 @@ export function IntentInput() {
       </form>
 
       <div className="flex flex-wrap gap-2">
-        {EXAMPLES.map((ex) => (
+        {examples.map((ex) => (
           <button
             key={ex}
             onClick={() => setValue(ex)}

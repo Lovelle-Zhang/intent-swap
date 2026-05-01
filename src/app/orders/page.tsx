@@ -3,49 +3,133 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-interface Order {
-  id: number;
-  createdAt: string;
-  raw: string;
+interface ConditionalOrder {
+  id: string;
+  email: string;
   fromToken: string;
   toToken: string;
-  amount: number | null;
-  condition: { token: string; operator: "above" | "below"; targetPrice: number };
-  summary: string;
-  status: "active" | "triggered" | "cancelled";
+  amount: number;
+  condition: {
+    token: string;
+    operator: "above" | "below";
+    targetPrice: number;
+  };
+  status: "pending" | "triggered" | "cancelled";
+  createdAt: number;
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<ConditionalOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    setOrders(JSON.parse(localStorage.getItem("intent-orders") ?? "[]").reverse());
+    // 从 localStorage 读取用户邮箱
+    const savedEmail = localStorage.getItem("user-email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      fetchOrders(savedEmail);
+    } else {
+      setLoading(false);
+    }
   }, []);
 
-  function cancel(id: number) {
-    const updated = orders.map((o) => o.id === id ? { ...o, status: "cancelled" as const } : o);
-    setOrders(updated);
-    localStorage.setItem("intent-orders", JSON.stringify([...updated].reverse()));
+  const fetchOrders = async (userEmail: string) => {
+    try {
+      const res = await fetch(`https://api.o-sheepps.com/swap-orders?email=${encodeURIComponent(userEmail)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.orders ?? []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = async (orderId: string) => {
+    try {
+      await fetch(`https://api.o-sheepps.com/swap-orders/${orderId}`, {
+        method: "DELETE",
+      });
+      setOrders(orders.filter((o) => o.id !== orderId));
+    } catch {
+      // ignore
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="w-4 h-4 border-2 border-stone-700 border-t-gold-500 rounded-full animate-spin" />
+      </main>
+    );
+  }
+
+  if (!email) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <h1 className="text-stone-200 text-2xl font-light">Conditional Orders</h1>
+          <p className="text-stone-600 text-sm">
+            Enter your email to view your orders
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = (e.target as HTMLFormElement).email.value;
+              if (input) {
+                localStorage.setItem("user-email", input);
+                setEmail(input);
+                fetchOrders(input);
+              }
+            }}
+            className="space-y-3"
+          >
+            <input
+              type="email"
+              name="email"
+              placeholder="your@email.com"
+              required
+              className="w-full px-4 py-3 bg-stone-900/50 border border-stone-800 rounded-xl text-stone-200 placeholder-stone-700 focus:outline-none focus:border-gold-500/30"
+            />
+            <button
+              type="submit"
+              className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors"
+            >
+              View Orders
+            </button>
+          </form>
+          <Link href="/" className="block text-stone-600 hover:text-stone-400 text-sm transition-colors">
+            ← Back to home
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (
-    <main className="min-h-screen flex flex-col px-4 py-12 animate-fade-in">
-      <div className="w-full max-w-lg mx-auto space-y-6">
+    <main className="min-h-screen px-4 py-16">
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-stone-500 text-xs tracking-widest uppercase">My Orders</p>
-            <p className="text-stone-300 text-sm mt-0.5">{orders.filter(o => o.status === "active").length} active</p>
+            <h1 className="text-stone-200 text-2xl font-light mb-1">Conditional Orders</h1>
+            <p className="text-stone-600 text-sm">{email}</p>
           </div>
           <Link href="/" className="text-stone-600 hover:text-stone-400 text-sm transition-colors">
-            + New intent
+            ← Home
           </Link>
         </div>
 
+        {/* Orders List */}
         {orders.length === 0 ? (
           <div className="text-center py-16 space-y-2">
-            <p className="text-stone-700 text-sm">No orders yet</p>
-            <Link href="/" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">
-              Set your first conditional order →
+            <div className="text-stone-700 text-3xl">○</div>
+            <p className="text-stone-600 text-sm">No orders yet</p>
+            <Link href="/" className="inline-block text-gold-500/80 hover:text-gold-400 text-sm transition-colors">
+              Create your first order →
             </Link>
           </div>
         ) : (
@@ -53,34 +137,52 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-stone-900/30 border rounded-xl px-5 py-4 space-y-3 transition-opacity ${
-                  order.status === "cancelled" ? "border-stone-800/30 opacity-40" : "border-stone-800/60"
-                }`}
+                className="bg-stone-900/40 border border-stone-800/60 rounded-xl p-5 space-y-3"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-stone-300 text-sm leading-relaxed">{order.summary}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
-                    order.status === "active" ? "bg-green-500/10 text-green-400/70"
-                    : order.status === "triggered" ? "bg-gold-500/10 text-gold-400/70"
-                    : "bg-stone-800 text-stone-600"
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-stone-700 text-xs">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                  {order.status === "active" && (
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-stone-200 font-medium">
+                        {order.fromToken} → {order.toToken}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          order.status === "pending"
+                            ? "bg-stone-800 text-stone-400"
+                            : order.status === "triggered"
+                            ? "bg-green-900/30 text-green-400"
+                            : "bg-stone-900 text-stone-600"
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="text-stone-600 text-sm">
+                      Amount: {order.amount} {order.fromToken}
+                    </p>
+                  </div>
+                  {order.status === "pending" && (
                     <button
-                      onClick={() => cancel(order.id)}
-                      className="text-stone-700 hover:text-stone-500 text-xs transition-colors"
+                      onClick={() => handleCancel(order.id)}
+                      className="text-stone-600 hover:text-red-400 text-xs transition-colors"
                     >
                       Cancel
                     </button>
                   )}
                 </div>
+
+                <div className="bg-stone-900/60 rounded-lg px-3 py-2 text-sm">
+                  <span className="text-stone-500">Condition: </span>
+                  <span className="text-stone-300">
+                    When {order.condition.token} goes{" "}
+                    {order.condition.operator === "below" ? "below" : "above"} $
+                    {order.condition.targetPrice.toLocaleString()}
+                  </span>
+                </div>
+
+                <p className="text-stone-700 text-xs">
+                  Created {new Date(order.createdAt).toLocaleString()}
+                </p>
               </div>
             ))}
           </div>
