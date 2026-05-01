@@ -251,6 +251,7 @@ export default function PreviewPage() {
           balance={balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : undefined}
           resolvedAmount={resolvedAmount}
           chainId={TARGET_CHAIN_ID}
+          gasEstimate={gasEstimate}
         />
 
         {/* 滑点调节 */}
