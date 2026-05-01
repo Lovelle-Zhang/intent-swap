@@ -83,6 +83,8 @@ export async function POST(req: NextRequest) {
     const { taskId } = await automate.createTask({
       execAddress: SWAP_ROUTER,
       execData: calldata,
+      execSelector: calldata.slice(0, 10) as `0x${string}`, // 函数选择器（前 4 字节）
+      dedicatedMsgSender: true,
       name: `Swap ${fromToken} to ${toToken}`,
       // 实际应该用 Gelato 的 Resolver 检查价格条件
       // 这里简化为定时检查（每小时）
