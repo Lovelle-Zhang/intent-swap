@@ -52,6 +52,7 @@ export default function PreviewPage() {
   const [slippagePref, setSlippagePref] = useState<"low" | "normal" | "high">("normal");
   const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [gasEstimate, setGasEstimate] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [orderSubmitted, setOrderSubmitted] = useState(false);
   const [orderSubmitting, setOrderSubmitting] = useState(false);
@@ -109,6 +110,8 @@ export default function PreviewPage() {
     if (!intent || !resolvedAmount || intent.fromToken === intent.toToken) return;
     setQuoteLoading(true);
     setQuote(null);
+    setGasEstimate(null);
+    
     fetch("/api/swap-quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,7 +120,7 @@ export default function PreviewPage() {
         toToken: intent.toToken,
         amount: resolvedAmount,
         slippagePref,
-        walletAddress: "0x0000000000000000000000000000000000000001",
+        walletAddress: address ?? "0x0000000000000000000000000000000000000001",
         quoteOnly: true,
         chainId: TARGET_CHAIN_ID,
       }),
@@ -127,10 +130,19 @@ export default function PreviewPage() {
         if (data.amountOut || data.toAmount) {
           setQuote({ amountOut: data.amountOut ?? data.toAmount });
         }
+        // Gas 估算（简化版：根据链和操作类型估算）
+        if (address) {
+          const isNative = intent.fromToken === "ETH";
+          const baseGas = isNative ? 21000 : 65000; // native transfer vs ERC20 swap
+          const gasPrice = TARGET_CHAIN_ID === 42161 ? 0.1 : TARGET_CHAIN_ID === 59144 ? 0.05 : 30; // Gwei
+          const ethPrice = 3500; // 简化：固定 ETH 价格
+          const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
+          setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
+        }
       })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
-  }, [intent, slippagePref, resolvedAmount]);
+  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID]);
 
   if (!intent) return null;
 
