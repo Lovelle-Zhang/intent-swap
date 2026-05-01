@@ -7,6 +7,7 @@ import { IntentInput } from "@/components/IntentInput";
 
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -49,21 +50,34 @@ export default function Home() {
           </div>
           
           {/* 移动端：汉堡菜单 */}
-          <div className="md:hidden relative group">
-            <button className="text-stone-600 hover:text-stone-400 text-xs p-2">
+          <div className="md:hidden relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-stone-600 hover:text-stone-400 text-xs p-2"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             {/* 下拉菜单 */}
-            <div className="hidden group-hover:block absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[120px] py-2">
-              <Link href="/history" className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors">
-                History
-              </Link>
-              <Link href="/orders" className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors">
-                Orders
-              </Link>
-            </div>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[120px] py-2 z-50">
+                <Link 
+                  href="/history" 
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
+                >
+                  History
+                </Link>
+                <Link 
+                  href="/orders" 
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
+                >
+                  Orders
+                </Link>
+              </div>
+            )}
           </div>
 
           <WalletButton />
