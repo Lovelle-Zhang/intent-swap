@@ -134,7 +134,8 @@ export default function PreviewPage() {
         if (address) {
           const isNative = intent.fromToken === "ETH";
           const baseGas = isNative ? 21000 : 65000; // native transfer vs ERC20 swap
-          const gasPrice = TARGET_CHAIN_ID === 42161 ? 0.1 : TARGET_CHAIN_ID === 59144 ? 0.05 : 30; // Gwei
+          const currentChain = chainId || TARGET_CHAIN_ID;
+          const gasPrice = currentChain === 42161 ? 0.1 : currentChain === 59144 ? 0.05 : 30; // Gwei
           const ethPrice = 3500; // 简化：固定 ETH 价格
           const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
           setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
