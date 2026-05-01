@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
@@ -8,6 +8,24 @@ import { IntentInput } from "@/components/IntentInput";
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -55,34 +73,45 @@ export default function Home() {
           </div>
 
           {/* 移动端：汉堡菜单 */}
-          <div className="md:hidden relative">
+          <div className="md:hidden relative" ref={menuRef}>
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="text-stone-600 hover:text-stone-400 text-xs p-2"
+              className="text-stone-500 hover:text-stone-300 p-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                {menuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
               </svg>
             </button>
             {/* 下拉菜单 */}
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[160px] py-2 z-50">
+              <div className="absolute right-0 top-full mt-3 bg-stone-900/95 backdrop-blur-sm border border-stone-800/50 rounded-xl shadow-2xl min-w-[180px] py-3 z-50 animate-fade-in">
+                <div className="px-3 pb-2 mb-2 border-b border-stone-800/50">
+                  <span className="text-stone-600 text-[10px] tracking-[0.2em] uppercase font-light">Menu</span>
+                </div>
                 <Link 
                   href="/history" 
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
                 >
-                  History
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>History</span>
                 </Link>
                 <Link 
                   href="/orders" 
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
                 >
-                  Orders
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <span>Orders</span>
                 </Link>
-                <div className="border-t border-stone-800 my-2" />
-                <div className="px-4 py-2">
+                <div className="border-t border-stone-800/50 my-3" />
+                <div className="px-3">
                   <WalletButton />
                 </div>
               </div>
