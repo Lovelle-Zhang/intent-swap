@@ -25,18 +25,47 @@ export default function Home() {
       </div>
 
       {/* 顶栏 */}
-      <header className="relative z-10 flex items-center justify-between px-8 py-5">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded border border-gold-500/30 flex items-center justify-center">
+      <header className="relative z-10 flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 md:py-4">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded border border-gold-500/30 flex items-center justify-center">
             <span className="text-gold-500 text-xs">⬡</span>
           </div>
-          <span className="text-stone-400 text-sm tracking-widest uppercase font-light">
+          <span className="text-stone-400 text-xs tracking-[0.15em] uppercase font-light">
             Intent Swap
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/history" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">History</Link>
-          <Link href="/orders" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">Orders</Link>
+
+        {/* 右侧导航 */}
+        <div className="flex items-center gap-3">
+          {/* 桌面端：显示所有链接 */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="/history" className="text-stone-500 hover:text-stone-300 text-xs tracking-wide transition-colors">
+              History
+            </Link>
+            <Link href="/orders" className="text-stone-500 hover:text-stone-300 text-xs tracking-wide transition-colors">
+              Orders
+            </Link>
+          </div>
+          
+          {/* 移动端：汉堡菜单 */}
+          <div className="md:hidden relative group">
+            <button className="text-stone-600 hover:text-stone-400 text-xs p-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            {/* 下拉菜单 */}
+            <div className="hidden group-hover:block absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[120px] py-2">
+              <Link href="/history" className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors">
+                History
+              </Link>
+              <Link href="/orders" className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors">
+                Orders
+              </Link>
+            </div>
+          </div>
+
           <WalletButton />
         </div>
       </header>
@@ -46,44 +75,44 @@ export default function Home() {
         <div className="w-full max-w-xl animate-fade-in">
 
           {/* 标题区 */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 md:mb-10">
             {/* 装饰线 */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <div className="h-px w-16 bg-gradient-to-r from-transparent to-stone-700" />
-              <span className="text-stone-700 text-xs tracking-[0.3em] uppercase">Arbitrum · Uniswap V3</span>
-              <div className="h-px w-16 bg-gradient-to-l from-transparent to-stone-700" />
+            <div className="flex items-center justify-center gap-3 mb-6 md:mb-7">
+              <div className="h-px w-12 md:w-20 bg-gradient-to-r from-transparent to-stone-700" />
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase font-light">Arbitrum · Uniswap V3</span>
+              <div className="h-px w-12 md:w-20 bg-gradient-to-l from-transparent to-stone-700" />
             </div>
 
-            <h1 className="text-stone-100 text-3xl font-light tracking-tight leading-tight mb-4">
+            <h1 className="text-stone-100 text-2xl md:text-[2.5rem] font-light tracking-tight leading-tight mb-3 md:mb-4 px-4">
               Where should your<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
                 wealth flow?
               </span>
             </h1>
-            <p className="text-stone-600 text-sm leading-relaxed max-w-sm mx-auto">
+            <p className="text-stone-500 text-xs md:text-[13px] leading-relaxed max-w-md mx-auto px-4">
               Describe your intent in plain language.<br />
               We find the best route and execute it.
             </p>
           </div>
 
           {/* Tab 切换 */}
-          <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="flex items-center justify-center gap-2 mb-6 px-4">
             <button
               onClick={() => setMode("swap")}
-              className={`px-6 py-2 rounded-lg text-sm transition-all duration-200 ${
+              className={`flex-1 md:flex-none md:min-w-[140px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
                 mode === "swap"
                   ? "bg-stone-800 text-stone-200 border border-stone-700"
-                  : "text-stone-600 hover:text-stone-400"
+                  : "text-stone-500 hover:text-stone-300 border border-transparent"
               }`}
             >
               Instant Swap
             </button>
             <button
               onClick={() => setMode("conditional")}
-              className={`px-6 py-2 rounded-lg text-sm transition-all duration-200 ${
+              className={`flex-1 md:flex-none md:min-w-[140px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
                 mode === "conditional"
                   ? "bg-stone-800 text-stone-200 border border-stone-700"
-                  : "text-stone-600 hover:text-stone-400"
+                  : "text-stone-500 hover:text-stone-300 border border-transparent"
               }`}
             >
               Conditional Order
@@ -94,7 +123,7 @@ export default function Home() {
           <IntentInput mode={mode} />
 
           {/* 底部特性 */}
-          <div className="mt-12 flex items-center justify-center gap-8">
+          <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
             {[
               { label: "Non-custodial" },
               { label: "·" },
@@ -102,7 +131,7 @@ export default function Home() {
               { label: "·" },
               { label: "~1s finality" },
             ].map((f, i) => (
-              <span key={i} className="text-stone-700 text-xs tracking-wider">
+              <span key={i} className="text-stone-600 text-[11px] tracking-wider font-light">
                 {f.label}
               </span>
             ))}
@@ -111,8 +140,8 @@ export default function Home() {
       </div>
 
       {/* 底部细线 */}
-      <div className="relative z-10 h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent mx-8" />
-      <footer className="relative z-10 text-center py-4 text-stone-800 text-xs tracking-widest">
+      <div className="relative z-10 h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent mx-6 md:mx-8" />
+      <footer className="relative z-10 text-center py-3 md:py-4 text-stone-700 text-[10px] tracking-[0.2em] font-light">
         INTENT.SWAP
       </footer>
     </main>
