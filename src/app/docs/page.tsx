@@ -26,16 +26,27 @@ const SLIPPAGE = [
 ];
 
 const ROUTING = [
-  { label: "Router",   value: "Uniswap V3" },
-  { label: "Network",  value: "Ethereum Mainnet" },
-  { label: "Gas",      value: "Estimated before confirmation" },
-  { label: "Protocol", value: "No additional fees" },
+  { label: "Router",       value: "Uniswap V3" },
+  { label: "Route type",   value: "Single-hop & Multi-hop" },
+  { label: "Networks",     value: "Ethereum · Arbitrum · Linea" },
+  { label: "Gas",          value: "Estimated before confirmation" },
+  { label: "Protocol fee", value: "None" },
 ];
 
 const SECURITY = [
-  { title: "Non-custodial",       desc: "We never hold your assets. All swaps happen directly between your wallet and the smart contract." },
-  { title: "On-chain execution",  desc: "Every transaction is executed on Ethereum and is fully transparent on-chain." },
-  { title: "Preview before swap", desc: "Every trade requires explicit confirmation. You stay in full control at all times." },
+  { title: "Non-custodial",         desc: "We never hold your assets. All swaps happen directly between your wallet and the smart contract." },
+  { title: "On-chain execution",    desc: "Every transaction is executed on Ethereum and is fully transparent on-chain." },
+  { title: "Preview before swap",   desc: "Every trade requires explicit confirmation. You stay in full control at all times." },
+  { title: "MEV Protection",        desc: "Transactions routed through Flashbots Protect on Mainnet by default, shielding you from sandwich attacks." },
+  { title: "Price impact warning",  desc: "Amber warning above 1% impact, red alert above 5%. Powered by DeFiLlama price feeds." },
+];
+
+const CONTRACT_INFO = [
+  { label: "Contract",   value: "ConditionalSwapVault" },
+  { label: "Network",    value: "Ethereum Mainnet" },
+  { label: "Address",    value: "0x52a8fe40...dec0ee", href: "https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" },
+  { label: "Standard",   value: "EIP-712 signed orders" },
+  { label: "Auth",       value: "Keeper-based execution" },
 ];
 
 function Divider() {
@@ -116,7 +127,10 @@ export default function DocsPage() {
         {/* Supported tokens */}
         <section className="space-y-5">
           <SectionTitle>Supported tokens</SectionTitle>
-          <p className="text-stone-600 text-xs tracking-wide">Ethereum Mainnet</p>
+          <p className="text-stone-500 text-sm leading-relaxed">
+            Search from <span className="text-stone-300">1,700+</span> tokens via the Uniswap
+            official token list. Common tokens are shown by default.
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {TOKENS.map((t) => (
               <div
@@ -139,20 +153,50 @@ export default function DocsPage() {
         <section className="space-y-5">
           <SectionTitle>Conditional orders</SectionTitle>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Set a price trigger and we'll notify you by{" "}
-            <span className="text-stone-300">email</span>{" "}
-            when the condition is met.
-            Conditional orders do not auto-execute — you confirm manually.
+            Set a price trigger. When the condition is met, the{" "}
+            <span className="text-stone-300">on-chain vault</span>{" "}
+            auto-executes the swap via a keeper — no manual action needed.
+            Your funds are held in the{" "}
+            <span className="text-stone-300">ConditionalSwapVault</span>{" "}
+            contract and can be withdrawn at any time.
           </p>
           <div className="space-y-2">
             {[
-              { label: "Trigger types", value: "Price above · Price below" },
-              { label: "Notification",  value: "Email alert when triggered" },
-              { label: "Execution",     value: "Manual confirmation required" },
+              { label: "Trigger types",  value: "Price above · Price below" },
+              { label: "Execution",      value: "On-chain auto-execution (keeper)" },
+              { label: "Custody",        value: "Vault contract — withdraw anytime" },
+              { label: "Signature",      value: "EIP-712 typed data (off-chain)" },
+              { label: "Notification",   value: "Email alert on execution" },
             ].map((row) => (
               <div key={row.label} className="flex items-center justify-between px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl">
                 <span className="text-stone-600 text-xs">{row.label}</span>
                 <span className="text-stone-300 text-xs">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Divider />
+
+        {/* Contract */}
+        <section className="space-y-5">
+          <SectionTitle>Smart contract</SectionTitle>
+          <div className="space-y-2">
+            {CONTRACT_INFO.map((row) => (
+              <div key={row.label} className="flex items-center justify-between px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl">
+                <span className="text-stone-600 text-xs">{row.label}</span>
+                {row.href ? (
+                  <a
+                    href={row.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gold-400/70 text-xs font-mono hover:text-gold-400 transition-colors"
+                  >
+                    {row.value} ↗
+                  </a>
+                ) : (
+                  <span className="text-stone-300 text-xs">{row.value}</span>
+                )}
               </div>
             ))}
           </div>
@@ -195,6 +239,10 @@ export default function DocsPage() {
         {/* Routing & fees */}
         <section className="space-y-5">
           <SectionTitle>Routing & fees</SectionTitle>
+          <p className="text-stone-500 text-sm leading-relaxed">
+            Automatically picks the best route — single-hop for direct pairs,
+            multi-hop via WETH / USDC / USDT / DAI for better rates.
+          </p>
           <div className="space-y-2">
             {ROUTING.map((row) => (
               <div key={row.label} className="flex items-center justify-between px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl">
