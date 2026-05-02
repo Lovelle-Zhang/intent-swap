@@ -175,7 +175,7 @@ export default function LandingPage() {
           <div className="space-y-px">
             {STEPS.map((s, i) => (
               <div key={s.num} className={`flex gap-8 px-6 py-6 ${i < STEPS.length - 1 ? "border-b border-stone-900" : ""}`}>
-                <span className="text-stone-800 text-xs font-mono mt-0.5 shrink-0">{s.num}</span>
+                <span className="text-gold-500/50 text-sm font-mono mt-0.5 shrink-0 w-6">{s.num}</span>
                 <div className="space-y-1.5">
                   <p className="text-stone-200 text-sm font-medium">{s.title}</p>
                   <p className="text-stone-600 text-xs leading-relaxed">{s.body}</p>
