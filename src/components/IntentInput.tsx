@@ -113,7 +113,7 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
         )}
       </form>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 min-h-[4rem] content-start">
         {examples.map((ex) => (
           <button
             key={ex}

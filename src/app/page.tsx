@@ -134,7 +134,7 @@ export default function Home() {
       )}
 
       {/* 主体 */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 pb-16">
+      <div className="relative z-10 flex-1 flex flex-col items-center pt-[12vh] md:pt-[15vh] px-4 pb-16">
         <div className="w-full max-w-xl animate-fade-in">
 
           {/* 标题区 */}
