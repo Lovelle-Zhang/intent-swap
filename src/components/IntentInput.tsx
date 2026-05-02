@@ -17,9 +17,11 @@ const CONDITIONAL_EXAMPLES = [
 
 interface IntentInputProps {
   mode: "swap" | "conditional";
+  tokenHint?: string;
+  onClearHint?: () => void;
 }
 
-export function IntentInput({ mode }: IntentInputProps) {
+export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +30,7 @@ export function IntentInput({ mode }: IntentInputProps) {
 
   const examples = mode === "swap" ? SWAP_EXAMPLES : CONDITIONAL_EXAMPLES;
   const placeholder = mode === "swap" 
-    ? "Describe your swap intent..." 
+    ? (tokenHint ? `Swap with ${tokenHint}...` : "Describe your swap intent...") 
     : "Set a price condition (e.g., when ETH drops to $3000...)";
 
   async function handleSubmit(e: React.FormEvent) {

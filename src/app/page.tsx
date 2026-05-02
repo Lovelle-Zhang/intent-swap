@@ -5,6 +5,7 @@ import { useChainId, useAccount, useSwitchChain } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
+import { TokenSearch, type TokenInfo } from "@/components/TokenSearch";
 
 const CHAIN_LABELS: Record<number, string> = {
   [mainnet.id]: "Ethereum · Uniswap V3",
@@ -14,11 +15,16 @@ const CHAIN_LABELS: Record<number, string> = {
 
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
+  const [tokenHint, setTokenHint] = useState<string>("");
   const chainId = useChainId();
   const { isConnected } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const chainLabel = CHAIN_LABELS[chainId] ?? "Ethereum · Uniswap V3";
   const isWrongChain = isConnected && chainId !== mainnet.id;
+
+  const handleTokenSelect = (token: TokenInfo) => {
+    setTokenHint(`${token.symbol} (${token.address.slice(0, 6)}…${token.address.slice(-4)})`);
+  };
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -123,7 +129,22 @@ export default function Home() {
           </div>
 
           {/* 输入区 */}
-          <IntentInput mode={mode} />
+          <IntentInput mode={mode} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
+
+          {/* Token 搜索 */}
+          <div className="px-1 space-y-1.5">
+            <p className="text-stone-700 text-[10px] tracking-widest uppercase">Find any token</p>
+            <TokenSearch
+              chainId={chainId}
+              onSelect={handleTokenSelect}
+            />
+            {tokenHint && (
+              <p className="text-stone-600 text-xs px-1">
+                Selected: <span className="text-gold-400/70 font-mono">{tokenHint}</span>
+                <button onClick={() => setTokenHint("")} className="text-stone-700 hover:text-stone-500 ml-2 text-[10px]">clear</button>
+              </p>
+            )}
+          </div>
           {/* 底部特性 */}
           <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
             {[
