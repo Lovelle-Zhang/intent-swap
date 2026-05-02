@@ -1,26 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // 点击菜单外部关闭
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);  // Force recompile
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -42,66 +27,23 @@ export default function Home() {
       <header className="relative z-50 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded border border-gold-500/20 flex items-center justify-center">
-            <span className="text-gold-500/80 text-sm">⬡</span>
+          <div className="w-5 h-5 rounded border border-gold-500/20 flex items-center justify-center">
+            <span className="text-gold-500/70 text-xs">⬡</span>
           </div>
-          <span className="text-stone-300 text-sm tracking-[0.12em] font-light">
+          <span className="text-stone-500 text-xs tracking-[0.18em] font-light uppercase">
             Intent Swap
           </span>
         </div>
 
-        {/* 右侧：钱包 + 菜单 */}
-        <div className="flex items-center gap-3">
-          {/* 钱包按钮（始终显示） */}
-          <WalletButton />
-
-          {/* 菜单按钮 */}
-          <div className="relative" ref={menuRef}>
-            <button 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="w-8 h-8 rounded-lg border border-stone-800 hover:border-stone-700 flex items-center justify-center text-stone-500 hover:text-stone-300 transition-colors"
-              aria-label="Menu"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {menuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-
-            {/* 下拉菜单：不使用 fixed 遮罩，改用 document 事件监听 */}
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl min-w-[180px] py-2 animate-fade-in" style={{zIndex: 9999}}>
-                <Link 
-                  href="/history" 
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
-                >
-                  <span className="text-stone-600">📜</span>
-                  <span>History</span>
-                </Link>
-                <Link 
-                  href="/orders" 
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
-                >
-                  <span className="text-stone-600">⏰</span>
-                  <span>Orders</span>
-                </Link>
-                <div className="h-px bg-stone-800/60 my-2 mx-3" />
-                <Link 
-                  href="/docs" 
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
-                >
-                  <span className="text-stone-700">📖</span>
-                  <span>Docs</span>
-                </Link>
-              </div>
-            )}
+        {/* 右侧：网络标识 + 钱包头像 */}
+        <div className="flex items-center gap-2.5">
+          {/* 网络标识：小圆点 + 链名 */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stone-800/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+            <span className="text-stone-600 text-[10px] tracking-wider">ETH</span>
           </div>
+          {/* 钱包头像（含下拉菜单） */}
+          <WalletButton />
         </div>
       </header>
 
