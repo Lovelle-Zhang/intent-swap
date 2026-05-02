@@ -201,9 +201,24 @@ export async function POST(req: NextRequest) {
     }
 
     if (quoteOnly) {
+      // 计算 price impact（用 DeFiLlama 价格对比）
+      let priceImpact: string | undefined;
+      try {
+        const priceQuote = await getPriceQuote(fromToken, toToken, amount, chain.id);
+        if (priceQuote) {
+          const onchainOut = parseFloat(formatUnits(bestAmountOut, decimalsOut));
+          const fairOut = parseFloat(priceQuote);
+          if (fairOut > 0) {
+            const impact = ((fairOut - onchainOut) / fairOut) * 100;
+            priceImpact = Math.max(0, impact).toFixed(2);
+          }
+        }
+      } catch { /* ignore */ }
+
       return NextResponse.json({
         amountOut: formatUnits(bestAmountOut, decimalsOut),
         toToken, fromToken, fee: bestFee, source: "onchain",
+        ...(priceImpact !== undefined ? { priceImpact } : {}),
       });
     }
 
@@ -211,6 +226,20 @@ export async function POST(req: NextRequest) {
     const slippage = slippageMap[slippagePref as keyof typeof slippageMap] ?? 1;
     const amountOutMinimum = (bestAmountOut * BigInt(Math.floor((100 - slippage) * 100))) / BigInt(10000);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
+
+    // 计算 price impact
+    let priceImpact: string | undefined;
+    try {
+      const priceQuote = await getPriceQuote(fromToken, toToken, amount, chain.id);
+      if (priceQuote) {
+        const onchainOut = parseFloat(formatUnits(bestAmountOut, decimalsOut));
+        const fairOut = parseFloat(priceQuote);
+        if (fairOut > 0) {
+          const impact = ((fairOut - onchainOut) / fairOut) * 100;
+          priceImpact = Math.max(0, impact).toFixed(2);
+        }
+      }
+    } catch { /* ignore */ }
 
     const calldata = encodeFunctionData({
       abi: ROUTER_ABI,
@@ -223,6 +252,7 @@ export async function POST(req: NextRequest) {
       amountOut: formatUnits(bestAmountOut, decimalsOut),
       toAmount: formatUnits(bestAmountOut, decimalsOut),
       toToken, fromToken, fee: bestFee, chainId: chain.id,
+      ...(priceImpact !== undefined ? { priceImpact } : {}),
     });
   } catch (err) {
     console.error("swap-quote error:", err);

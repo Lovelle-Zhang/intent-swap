@@ -6,7 +6,9 @@ export interface SwapRecord {
   amount: number;
   amountOut: string;
   txHash: string;
+  chainId?: number;
   gasCostUSD?: string;
+  priceImpact?: string;
   summary?: string;
 }
 
@@ -30,4 +32,16 @@ export function addRecord(record: Omit<SwapRecord, "id">) {
 
 export function clearHistory() {
   localStorage.removeItem(KEY);
+}
+
+export function getExplorerUrl(txHash: string, chainId?: number): string {
+  if (chainId === 42161) return `https://arbiscan.io/tx/${txHash}`;
+  if (chainId === 59144) return `https://lineascan.build/tx/${txHash}`;
+  return `https://etherscan.io/tx/${txHash}`;
+}
+
+export function getExplorerName(chainId?: number): string {
+  if (chainId === 42161) return "Arbiscan";
+  if (chainId === 59144) return "Lineascan";
+  return "Etherscan";
 }

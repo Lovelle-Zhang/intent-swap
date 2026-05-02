@@ -81,6 +81,7 @@ export default function ExecutePage() {
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
   const [amountOut, setAmountOut] = useState<string>("");
+  const [priceImpact, setPriceImpact] = useState<string>("");
   const recordedRef = useRef(false);
   const router = useRouter();
   const { address } = useAccount();
@@ -127,6 +128,8 @@ export default function ExecutePage() {
           amount: intent.amount ?? 0,
           amountOut,
           txHash: swapTxHash,
+          chainId,
+          priceImpact: priceImpact || undefined,
           summary: intent.summary,
         });
       }
@@ -145,6 +148,8 @@ export default function ExecutePage() {
         amount: intent.amount ?? 0,
         amountOut,
         txHash: swapTxHash,
+        chainId,
+        priceImpact: priceImpact || undefined,
         summary: intent.summary,
       });
     }
@@ -175,6 +180,7 @@ export default function ExecutePage() {
       if (!res.ok) throw new Error(data.error ?? "Quote failed");
 
       if (data.amountOut) setAmountOut(data.amountOut);
+      if (data.priceImpact) setPriceImpact(data.priceImpact);
 
       setStatus("signing");
       sendTransaction(

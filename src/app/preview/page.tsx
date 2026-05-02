@@ -130,7 +130,10 @@ export default function PreviewPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.amountOut || data.toAmount) {
-          setQuote({ amountOut: data.amountOut ?? data.toAmount });
+          setQuote({
+            amountOut: data.amountOut ?? data.toAmount,
+            priceImpact: data.priceImpact,
+          });
         }
         // Gas 估算（简化版：根据链和操作类型估算）
         if (address) {
@@ -199,6 +202,20 @@ export default function PreviewPage() {
           chainId={TARGET_CHAIN_ID}
           gasEstimate={gasEstimate}
         />
+
+        {/* Price impact 警告 */}
+        {quote?.priceImpact && parseFloat(quote.priceImpact) > 1 && (
+          <div className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
+            parseFloat(quote.priceImpact) > 5
+              ? "bg-red-950/30 border-red-800/40"
+              : "bg-amber-950/30 border-amber-800/40"
+          }`}>
+            <p className={`text-xs ${parseFloat(quote.priceImpact) > 5 ? "text-red-400/80" : "text-amber-400/80"}`}>
+              Price impact: {parseFloat(quote.priceImpact).toFixed(2)}%
+              {parseFloat(quote.priceImpact) > 5 ? " — High impact, proceed with caution" : ""}
+            </p>
+          </div>
+        )}
 
         {/* 滑点调节 */}
         <div className="flex items-center justify-between px-1">
