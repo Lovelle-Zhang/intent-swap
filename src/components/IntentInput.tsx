@@ -15,8 +15,20 @@ const CONDITIONAL_EXAMPLES = [
   "Alert me when USDC/ETH reaches 0.0003",
 ];
 
+const FX_EXAMPLES = [
+  "Exchange 1000 USDC to EURC",
+  "When USD/EUR reaches 1.12, swap 2000 USDC",
+  "Convert all my USDC to GBPT",
+];
+
+const FX_PAIRS = [
+  { from: "USDC", to: "EURC",  label: "USD → EUR" },
+  { from: "USDC", to: "GBPT",  label: "USD → GBP" },
+  { from: "EURC", to: "USDC",  label: "EUR → USD" },
+];
+
 interface IntentInputProps {
-  mode: "swap" | "conditional";
+  mode: "swap" | "conditional" | "fx";
   tokenHint?: string;
   onClearHint?: () => void;
 }
@@ -36,9 +48,11 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
     "Almost there...",
   ];
 
-  const examples = mode === "swap" ? SWAP_EXAMPLES : CONDITIONAL_EXAMPLES;
-  const placeholder = mode === "swap" 
-    ? (tokenHint ? `Swap with ${tokenHint}...` : "Describe your swap intent...") 
+  const examples = mode === "swap" ? SWAP_EXAMPLES : mode === "fx" ? FX_EXAMPLES : CONDITIONAL_EXAMPLES;
+  const placeholder = mode === "fx"
+    ? "Describe your exchange (e.g. swap 1000 USDC to EURC...)"
+    : mode === "swap"
+    ? (tokenHint ? `Swap with ${tokenHint}...` : "Describe your swap intent...")
     : "Set a price condition (e.g., when ETH drops to $3000...)";
 
   async function handleSubmit(e: React.FormEvent) {
@@ -140,6 +154,22 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
           </button>
         ))}
       </div>
+
+      {/* FX 快速选择货币对 */}
+      {mode === "fx" && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-stone-700 text-[10px] tracking-widest uppercase w-full mb-1">Quick pairs</span>
+          {FX_PAIRS.map((pair) => (
+            <button
+              key={`${pair.from}-${pair.to}`}
+              onClick={() => setValue(`Exchange 1000 ${pair.from} to ${pair.to}`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/40 border border-stone-800/60 hover:border-gold-500/30 rounded-lg text-xs text-stone-400 hover:text-gold-400/70 transition-all"
+            >
+              <span className="font-mono text-[10px]">{pair.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

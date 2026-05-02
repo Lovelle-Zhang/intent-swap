@@ -68,7 +68,7 @@ const CHAIN_LABELS: Record<number, string> = {
 };
 
 export default function Home() {
-  const [mode, setMode] = useState<"swap" | "conditional">("swap");
+  const [mode, setMode] = useState<"swap" | "conditional" | "fx">("swap");
   const [tokenHint, setTokenHint] = useState<string>("");
   const chainId = useChainId();
   const { isConnected } = useAccount();
@@ -160,26 +160,23 @@ export default function Home() {
 
           {/* Tab 切换 */}
           <div className="flex items-center justify-center gap-2 mb-6 px-4">
-            <button
-              onClick={() => setMode("swap")}
-              className={`flex-1 md:flex-none md:min-w-[140px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
-                mode === "swap"
-                  ? "bg-stone-800 text-stone-200 border border-stone-700"
-                  : "text-stone-500 hover:text-stone-300 border border-transparent"
-              }`}
-            >
-              Instant Swap
-            </button>
-            <button
-              onClick={() => setMode("conditional")}
-              className={`flex-1 md:flex-none md:min-w-[140px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
-                mode === "conditional"
-                  ? "bg-stone-800 text-stone-200 border border-stone-700"
-                  : "text-stone-500 hover:text-stone-300 border border-transparent"
-              }`}
-            >
-              Conditional Order
-            </button>
+            {[
+              { key: "swap",        label: "Instant Swap" },
+              { key: "conditional", label: "Conditional Order" },
+              { key: "fx",          label: "FX Exchange" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setMode(tab.key as typeof mode)}
+                className={`flex-1 md:flex-none md:min-w-[120px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
+                  mode === tab.key
+                    ? "bg-stone-800 text-stone-200 border border-stone-700"
+                    : "text-stone-500 hover:text-stone-300 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* 输入区 */}
