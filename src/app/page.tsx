@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
@@ -8,7 +8,19 @@ import { IntentInput } from "@/components/IntentInput";
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
   const [menuOpen, setMenuOpen] = useState(false);
-  // Force recompile
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击菜单外部关闭
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);  // Force recompile
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -44,7 +56,7 @@ export default function Home() {
           <WalletButton />
 
           {/* 菜单按钮 */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
               className="w-8 h-8 rounded-lg border border-stone-800 hover:border-stone-700 flex items-center justify-center text-stone-500 hover:text-stone-300 transition-colors"
@@ -59,43 +71,35 @@ export default function Home() {
               </svg>
             </button>
 
-            {/* 下拉菜单 */}
+            {/* 下拉菜单：不使用 fixed 遮罩，改用 document 事件监听 */}
             {menuOpen && (
-              <>
-                {/* 遮罩层：z-index 低于菜单，仅用于点击关闭 */}
-                <div 
-                  className="fixed inset-0 z-40"
+              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl min-w-[180px] py-2 animate-fade-in" style={{zIndex: 9999}}>
+                <Link 
+                  href="/history" 
                   onClick={() => setMenuOpen(false)}
-                />
-                {/* 菜单内容：z-50 确保在遮罩层之上 */}
-                <div className="absolute right-0 top-full mt-2 bg-stone-900/95 backdrop-blur-sm border border-stone-800/80 rounded-xl shadow-2xl min-w-[180px] py-2 z-50 animate-fade-in">
-                  <Link 
-                    href="/history" 
-                    onClick={() => setMenuOpen(false)}
-                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
-                  >
-                    <span className="text-stone-600">📜</span>
-                    <span>History</span>
-                  </Link>
-                  <Link 
-                    href="/orders" 
-                    onClick={() => setMenuOpen(false)}
-                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
-                  >
-                    <span className="text-stone-600">⏰</span>
-                    <span>Orders</span>
-                  </Link>
-                  <div className="h-px bg-stone-800/60 my-2 mx-3" />
-                  <Link 
-                    href="/docs" 
-                    onClick={() => setMenuOpen(false)}
-                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
-                  >
-                    <span className="text-stone-700">📖</span>
-                    <span>Docs</span>
-                  </Link>
-                </div>
-              </>
+                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                >
+                  <span className="text-stone-600">📜</span>
+                  <span>History</span>
+                </Link>
+                <Link 
+                  href="/orders" 
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                >
+                  <span className="text-stone-600">⏰</span>
+                  <span>Orders</span>
+                </Link>
+                <div className="h-px bg-stone-800/60 my-2 mx-3" />
+                <Link 
+                  href="/docs" 
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
+                >
+                  <span className="text-stone-700">📖</span>
+                  <span>Docs</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>
