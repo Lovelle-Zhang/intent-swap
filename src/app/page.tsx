@@ -39,7 +39,7 @@ export default function Home() {
       </div>
 
       {/* 顶栏 */}
-      <header className="relative z-10 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
+      <header className="relative z-50 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded border border-gold-500/20 flex items-center justify-center">
