@@ -50,7 +50,7 @@ const SLIPPAGE_MAP = { low: 0.5, normal: 1.0, high: 3.0 };
 export default function PreviewPage() {
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [slippagePref, setSlippagePref] = useState<"low" | "normal" | "high">("normal");
-  const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string } | null>(null);
+  const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string; route?: string[]; hops?: number } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
   const [mevProtect, setMevProtect] = useState(true); // 默认开启
@@ -134,6 +134,8 @@ export default function PreviewPage() {
           setQuote({
             amountOut: data.amountOut ?? data.toAmount,
             priceImpact: data.priceImpact,
+            route: data.route,
+            hops: data.hops,
           });
         }
         // Gas 估算（简化版：根据链和操作类型估算）
@@ -203,6 +205,28 @@ export default function PreviewPage() {
           chainId={TARGET_CHAIN_ID}
           gasEstimate={gasEstimate}
         />
+
+        {/* 路由路径 */}
+        {quote?.route && quote.route.length > 1 && (
+          <div className="flex items-center gap-1.5 px-1">
+            <span className="text-stone-700 text-[10px] tracking-widest uppercase">Route</span>
+            <div className="flex items-center gap-1 ml-2">
+              {quote.route.map((token, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  <span className={`text-xs ${i === 0 || i === quote.route!.length - 1 ? "text-stone-400" : "text-gold-400/60"}`}>
+                    {token}
+                  </span>
+                  {i < quote.route!.length - 1 && (
+                    <span className="text-stone-700 text-[10px]">→</span>
+                  )}
+                </span>
+              ))}
+              {quote.hops === 2 && (
+                <span className="text-stone-700 text-[10px] ml-1">· multi-hop</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Price impact 警告 */}
         {quote?.priceImpact && parseFloat(quote.priceImpact) > 1 && (
