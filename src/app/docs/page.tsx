@@ -25,9 +25,16 @@ const SLIPPAGE = [
   { value: "3%",   key: "high",   desc: "High-volatility tokens or large amounts." },
 ];
 
+const ROUTING = [
+  { label: "Router",   value: "Uniswap V3" },
+  { label: "Network",  value: "Ethereum Mainnet" },
+  { label: "Gas",      value: "Estimated before confirmation" },
+  { label: "Protocol", value: "No additional fees" },
+];
+
 const SECURITY = [
-  { title: "Non-custodial",    desc: "We never hold your assets. All swaps happen directly between your wallet and the smart contract." },
-  { title: "On-chain execution", desc: "Every transaction is executed on Ethereum and is fully transparent on-chain." },
+  { title: "Non-custodial",       desc: "We never hold your assets. All swaps happen directly between your wallet and the smart contract." },
+  { title: "On-chain execution",  desc: "Every transaction is executed on Ethereum and is fully transparent on-chain." },
   { title: "Preview before swap", desc: "Every trade requires explicit confirmation. You stay in full control at all times." },
 ];
 
@@ -65,7 +72,10 @@ export default function DocsPage() {
             <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Docs</span>
           </div>
           <h1 className="text-stone-100 text-2xl font-light tracking-tight">
-            Intent Swap
+            Intent{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
+              Swap
+            </span>
           </h1>
           <p className="text-stone-500 text-sm leading-relaxed max-w-sm">
             Describe what you want in plain language.
@@ -79,8 +89,10 @@ export default function DocsPage() {
         <section className="space-y-5">
           <SectionTitle>How it works</SectionTitle>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Type your intent in the input field on the home screen.
-            The AI parses your intent, previews the trade, and waits for your confirmation before executing.
+            Type your intent in the input field. The AI parses it, previews the trade,
+            and waits for your{" "}
+            <span className="text-stone-300">confirmation</span>{" "}
+            before executing.
           </p>
           <div className="space-y-2">
             {EXAMPLES.map((ex, i) => (
@@ -88,7 +100,7 @@ export default function DocsPage() {
                 key={i}
                 className="flex items-center justify-between gap-4 px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl"
               >
-                <code className="text-stone-300 text-xs font-mono flex-1 leading-relaxed">
+                <code className="text-gold-400/80 text-xs font-mono flex-1 leading-relaxed">
                   "{ex.text}"
                 </code>
                 <span className="text-stone-700 text-[10px] tracking-wide shrink-0 border border-stone-800 rounded-md px-2 py-0.5">
@@ -104,16 +116,16 @@ export default function DocsPage() {
         {/* Supported tokens */}
         <section className="space-y-5">
           <SectionTitle>Supported tokens</SectionTitle>
-          <p className="text-stone-500 text-sm">Ethereum Mainnet</p>
+          <p className="text-stone-600 text-xs tracking-wide">Ethereum Mainnet</p>
           <div className="grid grid-cols-2 gap-2">
             {TOKENS.map((t) => (
               <div
                 key={t.symbol}
                 className="flex items-center gap-3 px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl"
               >
-                <span className="text-base w-5 text-center text-stone-400">{t.icon}</span>
+                <span className="text-base w-5 text-center text-gold-500/50">{t.icon}</span>
                 <div>
-                  <p className="text-stone-200 text-xs font-medium">{t.symbol}</p>
+                  <p className="text-gold-400/70 text-xs font-medium">{t.symbol}</p>
                   <p className="text-stone-600 text-[11px]">{t.name}</p>
                 </div>
               </div>
@@ -127,8 +139,10 @@ export default function DocsPage() {
         <section className="space-y-5">
           <SectionTitle>Conditional orders</SectionTitle>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Set a price trigger and we'll notify you by email when the condition is met.
-            Conditional orders do not auto-execute — you confirm the trade manually.
+            Set a price trigger and we'll notify you by{" "}
+            <span className="text-stone-300">email</span>{" "}
+            when the condition is met.
+            Conditional orders do not auto-execute — you confirm manually.
           </p>
           <div className="space-y-2">
             {[
@@ -156,12 +170,18 @@ export default function DocsPage() {
             {SLIPPAGE.map((s) => (
               <div
                 key={s.key}
-                className="flex items-center gap-4 px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl"
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors ${
+                  s.isDefault
+                    ? "bg-gold-500/5 border-gold-500/20"
+                    : "bg-stone-900/30 border-stone-800/50"
+                }`}
               >
-                <span className="text-stone-200 text-xs font-mono w-8 shrink-0">{s.value}</span>
+                <span className={`text-xs font-mono w-8 shrink-0 ${s.isDefault ? "text-gold-400" : "text-stone-400"}`}>
+                  {s.value}
+                </span>
                 <span className="text-stone-500 text-xs flex-1">{s.desc}</span>
                 {s.isDefault && (
-                  <span className="text-stone-700 text-[10px] border border-stone-800 rounded-md px-2 py-0.5 shrink-0">
+                  <span className="text-gold-600 text-[10px] border border-gold-800/40 rounded-md px-2 py-0.5 shrink-0">
                     default
                   </span>
                 )}
@@ -176,12 +196,7 @@ export default function DocsPage() {
         <section className="space-y-5">
           <SectionTitle>Routing & fees</SectionTitle>
           <div className="space-y-2">
-            {[
-              { label: "Router",   value: "Uniswap V3" },
-              { label: "Network",  value: "Ethereum Mainnet" },
-              { label: "Gas",      value: "Estimated before confirmation" },
-              { label: "Protocol", value: "No additional fees" },
-            ].map((row) => (
+            {ROUTING.map((row) => (
               <div key={row.label} className="flex items-center justify-between px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl">
                 <span className="text-stone-600 text-xs">{row.label}</span>
                 <span className="text-stone-300 text-xs">{row.value}</span>
@@ -197,8 +212,8 @@ export default function DocsPage() {
           <SectionTitle>Security</SectionTitle>
           <div className="space-y-2">
             {SECURITY.map((item) => (
-              <div key={item.title} className="px-4 py-3 bg-stone-900/30 border border-stone-800/50 rounded-xl space-y-1">
-                <p className="text-stone-300 text-xs font-medium">{item.title}</p>
+              <div key={item.title} className="px-4 py-4 bg-stone-900/30 border border-stone-800/50 rounded-xl space-y-1.5">
+                <p className="text-gold-400/60 text-xs font-medium tracking-wide">{item.title}</p>
                 <p className="text-stone-500 text-xs leading-relaxed">{item.desc}</p>
               </div>
             ))}
@@ -206,8 +221,9 @@ export default function DocsPage() {
         </section>
 
         {/* Footer */}
-        <div className="pt-2 pb-8 text-center">
-          <p className="text-stone-800 text-[10px] tracking-[0.2em] uppercase">
+        <div className="pt-2 pb-10">
+          <div className="h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent mb-6" />
+          <p className="text-center text-stone-800 text-[10px] tracking-[0.25em] uppercase">
             Intent Swap · Documentation
           </p>
         </div>
