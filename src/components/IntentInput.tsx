@@ -24,9 +24,17 @@ interface IntentInputProps {
 export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
   const router = useRouter();
+
+  const LOADING_STEPS = [
+    "Reading your intent...",
+    "Fetching token prices...",
+    "Finding best route...",
+    "Almost there...",
+  ];
 
   const examples = mode === "swap" ? SWAP_EXAMPLES : CONDITIONAL_EXAMPLES;
   const placeholder = mode === "swap" 
@@ -37,7 +45,13 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
     e.preventDefault();
     if (!value.trim()) return;
     setLoading(true);
+    setLoadingStep(0);
     setError("");
+
+    // 进度步骤动画
+    const stepInterval = setInterval(() => {
+      setLoadingStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1));
+    }, 2500);
 
     try {
       const res = await fetch("/api/parse-intent", {
@@ -45,11 +59,13 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intent: value }),
       });
+      clearInterval(stepInterval);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       sessionStorage.setItem("intent-preview", JSON.stringify({ raw: value, ...data }));
       router.push("/preview");
     } catch {
+      clearInterval(stepInterval);
       setError("Could not parse your intent. Try rephrasing.");
       setLoading(false);
     }
@@ -98,7 +114,7 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
                 {loading ? (
                   <>
                     <span className="w-3 h-3 border border-stone-600 border-t-gold-500/60 rounded-full animate-spin" />
-                    Analyzing
+                    <span className="text-stone-400">{LOADING_STEPS[loadingStep]}</span>
                   </>
                 ) : (
                   <>Analyze →</>
