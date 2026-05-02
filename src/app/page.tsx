@@ -1,11 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useChainId } from "wagmi";
+import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 
+const CHAIN_LABELS: Record<number, string> = {
+  [mainnet.id]: "Ethereum · Uniswap V3",
+  [arbitrum.id]: "Arbitrum · Uniswap V3",
+  [linea.id]: "Linea · Izumi Finance",
+};
+
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
+  const chainId = useChainId();
+  const chainLabel = CHAIN_LABELS[chainId] ?? "Ethereum · Uniswap V3";
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -50,7 +60,7 @@ export default function Home() {
             {/* 装饰线 */}
             <div className="flex items-center justify-center gap-3 mb-6 md:mb-7">
               <div className="h-px w-12 md:w-20 bg-gradient-to-r from-transparent to-stone-700" />
-              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase font-light">Arbitrum · Uniswap V3</span>
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase font-light">{chainLabel}</span>
               <div className="h-px w-12 md:w-20 bg-gradient-to-l from-transparent to-stone-700" />
             </div>
 
@@ -92,7 +102,6 @@ export default function Home() {
 
           {/* 输入区 */}
           <IntentInput mode={mode} />
-
           {/* 底部特性 */}
           <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
             {[
