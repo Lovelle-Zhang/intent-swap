@@ -90,9 +90,6 @@ export default function PreviewPage() {
     return intent.amount;
   })();
 
-  // 修复：条件单模式下，resolvedAmount 可能为 null，需要用占位值
-  const displayAmount = isConditional && resolvedAmount === null ? 100 : resolvedAmount;
-
   const insufficientBalance =
     balance !== undefined && resolvedAmount !== null && resolvedAmount !== undefined && resolvedAmount > 0
       ? Number(balance.formatted) < resolvedAmount
@@ -108,8 +105,10 @@ export default function PreviewPage() {
 
   useEffect(() => {
     // 修复：条件单模式下，即使 resolvedAmount 为 null 也要获取报价（用占位值）
-    const amountForQuote = isConditional && resolvedAmount === null ? 100 : resolvedAmount;
-    if (!intent || !amountForQuote || intent.fromToken === intent.toToken) return;
+    if (!intent) return;
+    const isConditionalMode = intent.intentType === "conditional";
+    const amountForQuote = isConditionalMode && resolvedAmount === null ? 100 : resolvedAmount;
+    if (!amountForQuote || intent.fromToken === intent.toToken) return;
     
     setQuoteLoading(true);
     setQuote(null);
@@ -146,11 +145,13 @@ export default function PreviewPage() {
       })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
-  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID, isConditional]);
+  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID]);
 
   if (!intent) return null;
 
+  // 修复：条件单模式下，resolvedAmount 可能为 null，需要用占位值
   const isConditional = intent.intentType === "conditional";
+  const displayAmount = isConditional && resolvedAmount === null ? 100 : resolvedAmount;
   const slippage = SLIPPAGE_MAP[slippagePref];
 
   const handleConfirm = () => {
