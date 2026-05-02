@@ -53,6 +53,7 @@ export default function PreviewPage() {
   const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
+  const [mevProtect, setMevProtect] = useState(true); // 默认开启
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -170,7 +171,7 @@ export default function PreviewPage() {
       router.push("/conditional-order");
     } else {
       // 立即执行：跳转到执行页
-      const updated = { ...intent, slippagePref, amount: resolvedAmount ?? intent.amount };
+      const updated = { ...intent, slippagePref, amount: resolvedAmount ?? intent.amount, mevProtect };
       sessionStorage.setItem("intent-preview", JSON.stringify(updated));
       router.push("/execute");
     }
@@ -235,6 +236,28 @@ export default function PreviewPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* MEV 保护开关 */}
+        <div className="flex items-center justify-between px-1">
+          <div className="space-y-0.5">
+            <span className="text-stone-600 text-xs">MEV Protection</span>
+            <p className="text-stone-700 text-[10px]">
+              {mevProtect ? "Via Flashbots · private mempool" : "Public mempool · may be sandwiched"}
+            </p>
+          </div>
+          <button
+            onClick={() => setMevProtect(!mevProtect)}
+            className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${
+              mevProtect ? "bg-gold-500/30 border border-gold-500/40" : "bg-stone-800 border border-stone-700"
+            }`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ${
+              mevProtect
+                ? "left-4 bg-gold-400"
+                : "left-0.5 bg-stone-600"
+            }`} />
+          </button>
         </div>
 
         {/* 余额显示 */}

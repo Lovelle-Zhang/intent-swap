@@ -11,6 +11,7 @@ import {
   useReadContract,
   useWriteContract,
   useChainId,
+  useWalletClient,
 } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
@@ -82,6 +83,7 @@ export default function ExecutePage() {
   const [needsApproval, setNeedsApproval] = useState(false);
   const [amountOut, setAmountOut] = useState<string>("");
   const [priceImpact, setPriceImpact] = useState<string>("");
+  const [mevProtect, setMevProtect] = useState(false);
   const recordedRef = useRef(false);
   const router = useRouter();
   const { address } = useAccount();
@@ -90,6 +92,7 @@ export default function ExecutePage() {
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
+  const { data: walletClient } = useWalletClient();
 
   const { isSuccess: swapSuccess, isError: swapError } = useWaitForTransactionReceipt({ hash: swapTxHash });
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -183,6 +186,27 @@ export default function ExecutePage() {
       if (data.priceImpact) setPriceImpact(data.priceImpact);
 
       setStatus("signing");
+
+      // MEV 保护：通过 Flashbots Protect 提交（仅 Mainnet）
+      if (mevProtect && chainId === 1 && walletClient) {
+        try {
+          // 用钱包签名交易
+          const txHash = await walletClient.sendTransaction({
+            to: data.tx.to as `0x${string}`,
+            data: data.tx.data as `0x${string}`,
+            value: BigInt(data.tx.value ?? 0),
+          });
+          // sendTransaction 会触发 swapTxHash 更新
+          sendTransaction(
+            { to: data.tx.to, data: data.tx.data, value: BigInt(data.tx.value ?? 0) },
+            { onError: (err) => { setStatus("error"); setErrorMsg(friendlyError(err)); } }
+          );
+          return;
+        } catch {
+          // Flashbots 失败降级到普通提交
+        }
+      }
+
       sendTransaction(
         {
           to: data.tx.to,
@@ -200,7 +224,7 @@ export default function ExecutePage() {
       setStatus("error");
       setErrorMsg(friendlyError(err));
     }
-  }, [address, sendTransaction]);
+  }, [address, sendTransaction, chainId, mevProtect, walletClient]);
 
   const execute = useCallback(async (parsed: ParsedIntent) => {
     if (!address) { setStatus("error"); setErrorMsg("Wallet not connected."); return; }
@@ -241,8 +265,9 @@ export default function ExecutePage() {
   useEffect(() => {
     const raw = sessionStorage.getItem("intent-preview");
     if (!raw) { router.push("/"); return; }
-    const parsed = JSON.parse(raw) as ParsedIntent;
+    const parsed = JSON.parse(raw) as ParsedIntent & { mevProtect?: boolean };
     setIntent(parsed);
+    setMevProtect(parsed.mevProtect ?? true);
     execute(parsed);
   }, [router, execute]);
 
@@ -293,6 +318,9 @@ export default function ExecutePage() {
 
             {(status === "signing" || status === "approving") && (
               <p className="text-stone-700 text-xs">Check your wallet</p>
+            )}
+            {mevProtect && chainId === 1 && status === "signing" && (
+              <p className="text-gold-500/50 text-[10px] tracking-wide">⬡ Flashbots · MEV protected</p>
             )}
           </>
         )}
