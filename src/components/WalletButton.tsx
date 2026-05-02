@@ -94,6 +94,10 @@ export function WalletButton() {
 
                   {/* 导航链接 */}
                   <div className="pt-2">
+                    <Link href="/portfolio" onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors">
+                      Portfolio
+                    </Link>
                     <Link href="/history" onClick={() => setOpen(false)}
                       className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors">
                       History
