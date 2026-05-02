@@ -113,7 +113,7 @@ export default function LandingPage() {
 
           {/* Example intent */}
           <div className="mt-4 inline-flex items-center gap-3 px-5 py-3 bg-stone-900/50 border border-stone-800/60 rounded-2xl">
-            <span className="text-stone-700 text-xs">Try:</span>
+            <span className="text-stone-500 text-xs">Try:</span>
             <span className="text-stone-400 text-sm font-light italic">
               &ldquo;When ETH drops to $3000, buy 0.5 ETH&rdquo;
             </span>
@@ -150,7 +150,7 @@ export default function LandingPage() {
       <section id="features" className="px-6 md:px-12 py-24">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16 space-y-3">
-            <p className="text-stone-600 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
+            <p className="text-stone-500 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
             <h2 className="text-2xl md:text-3xl font-light text-stone-200">Everything you need. Nothing you don&apos;t.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -169,7 +169,7 @@ export default function LandingPage() {
       <section id="how" className="px-6 md:px-12 py-24 border-t border-stone-900">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16 space-y-3">
-            <p className="text-stone-600 text-[10px] tracking-[0.3em] uppercase">How it works</p>
+            <p className="text-stone-500 text-[10px] tracking-[0.3em] uppercase">How it works</p>
             <h2 className="text-2xl md:text-3xl font-light text-stone-200">Three steps. That&apos;s genuinely it.</h2>
           </div>
           <div className="space-y-px">
@@ -194,7 +194,7 @@ export default function LandingPage() {
           </div>
           <div className="space-y-3">
             <h2 className="text-2xl md:text-3xl font-light text-stone-200">Ready to swap with intention?</h2>
-            <p className="text-stone-600 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
+            <p className="text-stone-500 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
           </div>
           <Link
             href="/"
@@ -207,12 +207,12 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="px-6 md:px-12 py-8 border-t border-stone-900 flex items-center justify-between">
-        <span className="text-stone-700 text-xs">⬡ Intent Swap · Open source · No protocol fee</span>
+        <span className="text-stone-500 text-xs">⬡ Intent Swap · Open source · No protocol fee</span>
         <div className="flex items-center gap-6">
-          <a href="https://github.com/Lovelle-Zhang/intent-swap" target="_blank" rel="noopener" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
+          <a href="https://github.com/Lovelle-Zhang/intent-swap" target="_blank" rel="noopener" className="text-stone-500 hover:text-stone-300 text-xs transition-colors">
             GitHub
           </a>
-          <Link href="/docs" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
+          <Link href="/docs" className="text-stone-500 hover:text-stone-300 text-xs transition-colors">
             Docs
           </Link>
         </div>
