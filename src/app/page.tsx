@@ -7,6 +7,60 @@ import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 import { TokenSearch, type TokenInfo } from "@/components/TokenSearch";
 
+function TokenSearchCollapsible({
+  chainId,
+  onSelect,
+  tokenHint,
+  onClearHint,
+}: {
+  chainId: number;
+  onSelect: (t: TokenInfo) => void;
+  tokenHint: string;
+  onClearHint: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      {/* 折叠触发行 */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-600 hover:text-stone-400 hover:bg-stone-900/30 transition-all group"
+      >
+        <span className="flex items-center gap-2 text-[11px] tracking-wider">
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {tokenHint ? (
+            <span className="text-gold-400/60 font-mono">{tokenHint}</span>
+          ) : (
+            <span>Search 1,700+ tokens</span>
+          )}
+        </span>
+        <svg
+          className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* 展开内容 */}
+      {open && (
+        <div className="mt-1.5 px-1 space-y-1.5 animate-fade-in">
+          <TokenSearch chainId={chainId} onSelect={(t) => { onSelect(t); setOpen(false); }} />
+          {tokenHint && (
+            <p className="text-stone-600 text-[11px] px-1 flex items-center gap-1.5">
+              <span className="text-stone-700">Selected:</span>
+              <span className="text-gold-400/60 font-mono">{tokenHint}</span>
+              <button onClick={onClearHint} className="text-stone-700 hover:text-stone-500 ml-1">✕</button>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const CHAIN_LABELS: Record<number, string> = {
   [mainnet.id]: "Ethereum · Uniswap V3",
   [arbitrum.id]: "Arbitrum · Uniswap V3",
@@ -131,20 +185,8 @@ export default function Home() {
           {/* 输入区 */}
           <IntentInput mode={mode} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
 
-          {/* Token 搜索 */}
-          <div className="px-1 space-y-1.5">
-            <p className="text-stone-700 text-[10px] tracking-widest uppercase">Find any token</p>
-            <TokenSearch
-              chainId={chainId}
-              onSelect={handleTokenSelect}
-            />
-            {tokenHint && (
-              <p className="text-stone-600 text-xs px-1">
-                Selected: <span className="text-gold-400/70 font-mono">{tokenHint}</span>
-                <button onClick={() => setTokenHint("")} className="text-stone-700 hover:text-stone-500 ml-2 text-[10px]">clear</button>
-              </p>
-            )}
-          </div>
+          {/* Token 搜索 — 可折叠 */}
+          <TokenSearchCollapsible chainId={chainId} onSelect={handleTokenSelect} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
           {/* 底部特性 */}
           <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
             {[
