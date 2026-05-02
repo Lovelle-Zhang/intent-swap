@@ -62,17 +62,17 @@ export default function Home() {
             {/* 下拉菜单 */}
             {menuOpen && (
               <>
-                {/* 遮罩层 */}
+                {/* 遮罩层：z-index 低于菜单，仅用于点击关闭 */}
                 <div 
                   className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
                 />
-                {/* 菜单内容 */}
+                {/* 菜单内容：z-50 确保在遮罩层之上 */}
                 <div className="absolute right-0 top-full mt-2 bg-stone-900/95 backdrop-blur-sm border border-stone-800/80 rounded-xl shadow-2xl min-w-[180px] py-2 z-50 animate-fade-in">
                   <Link 
                     href="/history" 
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
                   >
                     <span className="text-stone-600">📜</span>
                     <span>History</span>
@@ -80,7 +80,7 @@ export default function Home() {
                   <Link 
                     href="/orders" 
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
                   >
                     <span className="text-stone-600">⏰</span>
                     <span>Orders</span>
@@ -89,7 +89,7 @@ export default function Home() {
                   <Link 
                     href="/docs" 
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
+                    className="relative z-50 flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
                   >
                     <span className="text-stone-700">📖</span>
                     <span>Docs</span>
