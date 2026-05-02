@@ -86,7 +86,7 @@ export default function LandingPage() {
 
           <h1 className="text-4xl md:text-6xl font-light text-stone-100 leading-tight tracking-tight">
             Swap with<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-gold-600 pr-2">
               intention
             </span>
           </h1>
