@@ -35,14 +35,8 @@ export default function Home() {
           </span>
         </div>
 
-        {/* 右侧：网络标识 + 钱包头像 */}
-        <div className="flex items-center gap-2.5">
-          {/* 网络标识：小圆点 + 链名 */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stone-800/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
-            <span className="text-stone-600 text-[10px] tracking-wider">ETH</span>
-          </div>
-          {/* 钱包头像（含下拉菜单） */}
+        {/* 右侧：网络标识 + 钱包头像（统一在 WalletButton 内处理） */}
+        <div className="flex items-center">
           <WalletButton />
         </div>
       </header>
