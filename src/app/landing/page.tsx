@@ -121,10 +121,17 @@ export default function LandingPage() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-stone-800">
-          <div className="w-px h-8 bg-gradient-to-b from-transparent to-stone-700" />
-          <span className="text-[10px] tracking-widest uppercase">Scroll</span>
-        </div>
+        <a
+          href="#features"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-stone-600 hover:text-stone-400 transition-colors group"
+        >
+          <span className="text-[10px] tracking-widest uppercase">Explore</span>
+          <div className="flex flex-col items-center gap-0.5 animate-bounce">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </a>
       </section>
 
       {/* Stats */}
