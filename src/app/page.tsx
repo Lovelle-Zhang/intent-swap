@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useChainId } from "wagmi";
+import { useChainId, useAccount, useSwitchChain } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
@@ -15,7 +15,10 @@ const CHAIN_LABELS: Record<number, string> = {
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
   const chainId = useChainId();
+  const { isConnected } = useAccount();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const chainLabel = CHAIN_LABELS[chainId] ?? "Ethereum · Uniswap V3";
+  const isWrongChain = isConnected && chainId !== mainnet.id;
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -50,6 +53,25 @@ export default function Home() {
           <WalletButton />
         </div>
       </header>
+
+      {/* 错误链路提示横幅 */}
+      {isWrongChain && (
+        <div className="relative z-40 mx-4 md:mx-8 mt-0 mb-2">
+          <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/40 rounded-xl px-4 py-2.5">
+            <p className="text-amber-400/80 text-xs">
+              This app runs on Ethereum Mainnet.
+              <span className="text-amber-600/70 ml-1 hidden md:inline">Switch in your wallet if the button below doesn't work.</span>
+            </p>
+            <button
+              onClick={() => switchChain({ chainId: mainnet.id })}
+              disabled={isSwitching}
+              className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors ml-4 shrink-0"
+            >
+              {isSwitching ? "Switching..." : "Switch →"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 主体 */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 pb-16">
