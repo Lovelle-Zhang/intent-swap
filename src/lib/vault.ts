@@ -7,7 +7,7 @@ import { encodePacked, keccak256, encodeAbiParameters, parseAbiParameters, type 
 
 // 已部署合约地址（部署后填入）
 export const VAULT_ADDRESSES: Record<number, Hex> = {
-  1:     "0x0000000000000000000000000000000000000000", // TODO: deploy to mainnet
+  1:     "0x52a8fe40324621d310ede9bfd20396b82dfec0ee", // Ethereum Mainnet
   42161: "0x0000000000000000000000000000000000000000", // TODO: deploy to arbitrum
   59144: "0x0000000000000000000000000000000000000000", // TODO: deploy to linea
 };
