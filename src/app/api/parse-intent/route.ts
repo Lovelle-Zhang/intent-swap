@@ -68,10 +68,13 @@ const COINGECKO_IDS: Record<string, string> = {
 async function fetchPrices(): Promise<Record<string, number>> {
   try {
     const ids = Object.values(COINGECKO_IDS).join(",");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3s 超时
     const res = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
-      { next: { revalidate: 60 } } // Next.js 缓存 60s
+      { next: { revalidate: 60 }, signal: controller.signal }
     );
+    clearTimeout(timeout);
     const data = await res.json();
     const prices: Record<string, number> = {};
     for (const [symbol, id] of Object.entries(COINGECKO_IDS)) {
@@ -79,7 +82,7 @@ async function fetchPrices(): Promise<Record<string, number>> {
     }
     return prices;
   } catch {
-    return {};
+    return {}; // 超时/失败时静默跳过，不阻塞 LLM
   }
 }
 
@@ -151,6 +154,8 @@ async function llmParse(intent: string) {
 }
 
 // ─── Route Handler ─────────────────────────────────────────────────────────
+
+export const maxDuration = 30; // Vercel 函数最大 30s
 
 export async function POST(req: NextRequest) {
   try {
