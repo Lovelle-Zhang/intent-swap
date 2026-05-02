@@ -35,9 +35,12 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
 
   const routeLabel = chainId === 59144 ? "Izumi Finance · Linea" : chainId === 1 ? "Uniswap V3 · Mainnet" : "Uniswap V3 · Arbitrum";
 
-  const amountDisplay =
-    resolvedAmount !== null && resolvedAmount !== undefined
-      ? `${resolvedAmount.toFixed(6)} ${intent.fromToken}${intent.amountType === "max" ? " (all)" : intent.amountType === "percentage" ? ` (${intent.amount}%)` : ""}`
+  // 修复：条件单模式下，显示占位文本而非具体数量
+  const isConditional = intent.intentType === "conditional";
+  const amountDisplay = isConditional
+    ? "When triggered"
+    : resolvedAmount !== null && resolvedAmount !== undefined
+    ? `${resolvedAmount.toFixed(6)} ${intent.fromToken}${intent.amountType === "max" ? " (all)" : intent.amountType === "percentage" ? ` (${intent.amount}%)` : ""}`
     : intent.amount === null ? "—"
     : intent.amountType === "percentage" ? `${intent.amount}% of balance`
     : intent.amountType === "max" ? "Max balance"
@@ -58,7 +61,8 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
             {fromIcon}
           </div>
           <div className="text-stone-300 text-sm font-medium">{intent.fromToken}</div>
-          {intent.amount && (
+          {/* 修复：条件单模式下不显示具体数量 */}
+          {!isConditional && intent.amount && (
             <div className="text-stone-600 text-xs">{intent.amount}</div>
           )}
         </div>
@@ -74,7 +78,8 @@ export function SwapPreviewCard({ intent, slippage, address, quote, quoteLoading
             {toIcon}
           </div>
           <div className="text-stone-300 text-sm font-medium">{intent.toToken}</div>
-          {quote?.amountOut && !quoteLoading && (
+          {/* 修复：条件单模式下不显示预估接收量 */}
+          {!isConditional && quote?.amountOut && !quoteLoading && (
             <div className="text-gold-500/70 text-xs">
               ≈ {Number(quote.amountOut).toLocaleString(undefined, { maximumFractionDigits: 4 })}
             </div>

@@ -53,9 +53,6 @@ export default function PreviewPage() {
   const [quote, setQuote] = useState<{ amountOut: string; priceImpact?: string } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [orderSubmitted, setOrderSubmitted] = useState(false);
-  const [orderSubmitting, setOrderSubmitting] = useState(false);
 
   const router = useRouter();
   const { address, isConnected } = useAccount();
@@ -93,6 +90,9 @@ export default function PreviewPage() {
     return intent.amount;
   })();
 
+  // 修复：条件单模式下，resolvedAmount 可能为 null，需要用占位值
+  const displayAmount = isConditional && resolvedAmount === null ? 100 : resolvedAmount;
+
   const insufficientBalance =
     balance !== undefined && resolvedAmount !== null && resolvedAmount !== undefined && resolvedAmount > 0
       ? Number(balance.formatted) < resolvedAmount
@@ -107,7 +107,10 @@ export default function PreviewPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!intent || !resolvedAmount || intent.fromToken === intent.toToken) return;
+    // 修复：条件单模式下，即使 resolvedAmount 为 null 也要获取报价（用占位值）
+    const amountForQuote = isConditional && resolvedAmount === null ? 100 : resolvedAmount;
+    if (!intent || !amountForQuote || intent.fromToken === intent.toToken) return;
+    
     setQuoteLoading(true);
     setQuote(null);
     setGasEstimate(null);
@@ -118,7 +121,7 @@ export default function PreviewPage() {
       body: JSON.stringify({
         fromToken: intent.fromToken,
         toToken: intent.toToken,
-        amount: resolvedAmount,
+        amount: amountForQuote,
         slippagePref,
         walletAddress: address ?? "0x0000000000000000000000000000000000000001",
         quoteOnly: true,
@@ -143,104 +146,33 @@ export default function PreviewPage() {
       })
       .catch(() => {})
       .finally(() => setQuoteLoading(false));
-  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID]);
+  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID, isConditional]);
 
   if (!intent) return null;
 
   const isConditional = intent.intentType === "conditional";
   const slippage = SLIPPAGE_MAP[slippagePref];
 
-  const handleSubmitOrder = async () => {
-    if (!email || !intent.condition) return;
-    setOrderSubmitting(true);
-    try {
-      await fetch("https://api.o-sheepps.com/swap-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          fromToken: intent.fromToken,
-          toToken: intent.toToken,
-          amount: intent.amount,
-          condition: intent.condition,
-        }),
-      });
-      setOrderSubmitted(true);
-    } catch {
-      // ignore
-    } finally {
-      setOrderSubmitting(false);
+  const handleConfirm = () => {
+    if (isConditional) {
+      // 条件单：跳转到条件单提交页面
+      sessionStorage.setItem("conditional-order", JSON.stringify({
+        intent,
+        slippagePref,
+        resolvedAmount: displayAmount, // 使用 displayAmount
+        quote,
+        gasEstimate,
+      }));
+      router.push("/conditional-order");
+    } else {
+      // 立即执行：跳转到执行页
+      const updated = { ...intent, slippagePref, amount: resolvedAmount ?? intent.amount };
+      sessionStorage.setItem("intent-preview", JSON.stringify(updated));
+      router.push("/execute");
     }
   };
 
-  const handleConfirm = () => {
-    const updated = { ...intent, slippagePref, amount: resolvedAmount ?? intent.amount };
-    sessionStorage.setItem("intent-preview", JSON.stringify(updated));
-    router.push("/execute");
-  };
-
-  // 条件单 UI
-  if (isConditional) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16 animate-fade-in">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-1">
-            <p className="text-stone-500 text-xs tracking-widest uppercase">Conditional Order</p>
-            <p className="text-stone-400 text-sm italic">"{intent.raw}"</p>
-          </div>
-          <div className="bg-stone-900/40 border border-stone-800/60 rounded-2xl p-5 space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-500">Token</span>
-              <span className="text-stone-200">{intent.condition?.token}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-500">Trigger</span>
-              <span className="text-stone-200">
-                {intent.condition?.operator === "below" ? "Drops below" : "Rises above"} ${intent.condition?.targetPrice.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-500">Action</span>
-              <span className="text-stone-200">{intent.fromToken} → {intent.toToken}{intent.amount ? ` (${intent.amount})` : ""}</span>
-            </div>
-          </div>
-          {orderSubmitted ? (
-            <div className="text-center space-y-2">
-              <p className="text-gold-400 text-sm">✦ Order set</p>
-              <p className="text-stone-500 text-xs">We'll email {email} when the condition is triggered.</p>
-              <button onClick={() => router.push("/")} className="text-stone-600 hover:text-stone-400 text-sm mt-4 block mx-auto">
-                New swap →
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-stone-900/60 border border-stone-700 rounded-xl px-4 py-3 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-stone-500"
-              />
-              <div className="flex gap-3">
-                <button onClick={() => router.push("/")} className="flex-1 py-3 border border-stone-700 hover:border-stone-500 text-stone-400 rounded-xl text-sm transition-colors">
-                  ← Revise
-                </button>
-                <button
-                  onClick={handleSubmitOrder}
-                  disabled={!email || orderSubmitting}
-                  className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
-                >
-                  {orderSubmitting ? "Setting..." : "Set Alert"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
-    );
-  }
-
-  // 普通 swap UI
+  // 渲染主 UI（立即执行 + 条件单都用同一个预览卡片）
   return (
     <main className="min-h-screen flex flex-col items-center px-4 py-8 animate-fade-in">
       <div className="w-full max-w-md space-y-6">
@@ -262,7 +194,7 @@ export default function PreviewPage() {
           quote={quote}
           quoteLoading={quoteLoading}
           balance={balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : undefined}
-          resolvedAmount={resolvedAmount}
+          resolvedAmount={displayAmount} // 修复：使用 displayAmount
           chainId={TARGET_CHAIN_ID}
           gasEstimate={gasEstimate}
         />

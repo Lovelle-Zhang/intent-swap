@@ -8,6 +8,7 @@ import { IntentInput } from "@/components/IntentInput";
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional">("swap");
   const [menuOpen, setMenuOpen] = useState(false);
+  // Force recompile
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -26,66 +27,75 @@ export default function Home() {
       </div>
 
       {/* 顶栏 */}
-      <header className="relative z-10 flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 md:py-4">
+      <header className="relative z-10 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded border border-gold-500/30 flex items-center justify-center">
-            <span className="text-gold-500 text-xs">⬡</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded border border-gold-500/20 flex items-center justify-center">
+            <span className="text-gold-500/80 text-sm">⬡</span>
           </div>
-          <span className="text-stone-400 text-xs tracking-[0.15em] uppercase font-light">
+          <span className="text-stone-300 text-sm tracking-[0.12em] font-light">
             Intent Swap
           </span>
         </div>
 
-        {/* 右侧导航 */}
+        {/* 右侧：钱包 + 菜单 */}
         <div className="flex items-center gap-3">
-          {/* 桌面端：显示所有链接 */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/history" className="text-stone-500 hover:text-stone-300 text-xs tracking-wide transition-colors">
-              History
-            </Link>
-            <Link href="/orders" className="text-stone-500 hover:text-stone-300 text-xs tracking-wide transition-colors">
-              Orders
-            </Link>
-          </div>
-          
-          {/* 桌面端：钱包按钮 */}
-          <div className="hidden md:block">
-            <WalletButton />
-          </div>
+          {/* 钱包按钮（始终显示） */}
+          <WalletButton />
 
-          {/* 移动端：汉堡菜单 */}
-          <div className="md:hidden relative">
+          {/* 菜单按钮 */}
+          <div className="relative">
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="text-stone-600 hover:text-stone-400 text-xs p-2"
+              className="w-8 h-8 rounded-lg border border-stone-800 hover:border-stone-700 flex items-center justify-center text-stone-500 hover:text-stone-300 transition-colors"
+              aria-label="Menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {menuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
               </svg>
             </button>
+
             {/* 下拉菜单 */}
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-lg shadow-xl min-w-[160px] py-2 z-50">
-                <Link 
-                  href="/history" 
+              <>
+                {/* 遮罩层 */}
+                <div 
+                  className="fixed inset-0 z-40"
                   onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
-                >
-                  History
-                </Link>
-                <Link 
-                  href="/orders" 
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800 text-xs transition-colors"
-                >
-                  Orders
-                </Link>
-                <div className="border-t border-stone-800 my-2" />
-                <div className="px-4 py-2">
-                  <WalletButton />
+                />
+                {/* 菜单内容 */}
+                <div className="absolute right-0 top-full mt-2 bg-stone-900/95 backdrop-blur-sm border border-stone-800/80 rounded-xl shadow-2xl min-w-[180px] py-2 z-50 animate-fade-in">
+                  <Link 
+                    href="/history" 
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                  >
+                    <span className="text-stone-600">📜</span>
+                    <span>History</span>
+                  </Link>
+                  <Link 
+                    href="/orders" 
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors"
+                  >
+                    <span className="text-stone-600">⏰</span>
+                    <span>Orders</span>
+                  </Link>
+                  <div className="h-px bg-stone-800/60 my-2 mx-3" />
+                  <Link 
+                    href="/docs" 
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-stone-500 hover:text-stone-300 hover:bg-stone-800/50 text-xs transition-colors"
+                  >
+                    <span className="text-stone-700">📖</span>
+                    <span>Docs</span>
+                  </Link>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
