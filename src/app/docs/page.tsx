@@ -44,7 +44,8 @@ const SECURITY = [
 const CONTRACT_INFO = [
   { label: "Contract",   value: "ConditionalSwapVault" },
   { label: "Network",    value: "Ethereum Mainnet" },
-  { label: "Address",    value: "0x52a8fe40...dec0ee", href: "https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" },
+  { label: "Address",    value: "0x52a8fe40...dec0ee", href: "https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee#code" },
+  { label: "Verified",   value: "Sourcify (perfect) ↗", href: "https://sourcify.dev/#/lookup/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" },
   { label: "Standard",   value: "EIP-712 signed orders" },
   { label: "Auth",       value: "Keeper-based execution" },
 ];
