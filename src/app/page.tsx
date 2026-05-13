@@ -163,7 +163,8 @@ export default function Home() {
             {[
               { key: "swap",        label: "Instant Swap" },
               { key: "conditional", label: "Conditional Order" },
-              { key: "fx",          label: "FX Exchange" },
+              // FX Exchange: coming soon, hidden until backend data source is ready
+              // { key: "fx",          label: "FX Exchange" },
             ].map((tab) => (
               <button
                 key={tab.key}
