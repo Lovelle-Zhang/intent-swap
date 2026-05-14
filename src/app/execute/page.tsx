@@ -78,6 +78,7 @@ const ERC20_ABI = [
 
 export default function ExecutePage() {
   const [status, setStatus] = useState<Status>("idle");
+  const [fromLink, setFromLink] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [needsApproval, setNeedsApproval] = useState(false);
@@ -264,7 +265,7 @@ export default function ExecutePage() {
   }, [address, tokenAddress, allowance, writeContract, doSwap]);
 
   useEffect(() => {
-    // 优先从 URL 参数读取（邮件链接跳转）
+    // 优先从 URL 参数读取（通知链接跳转）
     const fromToken = searchParams.get("from");
     const toToken = searchParams.get("to");
     const amount = searchParams.get("amount");
@@ -278,7 +279,8 @@ export default function ExecutePage() {
       };
       setIntent(parsed);
       setMevProtect(true);
-      execute(parsed);
+      setFromLink(true);
+      // 不自动执行，等用户连接钱包后手动触发
       return;
     }
     // fallback：从 sessionStorage 读（正常预览流程）
@@ -306,7 +308,37 @@ export default function ExecutePage() {
     <main className="min-h-screen flex flex-col items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-sm text-center space-y-8">
 
-        {!["success", "error"].includes(status) && (
+        {/* 从通知链接进入：展示订单详情 + 连接钱包 */}
+        {fromLink && status === "idle" && intent && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="text-gold-500/60 text-xs uppercase tracking-widest">Conditional Order Triggered</div>
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-5 text-left space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 text-xs uppercase tracking-wider">Swap</span>
+                <span className="text-stone-200 font-medium">{intent.fromToken} → {intent.toToken}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 text-xs uppercase tracking-wider">Amount</span>
+                <span className="text-stone-300">{intent.amount} {intent.fromToken}</span>
+              </div>
+            </div>
+            {!address ? (
+              <p className="text-stone-500 text-sm">Connect your wallet to execute this swap</p>
+            ) : (
+              <button
+                onClick={() => { setFromLink(false); execute(intent); }}
+                className="w-full py-3 bg-gold-500/10 border border-gold-500/30 text-gold-400 rounded-xl hover:bg-gold-500/20 transition-colors text-sm font-medium"
+              >
+                Execute Swap →
+              </button>
+            )}
+            <Link href="/" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+              ← Back to home
+            </Link>
+          </div>
+        )}
+
+        {!fromLink && !["success", "error"].includes(status) && (
           <>
             <div className="relative w-16 h-16 mx-auto">
               <div className="w-16 h-16 border border-stone-800 rounded-full" />
