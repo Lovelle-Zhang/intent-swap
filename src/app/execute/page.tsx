@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { addRecord } from "@/lib/history";
 import {
@@ -86,6 +86,7 @@ export default function ExecutePage() {
   const [mevProtect, setMevProtect] = useState(false);
   const recordedRef = useRef(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { address } = useAccount();
   const chainId = useChainId();
   const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[1];
@@ -263,13 +264,31 @@ export default function ExecutePage() {
   }, [address, tokenAddress, allowance, writeContract, doSwap]);
 
   useEffect(() => {
+    // 优先从 URL 参数读取（邮件链接跳转）
+    const fromToken = searchParams.get("from");
+    const toToken = searchParams.get("to");
+    const amount = searchParams.get("amount");
+    if (fromToken && toToken && amount) {
+      const parsed: ParsedIntent = {
+        fromToken: fromToken.toUpperCase(),
+        toToken: toToken.toUpperCase(),
+        amount: parseFloat(amount),
+        summary: `Swap ${amount} ${fromToken.toUpperCase()} → ${toToken.toUpperCase()}`,
+        slippagePref: 0.5,
+      };
+      setIntent(parsed);
+      setMevProtect(true);
+      execute(parsed);
+      return;
+    }
+    // fallback：从 sessionStorage 读（正常预览流程）
     const raw = sessionStorage.getItem("intent-preview");
     if (!raw) { router.push("/"); return; }
     const parsed = JSON.parse(raw) as ParsedIntent & { mevProtect?: boolean };
     setIntent(parsed);
     setMevProtect(parsed.mevProtect ?? true);
     execute(parsed);
-  }, [router, execute]);
+  }, [router, execute, searchParams]);
 
   const steps = [
     { key: "checking",           label: "Checking allowance" },
