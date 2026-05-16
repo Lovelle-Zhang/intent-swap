@@ -10,9 +10,10 @@ const SWAP_EXAMPLES = [
 ];
 
 const CONDITIONAL_EXAMPLES = [
-  "When ETH drops to 3000, buy 0.1 ETH",
-  "If BTC goes above 100k, sell 0.01 WBTC",
-  "Alert me when USDC/ETH reaches 0.0003",
+  "When ETH drops to $2800, buy 0.1 ETH with USDC",
+  "If ETH rises above $4000, sell 0.05 ETH",
+  "When BTC drops below $90k, buy 0.001 WBTC",
+  "If ARB reaches $1.5, swap 500 USDC to ARB",
 ];
 
 const FX_EXAMPLES = [
@@ -25,6 +26,9 @@ const FX_PAIRS = [
   { from: "USDC", to: "EURC",  label: "USD → EUR" },
   { from: "USDC", to: "GBPT",  label: "USD → GBP" },
   { from: "EURC", to: "USDC",  label: "EUR → USD" },
+  { from: "GBPT", to: "USDC",  label: "GBP → USD" },
+  { from: "EURC", to: "GBPT",  label: "EUR → GBP" },
+  { from: "USDC", to: "EURT",  label: "USD → EUR (T)" },
 ];
 
 interface IntentInputProps {

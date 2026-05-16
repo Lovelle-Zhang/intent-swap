@@ -45,6 +45,7 @@ export default function ConditionalOrderPage() {
   const [condToken, setCondToken] = useState("ETH");
   const [condOp, setCondOp] = useState<"above" | "below">("below");
   const [condPrice, setCondPrice] = useState("");
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("conditional-order");
@@ -60,6 +61,12 @@ export default function ConditionalOrderPage() {
     }
     const savedEmail = localStorage.getItem("user-email") ?? "";
     setEmail(savedEmail);
+
+    // 拉当前 ETH 价格用于快捷选项
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+      .then((r) => r.json())
+      .then((d) => { if (d.ethereum?.usd) setCurrentPrice(d.ethereum.usd); })
+      .catch(() => {});
   }, [router]);
 
   // 检查 allowance（ERC20 → swap 时需要）
@@ -298,11 +305,51 @@ export default function ConditionalOrderPage() {
                   className="w-full bg-stone-900/60 border border-stone-700/50 rounded-lg pl-7 pr-4 py-2 text-stone-300 text-xs focus:outline-none focus:border-stone-600"
                 />
               </div>
+
+              {/* 快捷价格选项 */}
+              {condToken === "ETH" && currentPrice && (
+                <div className="space-y-1.5">
+                  <p className="text-stone-700 text-[10px]">
+                    Current ETH: <span className="text-stone-500">${currentPrice.toLocaleString()}</span> · Quick select:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {condOp === "below"
+                      ? [
+                          { label: "-5%",  price: Math.round(currentPrice * 0.95) },
+                          { label: "-10%", price: Math.round(currentPrice * 0.90) },
+                          { label: "-20%", price: Math.round(currentPrice * 0.80) },
+                          { label: "-30%", price: Math.round(currentPrice * 0.70) },
+                        ]
+                      : [
+                          { label: "+5%",  price: Math.round(currentPrice * 1.05) },
+                          { label: "+10%", price: Math.round(currentPrice * 1.10) },
+                          { label: "+20%", price: Math.round(currentPrice * 1.20) },
+                          { label: "+50%", price: Math.round(currentPrice * 1.50) },
+                        ]
+                    }.map(({ label, price }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setCondPrice(String(price))}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] transition-all border ${
+                          condPrice === String(price)
+                            ? "bg-gold-500/20 text-gold-400 border-gold-500/40"
+                            : "text-stone-500 hover:text-stone-300 border-stone-800 hover:border-stone-700"
+                        }`}
+                      >
+                        {label} · ${price.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* 邮件 */}
+            {/* 邮件（可选） */}
             <div className="space-y-1.5">
-              <label className="text-stone-600 text-[10px] tracking-widest uppercase">Notification email</label>
+              <label className="text-stone-600 text-[10px] tracking-widest uppercase">
+                Notification email <span className="text-stone-700 normal-case tracking-normal">(optional)</span>
+              </label>
               <input
                 type="email"
                 value={email}
@@ -318,6 +365,7 @@ export default function ConditionalOrderPage() {
               <p className="text-stone-700 text-[11px] leading-relaxed">
                 You&apos;ll sign a pre-authorized swap transaction. It stays private until the condition is met — then executes automatically.
                 {needsApproval && <span className="text-amber-400/60"> Token approval required first.</span>}
+                {!email && <span className="text-stone-700"> Add email to get notified when triggered.</span>}
               </p>
             </div>
 
@@ -330,7 +378,7 @@ export default function ConditionalOrderPage() {
             ) : (
               <button
                 onClick={handleConfirm}
-                disabled={!address || !condPrice || !email}
+                disabled={!address || !condPrice}
                 className="w-full py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-30 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
               >
                 {needsApproval ? "Approve & Pre-sign" : "Pre-sign & Create Order"}
