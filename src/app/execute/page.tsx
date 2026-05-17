@@ -275,7 +275,7 @@ export default function ExecutePage() {
         toToken: toToken.toUpperCase(),
         amount: parseFloat(amount),
         summary: `Swap ${amount} ${fromToken.toUpperCase()} → ${toToken.toUpperCase()}`,
-        slippagePref: 0.5,
+        slippagePref: "normal",
       };
       setIntent(parsed);
       setMevProtect(true);
