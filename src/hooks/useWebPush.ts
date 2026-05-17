@@ -4,12 +4,14 @@ import { useState, useCallback } from "react";
 
 const API_BASE = "https://api.o-sheepps.com";
 
-export type PushState = "idle" | "requesting" | "subscribed" | "denied" | "unsupported";
+export type PushState = "idle" | "requesting" | "ready" | "subscribed" | "denied" | "unsupported";
 
 export function useWebPush() {
   const [state, setState] = useState<PushState>("idle");
+  const [pendingSubscription, setPendingSubscription] = useState<PushSubscriptionJSON | null>(null);
 
-  const subscribe = useCallback(async (orderId: string): Promise<boolean> => {
+  // Step 1: 请求权限 + 注册 SW + 获取 subscription（不需要 orderId）
+  const prepare = useCallback(async (): Promise<boolean> => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setState("unsupported");
       return false;
@@ -18,47 +20,62 @@ export function useWebPush() {
     setState("requesting");
 
     try {
-      // 注册 Service Worker
       const reg = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
 
-      // 请求通知权限
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setState("denied");
         return false;
       }
 
-      // 从服务器拿 VAPID 公钥
       const keyRes = await fetch(`${API_BASE}/vapid-public-key`);
       const { publicKey } = await keyRes.json();
 
-      // 订阅 Push
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
-      // 把订阅发给服务器，绑定到 orderId
-      await fetch(`${API_BASE}/push-subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, subscription: subscription.toJSON() }),
-      });
-
-      setState("subscribed");
+      setPendingSubscription(subscription.toJSON());
+      setState("ready");
       return true;
     } catch (err) {
-      console.error("[WebPush] Subscribe failed:", err);
+      console.error("[WebPush] Prepare failed:", err);
       setState("idle");
       return false;
     }
   }, []);
 
-  return { state, subscribe };
+  // Step 2: 订单创建成功后，把 subscription 绑定到 orderId
+  const bind = useCallback(async (orderId: string): Promise<boolean> => {
+    const sub = pendingSubscription;
+    if (!sub) return false;
+
+    try {
+      await fetch(`${API_BASE}/push-subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, subscription: sub }),
+      });
+      setState("subscribed");
+      return true;
+    } catch (err) {
+      console.error("[WebPush] Bind failed:", err);
+      return false;
+    }
+  }, [pendingSubscription]);
+
+  // 兼容旧接口：一步完成（需要 orderId）
+  const subscribe = useCallback(async (orderId: string): Promise<boolean> => {
+    const ok = await prepare();
+    if (!ok) return false;
+    return bind(orderId);
+  }, [prepare, bind]);
+
+  return { state, prepare, bind, subscribe };
 }
 
-// Base64URL → Uint8Array（VAPID key 格式转换）
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");

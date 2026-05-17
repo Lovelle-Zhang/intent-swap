@@ -42,7 +42,7 @@ export default function ConditionalOrderPage() {
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
-  const { state: pushState, subscribe: subscribePush } = useWebPush();
+  const { state: pushState, prepare: preparePush, bind: bindPush, subscribe: subscribePush } = useWebPush();
 
   // Condition fields (pre-filled from intent)
   const [condToken, setCondToken] = useState("ETH");
@@ -177,8 +177,8 @@ export default function ConditionalOrderPage() {
 
       setOrderId(submitData.id);
       setStep("done");
-      // 订单创建成功后，立即请求 Web Push 权限并绑定到该订单
-      subscribePush(submitData.id).catch(() => {});
+      // 订单创建成功后绑定 Push 订阅（如果用户已点击开启）
+      bindPush(submitData.id).catch(() => {});
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed");
       setStep("error");
@@ -368,16 +368,49 @@ export default function ConditionalOrderPage() {
               )}
             </div>
 
-            {/* 邮件（可选） */}
-            <div className="space-y-1.5">
-              <label className="text-stone-600 text-[10px] tracking-widest uppercase">
-                Notification email <span className="text-stone-700 normal-case tracking-normal">(optional)</span>
-              </label>
+            {/* 通知方式 */}
+            <div className="space-y-2">
+              <p className="text-stone-600 text-[10px] tracking-widest uppercase">Notifications <span className="text-stone-700 normal-case tracking-normal">(optional)</span></p>
+
+              {/* 浏览器推送 */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (pushState === "idle") preparePush();
+                }}
+                disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs transition-colors ${
+                  pushState === "subscribed"
+                    ? "bg-gold-500/10 border-gold-500/30 text-gold-400"
+                    : pushState === "ready"
+                    ? "bg-stone-800/60 border-stone-700/50 text-stone-300"
+                    : pushState === "denied"
+                    ? "bg-stone-900/40 border-stone-800/60 text-stone-600 cursor-not-allowed"
+                    : pushState === "requesting"
+                    ? "bg-stone-900/40 border-stone-800/60 text-stone-500 cursor-wait"
+                    : "bg-stone-900/40 border-stone-800/60 text-stone-400 hover:border-stone-700 hover:text-stone-300"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span>{pushState === "subscribed" ? "🔔" : "🔕"}</span>
+                  <span>
+                    {pushState === "subscribed" && "Browser notifications enabled"}
+                    {pushState === "ready" && "✓ Ready — will activate on order creation"}
+                    {pushState === "denied" && "Notifications blocked — check browser settings"}
+                    {pushState === "requesting" && "Enabling..."}
+                    {pushState === "unsupported" && "Push not supported in this browser"}
+                    {pushState === "idle" && "Enable browser notifications"}
+                  </span>
+                </span>
+                {pushState === "idle" && <span className="text-stone-600">→</span>}
+              </button>
+
+              {/* 邮件 */}
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                placeholder="or enter email address"
                 className="w-full bg-stone-900/40 border border-stone-800/60 rounded-xl px-4 py-2.5 text-stone-300 placeholder-stone-700 text-xs focus:outline-none focus:border-stone-600 transition-colors"
               />
             </div>
