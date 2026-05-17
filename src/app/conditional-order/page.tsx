@@ -336,7 +336,7 @@ export default function ConditionalOrderPage() {
                     Current ETH: <span className="text-stone-500">${currentPrice.toLocaleString()}</span> · Quick select:
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {condOp === "below"
+                    {(condOp === "below"
                       ? [
                           { label: "-5%",  price: Math.round(currentPrice * 0.95) },
                           { label: "-10%", price: Math.round(currentPrice * 0.90) },
@@ -349,7 +349,7 @@ export default function ConditionalOrderPage() {
                           { label: "+20%", price: Math.round(currentPrice * 1.20) },
                           { label: "+50%", price: Math.round(currentPrice * 1.50) },
                         ]
-                    }.map(({ label, price }) => (
+                    ).map(({ label, price }) => (
                       <button
                         key={label}
                         type="button"
