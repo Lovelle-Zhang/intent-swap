@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, useChainId, usePublicClient, useWalletClient, useWriteContract, useReadContract } from "wagmi";
 import { parseUnits, encodeFunctionData, type Hex } from "viem";
 import Link from "next/link";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 
@@ -215,9 +216,12 @@ export default function ConditionalOrderPage() {
 
         {/* Header */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Link href="/preview" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
-            <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Conditional Order</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Link href="/" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Conditional Order</span>
+            </div>
+            <ConnectButton accountStatus="avatar" chainStatus="none" showBalance={false} />
           </div>
           <h1 className="text-stone-200 text-lg font-light">Set trigger & auto-execute</h1>
           <p className="text-stone-600 text-xs mt-1">
