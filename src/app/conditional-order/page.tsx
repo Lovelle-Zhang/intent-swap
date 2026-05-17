@@ -6,6 +6,7 @@ import { useAccount, useChainId, usePublicClient, useWalletClient, useWriteContr
 import { parseUnits, encodeFunctionData, type Hex } from "viem";
 import Link from "next/link";
 import type { ParsedIntent } from "@/app/preview/page";
+import { useWebPush } from "@/hooks/useWebPush";
 
 // Uniswap V3 SwapRouter
 const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564" as const;
@@ -40,6 +41,7 @@ export default function ConditionalOrderPage() {
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
+  const { state: pushState, subscribe: subscribePush } = useWebPush();
 
   // Condition fields (pre-filled from intent)
   const [condToken, setCondToken] = useState("ETH");
@@ -174,6 +176,8 @@ export default function ConditionalOrderPage() {
 
       setOrderId(submitData.id);
       setStep("done");
+      // 订单创建成功后，立即请求 Web Push 权限并绑定到该订单
+      subscribePush(submitData.id).catch(() => {});
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed");
       setStep("error");
@@ -237,6 +241,21 @@ export default function ConditionalOrderPage() {
               {orderId && (
                 <p className="text-stone-700 text-[10px] font-mono">ID: {orderId}</p>
               )}
+              {/* Web Push 状态 */}
+              <div className="mt-1">
+                {pushState === "subscribed" && (
+                  <p className="text-gold-400/60 text-[11px]">🔔 Browser notifications enabled</p>
+                )}
+                {pushState === "denied" && (
+                  <p className="text-amber-400/50 text-[11px]">Notifications blocked — check browser settings</p>
+                )}
+                {pushState === "requesting" && (
+                  <p className="text-stone-600 text-[11px]">Enabling notifications...</p>
+                )}
+                {pushState === "unsupported" && (
+                  <p className="text-stone-700 text-[11px]">Push not supported in this browser</p>
+                )}
+              </div>
             </div>
             <div className="flex gap-3">
               <Link href="/orders" className="flex-1 py-2.5 text-center text-stone-400 hover:text-stone-200 border border-stone-800 hover:border-stone-700 rounded-xl text-xs transition-colors">
