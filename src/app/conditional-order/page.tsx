@@ -297,13 +297,13 @@ export default function ConditionalOrderPage() {
             </div>
 
             {/* 触发条件 */}
-            <div className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 space-y-3">
-              <p className="text-stone-600 text-[10px] tracking-widest uppercase">Trigger condition</p>
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-3">
+              <p className="text-stone-500 text-[10px] tracking-widest uppercase">Trigger condition</p>
               <div className="flex gap-2">
                 <select
                   value={condToken}
                   onChange={(e) => setCondToken(e.target.value)}
-                  className="flex-1 bg-stone-900/60 border border-stone-700/50 rounded-lg px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-stone-600"
+                  className="flex-1 bg-stone-900/80 border border-stone-700/60 rounded-lg px-3 py-2.5 text-stone-200 text-xs focus:outline-none focus:border-stone-500 transition-colors"
                 >
                   {Object.keys(TOKEN_ADDRESSES).filter(t => t !== "WETH").map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -312,29 +312,30 @@ export default function ConditionalOrderPage() {
                 <select
                   value={condOp}
                   onChange={(e) => setCondOp(e.target.value as "above" | "below")}
-                  className="flex-1 bg-stone-900/60 border border-stone-700/50 rounded-lg px-3 py-2 text-stone-300 text-xs focus:outline-none focus:border-stone-600"
+                  className="flex-1 bg-stone-900/80 border border-stone-700/60 rounded-lg px-3 py-2.5 text-stone-200 text-xs focus:outline-none focus:border-stone-500 transition-colors"
                 >
                   <option value="below">drops below</option>
                   <option value="above">rises above</option>
                 </select>
               </div>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-600 text-xs">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm font-light">$</span>
                 <input
                   type="number"
                   value={condPrice}
                   onChange={(e) => setCondPrice(e.target.value)}
                   placeholder="Target price"
-                  className="w-full bg-stone-900/60 border border-stone-700/50 rounded-lg pl-7 pr-4 py-2 text-stone-300 text-xs focus:outline-none focus:border-stone-600"
+                  className="w-full bg-stone-900/80 border border-stone-700/60 rounded-lg pl-7 pr-4 py-2.5 text-stone-200 text-sm focus:outline-none focus:border-stone-500 transition-colors placeholder-stone-700"
                 />
               </div>
 
               {/* 快捷价格选项 */}
               {condToken === "ETH" && currentPrice && (
-                <div className="space-y-1.5">
-                  <p className="text-stone-700 text-[10px]">
-                    Current ETH: <span className="text-stone-500">${currentPrice.toLocaleString()}</span> · Quick select:
-                  </p>
+                <div className="space-y-2 pt-1 border-t border-stone-800/60">
+                  <div className="flex items-center justify-between">
+                    <p className="text-stone-600 text-[10px] uppercase tracking-wider">Quick select</p>
+                    <p className="text-stone-500 text-[11px]">ETH <span className="text-stone-300">${currentPrice.toLocaleString()}</span></p>
+                  </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(condOp === "below"
                       ? [
@@ -354,13 +355,13 @@ export default function ConditionalOrderPage() {
                         key={label}
                         type="button"
                         onClick={() => setCondPrice(String(price))}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] transition-all border ${
+                        className={`px-3 py-1.5 rounded-lg text-[11px] transition-all border ${
                           condPrice === String(price)
-                            ? "bg-gold-500/20 text-gold-400 border-gold-500/40"
-                            : "text-stone-500 hover:text-stone-300 border-stone-800 hover:border-stone-700"
+                            ? "bg-gold-500/20 text-gold-300 border-gold-500/40"
+                            : "text-stone-400 hover:text-stone-200 border-stone-800 hover:border-stone-600 bg-stone-900/40"
                         }`}
                       >
-                        {label} · ${price.toLocaleString()}
+                        <span className="text-stone-500">{label}</span> <span className="text-stone-300">${price.toLocaleString()}</span>
                       </button>
                     ))}
                   </div>
@@ -369,8 +370,8 @@ export default function ConditionalOrderPage() {
             </div>
 
             {/* 通知方式 */}
-            <div className="space-y-2">
-              <p className="text-stone-600 text-[10px] tracking-widest uppercase">Notifications <span className="text-stone-700 normal-case tracking-normal">(optional)</span></p>
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2.5">
+              <p className="text-stone-500 text-[10px] tracking-widest uppercase">Notify me when triggered <span className="text-stone-700 normal-case tracking-normal font-normal">(optional)</span></p>
 
               {/* 浏览器推送 */}
               <button
@@ -379,30 +380,30 @@ export default function ConditionalOrderPage() {
                   if (pushState === "idle") preparePush();
                 }}
                 disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
-                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-xs transition-colors ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-xs transition-colors ${
                   pushState === "subscribed"
-                    ? "bg-gold-500/10 border-gold-500/30 text-gold-400"
+                    ? "bg-gold-500/10 border-gold-500/30 text-gold-300"
                     : pushState === "ready"
-                    ? "bg-stone-800/60 border-stone-700/50 text-stone-300"
+                    ? "bg-stone-800/60 border-stone-600/50 text-stone-200"
                     : pushState === "denied"
-                    ? "bg-stone-900/40 border-stone-800/60 text-stone-600 cursor-not-allowed"
+                    ? "bg-stone-900/40 border-stone-800/40 text-stone-600 cursor-not-allowed"
                     : pushState === "requesting"
-                    ? "bg-stone-900/40 border-stone-800/60 text-stone-500 cursor-wait"
-                    : "bg-stone-900/40 border-stone-800/60 text-stone-400 hover:border-stone-700 hover:text-stone-300"
+                    ? "bg-stone-900/40 border-stone-800/40 text-stone-500 cursor-wait"
+                    : "bg-stone-900/60 border-stone-700/60 text-stone-300 hover:border-stone-600 hover:text-stone-200"
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <span>{pushState === "subscribed" ? "🔔" : "🔕"}</span>
+                <span className="flex items-center gap-2.5">
+                  <span className="text-base">{pushState === "subscribed" || pushState === "ready" ? "🔔" : "🔕"}</span>
                   <span>
-                    {pushState === "subscribed" && "Browser notifications enabled"}
-                    {pushState === "ready" && "✓ Ready — will activate on order creation"}
-                    {pushState === "denied" && "Notifications blocked — check browser settings"}
-                    {pushState === "requesting" && "Enabling..."}
+                    {pushState === "subscribed" && "Browser notifications on"}
+                    {pushState === "ready" && "Ready — activates on order creation"}
+                    {pushState === "denied" && "Notifications blocked in browser settings"}
+                    {pushState === "requesting" && "Requesting permission..."}
                     {pushState === "unsupported" && "Push not supported in this browser"}
                     {pushState === "idle" && "Enable browser notifications"}
                   </span>
                 </span>
-                {pushState === "idle" && <span className="text-stone-600">→</span>}
+                {pushState === "idle" && <span className="text-stone-600 text-sm">→</span>}
               </button>
 
               {/* 邮件 */}
@@ -411,7 +412,7 @@ export default function ConditionalOrderPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="or enter email address"
-                className="w-full bg-stone-900/40 border border-stone-800/60 rounded-xl px-4 py-2.5 text-stone-300 placeholder-stone-700 text-xs focus:outline-none focus:border-stone-600 transition-colors"
+                className="w-full bg-stone-900/60 border border-stone-700/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none focus:border-stone-500 transition-colors"
               />
             </div>
 
