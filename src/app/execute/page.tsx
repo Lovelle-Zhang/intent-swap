@@ -271,9 +271,11 @@ export default function ExecutePage() {
     const amount = searchParams.get("amount");
     if (fromToken && toToken && amount) {
       const parsed: ParsedIntent = {
+        raw: `${amount} ${fromToken} to ${toToken}`,
         fromToken: fromToken.toUpperCase(),
         toToken: toToken.toUpperCase(),
         amount: parseFloat(amount),
+        amountType: "exact",
         summary: `Swap ${amount} ${fromToken.toUpperCase()} → ${toToken.toUpperCase()}`,
         slippagePref: "normal",
       };
