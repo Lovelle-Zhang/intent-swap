@@ -96,20 +96,6 @@ export default function ConditionalOrderPage() {
       setStep("error");
     }
   };
-      bindPush(submitData.id).catch(() => {});
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed");
-      setStep("error");
-    }
-  }, [walletClient, address, publicClient, intent, email, condToken, condOp, condPrice, chainId]);
-
-  const handleConfirm = async () => {
-    if (needsApproval) {
-      await handleApprove();
-    } else {
-      await handleSignAndSubmit();
-    }
-  };
 
   if (!intent) {
     return (
