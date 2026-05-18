@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 const API_BASE = "https://api.o-sheepps.com";
 
@@ -8,9 +8,9 @@ export type PushState = "idle" | "requesting" | "ready" | "subscribed" | "denied
 
 export function useWebPush() {
   const [state, setState] = useState<PushState>("idle");
-  const [pendingSubscription, setPendingSubscription] = useState<PushSubscriptionJSON | null>(null);
+  // useRef so bind() always sees the latest subscription even after re-render
+  const pendingSubRef = useRef<PushSubscriptionJSON | null>(null);
 
-  // Step 1: 请求权限 + 注册 SW + 获取 subscription（不需要 orderId）
   const prepare = useCallback(async (): Promise<boolean> => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setState("unsupported");
@@ -37,7 +37,7 @@ export function useWebPush() {
         applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
       });
 
-      setPendingSubscription(subscription.toJSON());
+      pendingSubRef.current = subscription.toJSON();
       setState("ready");
       return true;
     } catch (err) {
@@ -47,26 +47,30 @@ export function useWebPush() {
     }
   }, []);
 
-  // Step 2: 订单创建成功后，把 subscription 绑定到 orderId
   const bind = useCallback(async (orderId: string): Promise<boolean> => {
-    const sub = pendingSubscription;
-    if (!sub) return false;
+    const sub = pendingSubRef.current;
+    if (!sub) {
+      console.warn("[WebPush] bind called but no pending subscription");
+      return false;
+    }
 
     try {
-      await fetch(`${API_BASE}/push-subscribe`, {
+      const res = await fetch(`${API_BASE}/push-subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, subscription: sub }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setState("subscribed");
+      pendingSubRef.current = null;
+      console.log(`[WebPush] Bound to order ${orderId}`);
       return true;
     } catch (err) {
       console.error("[WebPush] Bind failed:", err);
       return false;
     }
-  }, [pendingSubscription]);
+  }, []);
 
-  // 兼容旧接口：一步完成（需要 orderId）
   const subscribe = useCallback(async (orderId: string): Promise<boolean> => {
     const ok = await prepare();
     if (!ok) return false;
