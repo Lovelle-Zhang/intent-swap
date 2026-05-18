@@ -1,50 +1,34 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useChainId, usePublicClient, useWalletClient, useWriteContract, useReadContract } from "wagmi";
-import { parseUnits, encodeFunctionData, type Hex } from "viem";
 import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 
-// Uniswap V3 SwapRouter
-const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564" as const;
-
-const TOKEN_ADDRESSES: Record<string, { address: Hex; decimals: number }> = {
+// Token list for condition selector
+const TOKEN_ADDRESSES: Record<string, { address: string; decimals: number }> = {
   ETH:  { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 },
-  WETH: { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 },
   USDC: { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
   USDT: { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals: 6 },
   WBTC: { address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", decimals: 8 },
   DAI:  { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", decimals: 18 },
 };
 
-const ERC20_ABI = [
-  { name: "allowance", type: "function", stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
-    outputs: [{ type: "uint256" }] },
-] as const;
-
-type Step = "form" | "approve" | "sign" | "submitting" | "done" | "error";
+type Step = "form" | "submitting" | "done" | "error";
 
 export default function ConditionalOrderPage() {
   const router = useRouter();
-  const { address } = useAccount();
-  const chainId = useChainId();
-  const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
-  const { writeContractAsync } = useWriteContract();
 
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState("");
-  const { state: pushState, prepare: preparePush, bind: bindPush, subscribe: subscribePush } = useWebPush();
+  const { state: pushState, prepare: preparePush, bind: bindPush } = useWebPush();
 
-  // Condition fields (pre-filled from intent)
+  // Condition fields
   const [condToken, setCondToken] = useState("ETH");
   const [condOp, setCondOp] = useState<"above" | "below">("below");
   const [condPrice, setCondPrice] = useState("");
@@ -72,93 +56,24 @@ export default function ConditionalOrderPage() {
       .catch(() => {});
   }, [router]);
 
-  // 检查 allowance（ERC20 → swap 时需要）
-  const fromToken = intent?.fromToken ?? "ETH";
-  const fromInfo = TOKEN_ADDRESSES[fromToken];
-  const isNative = fromToken === "ETH";
-  const amount = intent?.amount ?? 0.01;
-
-  const { data: allowance } = useReadContract({
-    address: fromInfo?.address,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: address ? [address, SWAP_ROUTER] : undefined,
-    query: { enabled: !isNative && !!address && !!fromInfo },
-  });
-
-  const needsApproval = !isNative && fromInfo && allowance !== undefined
-    ? allowance < parseUnits(String(amount), fromInfo.decimals)
-    : false;
-
-  const handleApprove = async () => {
-    if (!fromInfo || !address) return;
-    setStep("approve");
-    try {
-      await writeContractAsync({
-        address: fromInfo.address,
-        abi: [{
-          name: "approve", type: "function", stateMutability: "nonpayable",
-          inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
-          outputs: [{ type: "bool" }],
-        }] as const,
-        functionName: "approve",
-        args: [SWAP_ROUTER, parseUnits(String(amount * 10), fromInfo.decimals)], // 10x buffer
-      });
-      await handleSignAndSubmit();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Approval failed");
+  const handleSubmit = async () => {
+    if (!intent) return;
+    if (!condPrice || isNaN(Number(condPrice))) {
+      setError("Please enter a valid target price");
       setStep("error");
+      return;
     }
-  };
-
-  const handleSignAndSubmit = useCallback(async () => {
-    if (!walletClient || !address || !publicClient || !intent) return;
-    setStep("sign");
+    setStep("submitting");
     setError("");
 
     try {
-      // 获取 swap quote + calldata
-      const res = await fetch("/api/swap-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromToken: intent.fromToken,
-          toToken: intent.toToken,
-          amount: intent.amount ?? 0.01,
-          slippagePref: intent.slippagePref ?? "normal",
-          walletAddress: address,
-          chainId,
-          quoteOnly: false,
-        }),
-      });
-      const quoteData = await res.json();
-      if (!res.ok) throw new Error(quoteData.error ?? "Quote failed");
-
-      // 预签名 swap 交易（不广播）
-      const nonce = await publicClient.getTransactionCount({ address });
-      const gasPrice = await publicClient.getGasPrice();
-
-      const signedTx = await walletClient.signTransaction({
-        to: quoteData.tx.to as Hex,
-        data: quoteData.tx.data as Hex,
-        value: BigInt(quoteData.tx.value ?? 0),
-        nonce,
-        gas: BigInt(350000),
-        gasPrice: gasPrice * BigInt(12) / BigInt(10), // +20% gas price buffer
-        chainId,
-      });
-
-      setStep("submitting");
-
-      // 提交订单到服务器（含预签名 tx）
-      if (!condPrice || isNaN(Number(condPrice))) throw new Error("Invalid target price");
-      localStorage.setItem("user-email", email);
+      if (email) localStorage.setItem("user-email", email);
 
       const submitRes = await fetch("https://api.o-sheepps.com/swap-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email || null,
           fromToken: intent.fromToken,
           toToken: intent.toToken,
           amount: intent.amount ?? 0.01,
@@ -167,9 +82,6 @@ export default function ConditionalOrderPage() {
             operator: condOp,
             targetPrice: Number(condPrice),
           },
-          signedTx, // 🔑 预签名 tx
-          nonce,
-          chainId,
         }),
       });
       const submitData = await submitRes.json();
@@ -177,7 +89,13 @@ export default function ConditionalOrderPage() {
 
       setOrderId(submitData.id);
       setStep("done");
-      // 订单创建成功后绑定 Push 订阅（如果用户已点击开启）
+      // 订单创建成功后绑定 Push 订阅
+      bindPush(submitData.id).catch(() => {});
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to create order");
+      setStep("error");
+    }
+  };
       bindPush(submitData.id).catch(() => {});
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -200,15 +118,6 @@ export default function ConditionalOrderPage() {
       </main>
     );
   }
-
-  const STEPS: Record<Step, string> = {
-    form: "",
-    approve: "Approving token...",
-    sign: "Sign in wallet...",
-    submitting: "Submitting order...",
-    done: "",
-    error: "",
-  };
 
   return (
     <main className="min-h-screen flex flex-col items-center px-4 py-10 animate-fade-in">
@@ -334,7 +243,7 @@ export default function ConditionalOrderPage() {
                 <div className="space-y-2 pt-1 border-t border-stone-800/60">
                   <div className="flex items-center justify-between">
                     <p className="text-stone-600 text-[10px] uppercase tracking-wider">Quick select</p>
-                    <p className="text-stone-500 text-[11px]">ETH <span className="text-stone-300">${currentPrice.toLocaleString()}</span></p>
+                    <p className="text-stone-500 text-[11px]">Current price: <span className="text-stone-300 font-medium">${currentPrice.toLocaleString()}</span></p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(condOp === "below"
@@ -420,25 +329,23 @@ export default function ConditionalOrderPage() {
             <div className="flex items-start gap-2 px-1">
               <span className="text-gold-400/40 text-xs mt-0.5">⬡</span>
               <p className="text-stone-700 text-[11px] leading-relaxed">
-                You&apos;ll sign a pre-authorized swap transaction. It stays private until the condition is met — then executes automatically.
-                {needsApproval && <span className="text-amber-400/60"> Token approval required first.</span>}
-                {!email && <span className="text-stone-700"> Add email to get notified when triggered.</span>}
+                When the condition is met, you&apos;ll get notified to execute the swap. No pre-signing required.
               </p>
             </div>
 
             {/* 按钮 */}
-            {["approve", "sign", "submitting"].includes(step) ? (
+            {step === "submitting" ? (
               <div className="flex items-center justify-center gap-3 py-3">
                 <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
-                <p className="text-stone-500 text-sm">{STEPS[step as Step]}</p>
+                <p className="text-stone-500 text-sm">Creating order...</p>
               </div>
             ) : (
               <button
-                onClick={handleConfirm}
-                disabled={!address || !condPrice}
+                onClick={handleSubmit}
+                disabled={!condPrice}
                 className="w-full py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-30 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
               >
-                {needsApproval ? "Approve & Pre-sign" : "Pre-sign & Create Order"}
+                Create Order
               </button>
             )}
           </div>
