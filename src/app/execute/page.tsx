@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -77,6 +78,14 @@ const ERC20_ABI = [
 ] as const;
 
 export default function ExecutePage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-stone-950 flex items-center justify-center"><div className="text-stone-600 text-sm">Loading...</div></main>}>
+      <ExecutePageInner />
+    </Suspense>
+  );
+}
+
+function ExecutePageInner() {
   const [status, setStatus] = useState<Status>("idle");
   const [fromLink, setFromLink] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
