@@ -1,0 +1,234 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+
+const USDT_ADDRESS = "0x0f10A63a15c9E0825A67d2858cC8dB0042155D17";
+const USDT_AMOUNT = "9.9";
+const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+type Step = "idle" | "submitting" | "success" | "error";
+
+export default function SubscribePage() {
+  const [email, setEmail] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [step, setStep] = useState<Step>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("user-email");
+    if (saved) setEmail(saved);
+    const sub = localStorage.getItem("subscription-status");
+    if (sub === "active") setIsSubscribed(true);
+  }, []);
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(USDT_ADDRESS);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !txHash) return;
+
+    setStep("submitting");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("https://api.o-sheepps.com/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, txHash }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Verification failed");
+      }
+
+      localStorage.setItem("user-email", email);
+      localStorage.setItem("subscription-status", "active");
+      localStorage.setItem("subscription-expiry", String(data.expiresAt));
+      setIsSubscribed(true);
+      setStep("success");
+    } catch (e: unknown) {
+      setErrorMsg(e instanceof Error ? e.message : "Verification failed");
+      setStep("error");
+    }
+  };
+
+  if (isSubscribed) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-5">
+        <div className="w-full max-w-sm space-y-8 text-center">
+          <div className="w-14 h-14 rounded-full border border-gold-800/50 flex items-center justify-center mx-auto">
+            <span className="text-gold-400 text-2xl">✓</span>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-stone-200 text-xl font-light">Active Subscription</h1>
+            <p className="text-stone-500 text-sm">Conditional orders are unlocked.</p>
+          </div>
+          <Link
+            href="/conditional-order"
+            className="block w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors text-center"
+          >
+            Create Conditional Order →
+          </Link>
+          <Link href="/" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+            ← Back to swap
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === "success") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-5">
+        <div className="w-full max-w-sm space-y-8 text-center">
+          <div className="w-14 h-14 rounded-full border border-gold-800/50 flex items-center justify-center mx-auto">
+            <span className="text-gold-400 text-2xl">✓</span>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-stone-200 text-xl font-light">Welcome aboard</h1>
+            <p className="text-stone-500 text-sm">Your subscription is now active. Conditional orders unlocked.</p>
+          </div>
+          <Link
+            href="/conditional-order"
+            className="block w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors text-center"
+          >
+            Create your first order →
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col items-center px-5 py-12">
+      <div className="w-full max-w-sm space-y-10">
+
+        {/* Header */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
+            <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Subscribe</span>
+          </div>
+          <h1 className="text-stone-200 text-2xl font-light">Conditional Orders</h1>
+          <p className="text-stone-500 text-sm leading-relaxed">
+            Auto-execute swaps when your price target is hit. Set it and forget it.
+          </p>
+        </div>
+
+        {/* Plan card */}
+        <div className="bg-stone-900/40 border border-stone-800/60 rounded-2xl p-5 space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-stone-200 text-base font-medium">Pro</p>
+              <p className="text-stone-600 text-xs mt-0.5">Monthly subscription</p>
+            </div>
+            <div className="text-right">
+              <p className="text-gold-400 text-2xl font-light">$9.9</p>
+              <p className="text-stone-600 text-xs">/ month</p>
+            </div>
+          </div>
+
+          <div className="border-t border-stone-800/50 pt-4 space-y-2.5">
+            {[
+              "Unlimited conditional orders",
+              "Auto-execute on price trigger",
+              "Multi-condition support",
+              "WeChat + browser notifications",
+            ].map((f) => (
+              <div key={f} className="flex items-center gap-2.5">
+                <span className="text-gold-400/60 text-xs">✓</span>
+                <span className="text-stone-400 text-sm">{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Payment instructions */}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <p className="text-stone-400 text-xs tracking-wide uppercase">Step 1 — Send USDT</p>
+            <p className="text-stone-600 text-xs">
+              Send exactly <span className="text-gold-400/80">{USDT_AMOUNT} USDT</span> (ERC-20, Ethereum mainnet) to:
+            </p>
+          </div>
+
+          {/* Address box */}
+          <div
+            onClick={copyAddress}
+            className="bg-stone-900/60 border border-stone-800/60 rounded-xl px-4 py-3 cursor-pointer hover:border-stone-700/60 transition-colors group"
+          >
+            <p className="text-stone-400 font-mono text-[11px] break-all leading-relaxed group-hover:text-stone-300 transition-colors">
+              {USDT_ADDRESS}
+            </p>
+            <p className="text-stone-700 text-[10px] mt-2 group-hover:text-stone-500 transition-colors">
+              {copied ? "✓ Copied" : "Click to copy"}
+            </p>
+          </div>
+
+          {/* Etherscan link */}
+          <a
+            href={`https://etherscan.io/token/${USDT_CONTRACT}?a=${USDT_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-stone-700 hover:text-stone-500 text-[11px] transition-colors"
+          >
+            View on Etherscan ↗
+          </a>
+        </div>
+
+        {/* Verify form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-stone-400 text-xs tracking-wide uppercase">Step 2 — Confirm payment</p>
+
+          <div className="space-y-3">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              className="w-full px-4 py-3 bg-stone-900/40 border border-stone-800/60 rounded-xl text-stone-200 placeholder-stone-700 focus:outline-none focus:border-stone-600 text-sm transition-colors"
+            />
+            <input
+              type="text"
+              value={txHash}
+              onChange={(e) => setTxHash(e.target.value.trim())}
+              placeholder="Transaction hash (0x...)"
+              required
+              className="w-full px-4 py-3 bg-stone-900/40 border border-stone-800/60 rounded-xl text-stone-200 placeholder-stone-700 focus:outline-none focus:border-stone-600 text-sm font-mono transition-colors"
+            />
+          </div>
+
+          {step === "error" && (
+            <p className="text-red-400/70 text-xs px-1">{errorMsg}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={step === "submitting"}
+            className="w-full py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
+          >
+            {step === "submitting" ? "Verifying..." : "Verify & Activate"}
+          </button>
+
+          <p className="text-stone-700 text-[11px] text-center leading-relaxed">
+            Verification usually takes &lt;1 min. Subscription activates immediately after confirmation.
+          </p>
+        </form>
+
+        <Link href="/" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
+          ← Back to swap
+        </Link>
+      </div>
+    </main>
+  );
+}

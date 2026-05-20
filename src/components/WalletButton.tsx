@@ -106,6 +106,10 @@ export function WalletButton() {
                       className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors">
                       Orders
                     </Link>
+                    <Link href="/subscribe" onClick={() => setOpen(false)}
+                      className="block px-4 py-2 text-gold-400/70 hover:text-gold-300 hover:bg-stone-800/50 text-sm transition-colors">
+                      ⚡ Subscribe
+                    </Link>
                     <Link href="/docs" onClick={() => setOpen(false)}
                       className="block px-4 py-2 text-stone-400 hover:text-stone-200 hover:bg-stone-800/50 text-sm transition-colors">
                       Docs

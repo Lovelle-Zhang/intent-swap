@@ -7,6 +7,44 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 
+// ─── 订阅检查 ────────────────────────────────────────────────────────────────
+function useSubscription() {
+  const [status, setStatus] = useState<"loading" | "active" | "inactive">("loading");
+
+  useEffect(() => {
+    const localStatus = localStorage.getItem("subscription-status");
+    const localExpiry = Number(localStorage.getItem("subscription-expiry") ?? 0);
+
+    if (localStatus === "active" && localExpiry > Date.now()) {
+      setStatus("active");
+      return;
+    }
+
+    // 本地过期或没有，去后端验证
+    const email = localStorage.getItem("user-email");
+    if (!email) { setStatus("inactive"); return; }
+
+    fetch(`https://api.o-sheepps.com/subscriptions/check?email=${encodeURIComponent(email)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.active) {
+          localStorage.setItem("subscription-status", "active");
+          localStorage.setItem("subscription-expiry", String(data.expiresAt));
+          setStatus("active");
+        } else {
+          localStorage.removeItem("subscription-status");
+          setStatus("inactive");
+        }
+      })
+      .catch(() => {
+        // 网络失败时信任本地缓存（降级）
+        setStatus(localStatus === "active" ? "active" : "inactive");
+      });
+  }, []);
+
+  return status;
+}
+
 // Token list for condition selector
 const TOKEN_ADDRESSES: Record<string, { address: string; decimals: number }> = {
   ETH:  { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 },
@@ -20,6 +58,7 @@ type Step = "form" | "submitting" | "done" | "error";
 
 export default function ConditionalOrderPage() {
   const router = useRouter();
+  const subStatus = useSubscription();
 
   const [intent, setIntent] = useState<ParsedIntent | null>(null);
   const [email, setEmail] = useState("");
@@ -101,6 +140,54 @@ export default function ConditionalOrderPage() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
+      </main>
+    );
+  }
+
+  // ─── 付费墙 ────────────────────────────────────────────────────────────────
+  if (subStatus === "loading") {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
+      </main>
+    );
+  }
+
+  if (subStatus === "inactive") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center px-5">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center space-y-3">
+            <div className="w-12 h-12 rounded-full border border-stone-800 flex items-center justify-center mx-auto">
+              <span className="text-stone-600 text-xl">⚡</span>
+            </div>
+            <h1 className="text-stone-200 text-xl font-light">Pro Feature</h1>
+            <p className="text-stone-500 text-sm leading-relaxed">
+              Conditional orders are available to subscribers. Auto-execute swaps when your price target is hit.
+            </p>
+          </div>
+
+          <div className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 space-y-2">
+            {["Unlimited conditional orders", "Auto-execute on price trigger", "WeChat + browser notifications"].map((f) => (
+              <div key={f} className="flex items-center gap-2.5">
+                <span className="text-gold-400/60 text-xs">✓</span>
+                <span className="text-stone-400 text-sm">{f}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <Link
+              href="/subscribe"
+              className="block w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors text-center"
+            >
+              Subscribe for $9.9 / month →
+            </Link>
+            <Link href="/" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
+              ← Back to swap
+            </Link>
+          </div>
+        </div>
       </main>
     );
   }
