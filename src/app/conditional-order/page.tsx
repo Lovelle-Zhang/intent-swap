@@ -75,7 +75,11 @@ export default function ConditionalOrderPage() {
 
   useEffect(() => {
     const raw = sessionStorage.getItem("conditional-order");
-    if (!raw) { router.push("/"); return; }
+    if (!raw) {
+      // 没有 intent 数据，但先等订阅状态确认
+      // 如果未订阅，显示付费墙；如果已订阅，再跳回首页
+      return;
+    }
     const data = JSON.parse(raw);
     setIntent(data.intent);
     // 尝试从意图中预填条件
@@ -136,14 +140,6 @@ export default function ConditionalOrderPage() {
     }
   };
 
-  if (!intent) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
-      </main>
-    );
-  }
-
   // ─── 付费墙 ────────────────────────────────────────────────────────────────
   if (subStatus === "loading") {
     return (
@@ -188,6 +184,16 @@ export default function ConditionalOrderPage() {
             </Link>
           </div>
         </div>
+      </main>
+    );
+  }
+
+  // 已订阅但没有 intent 数据，跳回首页
+  if (!intent) {
+    if (typeof window !== "undefined") router.push("/");
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
       </main>
     );
   }
