@@ -55,7 +55,7 @@ const PRICING = [
   { label: "Pro",   features: ["Everything in Free", "Unlimited conditional orders", "Auto-execute on price trigger", "WeChat + browser notifications", "Priority support"], price: "$9.9 / month", highlight: true },
 ];
 
-
+function Divider() {
   return <div className="h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent" />;
 }
 
