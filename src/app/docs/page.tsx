@@ -201,7 +201,8 @@ export default function DocsPage() {
 
         {/* Conditional orders */}
         <section className="space-y-5">
-          <SectionTitle>Conditional orders</SectionTitle>          <p className="text-stone-500 text-sm leading-relaxed">
+          <SectionTitle>Conditional orders</SectionTitle>
+          <p className="text-stone-500 text-sm leading-relaxed">
             Set a price trigger. When the condition is met, the{" "}
             <span className="text-stone-300">on-chain vault</span>{" "}
             auto-executes the swap via a keeper — no manual action needed.
