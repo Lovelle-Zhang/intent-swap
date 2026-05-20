@@ -221,7 +221,16 @@ export default function SubscribePage() {
           </button>
 
           <p className="text-stone-700 text-[11px] text-center leading-relaxed">
-            Verification usually takes &lt;1 min. Subscription activates immediately after confirmation.
+            Payment goes directly to the{" "}
+            <a
+              href={`https://etherscan.io/address/${USDT_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-600 hover:text-stone-400 underline underline-offset-2 transition-colors"
+            >
+              protocol wallet
+            </a>
+            . Subscription activates automatically after on-chain verification (&lt;1 min).
           </p>
         </form>
 
