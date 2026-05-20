@@ -50,7 +50,12 @@ const CONTRACT_INFO = [
   { label: "Auth",       value: "Keeper-based execution" },
 ];
 
-function Divider() {
+const PRICING = [
+  { label: "Free",  features: ["Unlimited manual swaps", "1,700+ tokens", "Multi-hop routing", "Gas estimation", "MEV protection"], price: null },
+  { label: "Pro",   features: ["Everything in Free", "Unlimited conditional orders", "Auto-execute on price trigger", "WeChat + browser notifications", "Priority support"], price: "$9.9 / month", highlight: true },
+];
+
+
   return <div className="h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent" />;
 }
 
@@ -150,10 +155,53 @@ export default function DocsPage() {
 
         <Divider />
 
+        {/* Pricing */}
+        <section className="space-y-5">
+          <SectionTitle>Pricing</SectionTitle>
+          <div className="grid grid-cols-2 gap-3">
+            {PRICING.map((plan) => (
+              <div
+                key={plan.label}
+                className={`px-4 py-4 rounded-xl border space-y-3 ${
+                  plan.highlight
+                    ? "bg-gold-500/5 border-gold-500/20"
+                    : "bg-stone-900/30 border-stone-800/50"
+                }`}
+              >
+                <div>
+                  <p className={`text-xs font-medium ${plan.highlight ? "text-gold-400" : "text-stone-400"}`}>
+                    {plan.label}
+                  </p>
+                  <p className={`text-lg font-light mt-1 ${plan.highlight ? "text-gold-300" : "text-stone-500"}`}>
+                    {plan.price ?? "Free"}
+                  </p>
+                </div>
+                <ul className="space-y-1.5">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-1.5">
+                      <span className={`text-[10px] mt-0.5 ${plan.highlight ? "text-gold-500/60" : "text-stone-700"}`}>✓</span>
+                      <span className="text-stone-500 text-[11px] leading-relaxed">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                {plan.highlight && (
+                  <a
+                    href="/subscribe"
+                    className="block w-full text-center py-2 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-lg text-xs transition-colors mt-2"
+                  >
+                    Subscribe →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <Divider />
+
         {/* Conditional orders */}
         <section className="space-y-5">
-          <SectionTitle>Conditional orders</SectionTitle>
-          <p className="text-stone-500 text-sm leading-relaxed">
+          <SectionTitle>Conditional orders</SectionTitle>          <p className="text-stone-500 text-sm leading-relaxed">
             Set a price trigger. When the condition is met, the{" "}
             <span className="text-stone-300">on-chain vault</span>{" "}
             auto-executes the swap via a keeper — no manual action needed.
