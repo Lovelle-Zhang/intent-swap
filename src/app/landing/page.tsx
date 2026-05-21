@@ -52,6 +52,8 @@ const STATS = [
   { value: "< 2s", label: "Intent parse time" },
 ];
 
+const CONTRACT_ADDRESS = "0x52a8fe40324621d310ede9bfd20396b82dfec0ee";
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-stone-950 text-stone-200">
@@ -62,6 +64,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-6">
           <a href="#features" className="text-stone-600 hover:text-stone-400 text-xs tracking-widest uppercase transition-colors hidden md:block">Features</a>
           <a href="#how" className="text-stone-600 hover:text-stone-400 text-xs tracking-widest uppercase transition-colors hidden md:block">How it works</a>
+          <a href="#pricing" className="text-stone-600 hover:text-stone-400 text-xs tracking-widest uppercase transition-colors hidden md:block">Pricing</a>
           <Link
             href="/"
             className="px-4 py-1.5 bg-gold-500 hover:bg-gold-400 text-stone-950 text-xs font-medium rounded-lg transition-colors"
@@ -186,6 +189,107 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing */}
+      <section id="pricing" className="px-6 md:px-12 py-24 border-t border-stone-900">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16 space-y-3">
+            <p className="text-stone-500 text-[10px] tracking-[0.3em] uppercase">Pricing</p>
+            <h2 className="text-2xl md:text-3xl font-light text-stone-200">Simple. Transparent.</h2>
+            <p className="text-stone-500 text-sm">Swapping is always free. Pay only for advanced automation.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Free */}
+            <div className="bg-stone-900/30 border border-stone-800/50 rounded-2xl p-8 space-y-6">
+              <div className="space-y-1">
+                <p className="text-stone-400 text-xs tracking-widest uppercase">Free</p>
+                <p className="text-3xl font-light text-stone-200">$0</p>
+                <p className="text-stone-600 text-xs">Forever</p>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  "Unlimited instant swaps",
+                  "Natural language input",
+                  "MEV protection",
+                  "Smart routing (1,700+ tokens)",
+                  "Portfolio view",
+                  "3 conditional orders / month",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-stone-400 text-sm">
+                    <span className="text-stone-600 mt-0.5 shrink-0">◎</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/"
+                className="block w-full text-center px-6 py-2.5 border border-stone-700 hover:border-stone-500 text-stone-300 hover:text-stone-100 rounded-xl text-sm transition-colors"
+              >
+                Start for free
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div className="relative bg-stone-900/50 border border-gold-500/30 rounded-2xl p-8 space-y-6">
+              <div className="absolute top-4 right-4 px-2 py-0.5 bg-gold-500/10 border border-gold-500/20 rounded-full text-gold-400 text-[10px] tracking-widest uppercase">
+                Pro
+              </div>
+              <div className="space-y-1">
+                <p className="text-gold-400/80 text-xs tracking-widest uppercase">Pro</p>
+                <p className="text-3xl font-light text-stone-200">$9.9<span className="text-stone-500 text-base font-light">/mo</span></p>
+                <p className="text-stone-600 text-xs">Pay with USDT on Ethereum</p>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  "Everything in Free",
+                  "Unlimited conditional orders",
+                  "Price-triggered auto-execution",
+                  "On-chain Gelato automation",
+                  "Priority support",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-stone-300 text-sm">
+                    <span className="text-gold-400/60 mt-0.5 shrink-0">◈</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/subscribe"
+                className="block w-full text-center px-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/20"
+              >
+                Upgrade to Pro
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contract trust bar */}
+      <section className="px-6 md:px-12 py-8 border-t border-stone-900">
+        <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+            <span className="text-stone-500 text-xs">Verified contract on Ethereum Mainnet</span>
+          </div>
+          <a
+            href={`https://etherscan.io/address/${CONTRACT_ADDRESS}#code`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[11px] text-stone-600 hover:text-gold-400/80 transition-colors truncate max-w-xs"
+          >
+            {CONTRACT_ADDRESS}
+          </a>
+          <a
+            href={`https://sourcify.dev/#/lookup/${CONTRACT_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-stone-600 hover:text-stone-400 text-xs transition-colors shrink-0"
+          >
+            Sourcify ↗
+          </a>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="px-6 md:px-12 py-24 border-t border-stone-900">
         <div className="max-w-xl mx-auto text-center space-y-8">
@@ -214,6 +318,9 @@ export default function LandingPage() {
           </a>
           <Link href="/docs" className="text-stone-500 hover:text-stone-300 text-xs transition-colors">
             Docs
+          </Link>
+          <Link href="/subscribe" className="text-stone-500 hover:text-stone-300 text-xs transition-colors">
+            Pro
           </Link>
         </div>
       </footer>
