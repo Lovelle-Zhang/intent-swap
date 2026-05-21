@@ -92,18 +92,16 @@ export default function ConditionalOrderPage() {
     const savedEmail = localStorage.getItem("user-email") ?? "";
     setEmail(savedEmail);
 
-    // 拉当前价格 — 优先用服务端 API（Chainlink），降级用 CoinGecko
+    // 拉当前价格 — 优先 Binance（无需 key，无速率限制），降级 CoinGecko
     const fetchPrice = async () => {
       try {
-        // 先试服务端 Chainlink 价格
-        const r = await fetch("https://api.o-sheepps.com/swap-prices");
+        const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
         if (r.ok) {
           const d = await r.json();
-          if (d.ETH) { setCurrentPrice(d.ETH); return; }
+          if (d.price) { setCurrentPrice(parseFloat(d.price)); return; }
         }
       } catch (_) {}
       try {
-        // 降级：CoinGecko
         const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
         const d = await r.json();
         if (d.ethereum?.usd) setCurrentPrice(d.ethereum.usd);

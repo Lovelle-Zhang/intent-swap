@@ -8,10 +8,13 @@ export function EthPriceTicker() {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const r = await fetch("https://api.o-sheepps.com/swap-prices");
+        const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
         if (r.ok) {
           const d = await r.json();
-          if (d.ETH) { setPrice(d.ETH.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); return; }
+          if (d.price) {
+            setPrice(parseFloat(d.price).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            return;
+          }
         }
       } catch (_) {}
       try {

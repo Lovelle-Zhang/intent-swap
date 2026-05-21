@@ -147,8 +147,8 @@ export default function PreviewPage() {
           // 拉实时 ETH 价格
           let ethPrice = 3500;
           try {
-            const pr = await fetch("https://api.o-sheepps.com/swap-prices");
-            if (pr.ok) { const pd = await pr.json(); if (pd.ETH) ethPrice = pd.ETH; }
+            const pr = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
+            if (pr.ok) { const pd = await pr.json(); if (pd.price) ethPrice = parseFloat(pd.price); }
           } catch (_) {}
           const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
           setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
