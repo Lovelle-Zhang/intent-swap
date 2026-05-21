@@ -417,15 +417,15 @@ export default function ConditionalOrderPage() {
               />
             </div>
 
+            {/* 按钮 */}
             {/* 提示 */}
-            <div className="flex items-start gap-2 px-1">
-              <span className="text-gold-400/40 text-xs mt-0.5">⬡</span>
-              <p className="text-stone-700 text-[11px] leading-relaxed">
-                When the condition is met, you&apos;ll get notified to execute the swap. No pre-signing required.
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-gold-400/40 text-xs">⬡</span>
+              <p className="text-stone-600 text-[11px]">
+                Notified when triggered — you execute the swap. No pre-signing.
               </p>
             </div>
 
-            {/* 按钮 */}
             {step === "submitting" ? (
               <div className="flex items-center justify-center gap-3 py-3">
                 <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
