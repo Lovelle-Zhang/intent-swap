@@ -154,6 +154,14 @@ export default function SubscribePage() {
 
         {/* Payment instructions */}
         <div className="space-y-4">
+          {/* Why this flow */}
+          <div className="bg-stone-900/30 border border-stone-800/40 rounded-xl px-4 py-3 space-y-1">
+            <p className="text-stone-400 text-xs font-medium">Why on-chain payment?</p>
+            <p className="text-stone-600 text-[11px] leading-relaxed">
+              No accounts, no credit cards. You pay directly from your wallet — we verify on-chain automatically. No middleman, no chargebacks.
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <p className="text-stone-400 text-xs tracking-wide uppercase">Step 1 — Send USDT</p>
             <p className="text-stone-600 text-xs">
@@ -174,15 +182,25 @@ export default function SubscribePage() {
             </p>
           </div>
 
-          {/* Etherscan link */}
-          <a
-            href={`https://etherscan.io/token/${USDT_CONTRACT}?a=${USDT_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-stone-700 hover:text-stone-500 text-[11px] transition-colors"
-          >
-            View on Etherscan ↗
-          </a>
+          {/* Quick send + Etherscan */}
+          <div className="flex items-center gap-4">
+            <a
+              href={`https://metamask.app.link/send/${USDT_CONTRACT}@1/transfer?address=${USDT_ADDRESS}&uint256=9900000`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
+            >
+              <span>🦊</span> Open in MetaMask
+            </a>
+            <a
+              href={`https://etherscan.io/token/${USDT_CONTRACT}?a=${USDT_ADDRESS}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-700 hover:text-stone-500 text-[11px] transition-colors"
+            >
+              View on Etherscan ↗
+            </a>
+          </div>
         </div>
 
         {/* Verify form */}
