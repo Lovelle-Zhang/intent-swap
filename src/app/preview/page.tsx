@@ -129,7 +129,7 @@ export default function PreviewPage() {
       }),
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.amountOut || data.toAmount) {
           setQuote({
             amountOut: data.amountOut ?? data.toAmount,
