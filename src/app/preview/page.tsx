@@ -141,10 +141,15 @@ export default function PreviewPage() {
         // Gas 估算（简化版：根据链和操作类型估算）
         if (address) {
           const isNative = intent.fromToken === "ETH";
-          const baseGas = isNative ? 21000 : 65000; // native transfer vs ERC20 swap
+          const baseGas = isNative ? 21000 : 65000;
           const currentChain = chainId || TARGET_CHAIN_ID;
-          const gasPrice = currentChain === 42161 ? 0.1 : currentChain === 59144 ? 0.05 : 30; // Gwei
-          const ethPrice = 3500; // 简化：固定 ETH 价格
+          const gasPrice = currentChain === 42161 ? 0.1 : currentChain === 59144 ? 0.05 : 30;
+          // 拉实时 ETH 价格
+          let ethPrice = 3500;
+          try {
+            const pr = await fetch("https://api.o-sheepps.com/swap-prices");
+            if (pr.ok) { const pd = await pr.json(); if (pd.ETH) ethPrice = pd.ETH; }
+          } catch (_) {}
           const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
           setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
         }
@@ -286,13 +291,20 @@ export default function PreviewPage() {
 
         {/* 余额显示 */}
         <div className="px-1">
-          <p className="text-stone-600 text-xs">
-            {balance
-              ? `Balance: ${Number(balance.formatted).toFixed(4)} ${balance.symbol} · Ethereum Mainnet`
-              : isConnected
-              ? "Loading balance..."
-              : "Connect wallet to see balance"}
-          </p>
+          {!isConnected ? (
+            <div className="flex items-center gap-2 py-2 px-3 bg-stone-900/40 border border-stone-800/40 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-400/50 shrink-0" />
+              <p className="text-stone-500 text-xs">
+                Preview mode — connect wallet to check balance & execute
+              </p>
+            </div>
+          ) : (
+            <p className="text-stone-600 text-xs">
+              {balance
+                ? `Balance: ${Number(balance.formatted).toFixed(4)} ${balance.symbol} · Ethereum Mainnet`
+                : "Loading balance..."}
+            </p>
+          )}
         </div>
 
         {/* 链不匹配：显示切换按钮 */}

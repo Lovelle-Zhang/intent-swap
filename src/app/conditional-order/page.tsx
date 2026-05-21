@@ -92,11 +92,24 @@ export default function ConditionalOrderPage() {
     const savedEmail = localStorage.getItem("user-email") ?? "";
     setEmail(savedEmail);
 
-    // 拉当前 ETH 价格用于快捷选项
-    fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
-      .then((r) => r.json())
-      .then((d) => { if (d.ethereum?.usd) setCurrentPrice(d.ethereum.usd); })
-      .catch(() => {});
+    // 拉当前价格 — 优先用服务端 API（Chainlink），降级用 CoinGecko
+    const fetchPrice = async () => {
+      try {
+        // 先试服务端 Chainlink 价格
+        const r = await fetch("https://api.o-sheepps.com/swap-prices");
+        if (r.ok) {
+          const d = await r.json();
+          if (d.ETH) { setCurrentPrice(d.ETH); return; }
+        }
+      } catch (_) {}
+      try {
+        // 降级：CoinGecko
+        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        const d = await r.json();
+        if (d.ethereum?.usd) setCurrentPrice(d.ethereum.usd);
+      } catch (_) {}
+    };
+    fetchPrice();
   }, [router]);
 
   const handleSubmit = async () => {

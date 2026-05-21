@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { EthPriceTicker } from "./EthPriceTicker";
 
 export const metadata: Metadata = {
   title: "Intent Swap — Swap with intention",
@@ -269,10 +270,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="pt-2">
-                  <div className="flex items-center justify-between px-3 py-2 bg-stone-950/60 border border-stone-800/40 rounded-lg">
-                    <span className="text-stone-500 text-[11px]">Current ETH price</span>
-                    <span className="text-stone-300 text-[11px] font-mono">$3,412.50</span>
-                  </div>
+                  <EthPriceTicker />
                 </div>
               </div>
             </div>
