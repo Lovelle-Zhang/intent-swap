@@ -10,32 +10,39 @@ const FEATURES = [
   {
     icon: "◎",
     title: "Natural Language",
-    desc: "Type what you want. \"Swap 0.5 ETH to USDC with low slippage\" — and it happens.",
+    desc: "Type what you want in plain English. No dropdowns, no token selectors.",
+    example: "\"Swap 0.5 ETH to USDC with low slippage\"",
   },
   {
     icon: "◈",
     title: "Conditional Orders",
-    desc: "\"When ETH drops to $3000, buy.\" Set it, forget it. Auto-executes on-chain when conditions are met.",
+    desc: "Set a price target and walk away. Executes automatically when conditions are met.",
+    example: "\"When ETH drops to $3000, buy 0.5 ETH\"",
+    badge: "Pro",
   },
   {
     icon: "⬡",
     title: "MEV Protected",
-    desc: "Transactions routed through Flashbots. No sandwich attacks. You get the price you see.",
+    desc: "Routed through Flashbots. No sandwich attacks. You get the price you see.",
+    example: "Private mempool · front-running blocked",
   },
   {
     icon: "≋",
     title: "Smart Routing",
-    desc: "Multi-hop paths across 1700+ tokens. We find the best route so you don't have to.",
+    desc: "Multi-hop paths across 1,700+ tokens. Best route found automatically.",
+    example: "ETH → USDC → ARB in one transaction",
   },
   {
     icon: "◷",
     title: "Portfolio View",
-    desc: "All your token balances, prices, and swap history in one place. No wallet-juggling.",
+    desc: "All your token balances, prices, and swap history in one place.",
+    example: "Live prices · 24h change · swap history",
   },
   {
     icon: "∿",
     title: "Multi-chain",
-    desc: "Ethereum, Arbitrum, Linea. More chains coming. One interface, everywhere.",
+    desc: "Ethereum, Arbitrum, Linea. One interface, everywhere.",
+    example: "Switch chains without leaving the app",
   },
 ];
 
@@ -92,7 +99,7 @@ export default function LandingPage() {
             Live on Ethereum · Arbitrum · Linea
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-light text-stone-50 leading-tight tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-normal text-stone-50 leading-tight tracking-tight">
             Swap with<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-400 to-amber-500 pr-2">
               intention
@@ -159,16 +166,131 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16 space-y-3">
             <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
-            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Everything you need. Nothing you don&apos;t.</h2>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Everything you need. Nothing you don&apos;t.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-6 py-5 space-y-3 hover:border-gold-500/30 hover:bg-stone-900/60 hover:shadow-lg hover:shadow-gold-500/5 transition-all duration-200 group">
-                <span className="text-2xl text-stone-500 group-hover:text-gold-400/80 transition-colors">{f.icon}</span>
+              <div key={f.title} className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-6 py-5 space-y-3 hover:border-gold-500/30 hover:bg-stone-900/60 hover:shadow-lg hover:shadow-gold-500/5 transition-all duration-200 group flex flex-col">
+                <div className="flex items-start justify-between">
+                  <span className="text-2xl text-stone-500 group-hover:text-gold-400/80 transition-colors">{f.icon}</span>
+                  {"badge" in f && f.badge && (
+                    <span className="px-1.5 py-0.5 bg-gold-500/10 border border-gold-500/20 rounded text-gold-400 text-[9px] tracking-widest uppercase">{f.badge}</span>
+                  )}
+                </div>
                 <p className="text-stone-100 text-sm font-medium">{f.title}</p>
-                <p className="text-stone-500 text-xs leading-relaxed">{f.desc}</p>
+                <p className="text-stone-500 text-xs leading-relaxed flex-1">{f.desc}</p>
+                <div className="pt-1 px-3 py-2 bg-stone-950/60 border border-stone-800/40 rounded-lg">
+                  <p className="text-stone-400 text-[11px] font-mono leading-relaxed">{f.example}</p>
+                </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Conditional Orders Showcase */}
+      <section className="px-6 md:px-12 py-24 border-t border-stone-800/60">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12 space-y-3">
+            <span className="inline-flex items-center gap-2 px-3 py-1 bg-gold-500/10 border border-gold-500/20 rounded-full text-gold-400 text-[10px] tracking-widest uppercase">
+              ◈ Only on Intent Swap
+            </span>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">
+              Set it. Forget it.<br />
+              <span className="text-stone-400 font-light">It executes itself.</span>
+            </h2>
+            <p className="text-stone-500 text-sm max-w-md mx-auto">
+              Conditional orders that actually run on-chain — no CEX account, no custody, no KYC.
+            </p>
+          </div>
+
+          {/* Demo card */}
+          <div className="bg-stone-900/50 border border-stone-700/60 rounded-2xl overflow-hidden shadow-2xl shadow-stone-950/50">
+            {/* Terminal header */}
+            <div className="flex items-center gap-2 px-5 py-3 bg-stone-900/80 border-b border-stone-800/60">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+              <span className="ml-3 text-stone-600 text-[11px] font-mono">intent-swap · conditional order</span>
+            </div>
+
+            <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left: input */}
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className="text-stone-500 text-[10px] tracking-widest uppercase">You type</p>
+                  <div className="bg-stone-950/80 border border-stone-700/50 rounded-xl px-4 py-3">
+                    <p className="text-stone-200 text-sm font-mono leading-relaxed">
+                      When ETH drops to{" "}
+                      <span className="text-gold-400">$3,000</span>
+                      , buy{" "}
+                      <span className="text-gold-400">0.5 ETH</span>
+                    </p>
+                    <span className="inline-block w-0.5 h-4 bg-gold-400/70 animate-pulse ml-0.5 align-middle" />
+                  </div>
+                </div>
+
+                {/* vs CEX */}
+                <div className="space-y-2">
+                  <p className="text-stone-600 text-[10px] tracking-widest uppercase">vs. CEX limit orders</p>
+                  <div className="space-y-1.5">
+                    {[
+                      "Requires account & KYC",
+                      "Custodial — they hold your funds",
+                      "Can be frozen or delisted",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2">
+                        <span className="text-red-400/60 text-xs">✗</span>
+                        <span className="text-stone-600 text-xs">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: system response */}
+              <div className="space-y-3">
+                <p className="text-stone-500 text-[10px] tracking-widest uppercase">System response</p>
+                <div className="space-y-2.5">
+                  {[
+                    { icon: "✓", color: "text-emerald-400", text: "Intent parsed", sub: "ETH/USD · target $3,000.00" },
+                    { icon: "✓", color: "text-emerald-400", text: "Monitoring active", sub: "Chainlink oracle · checks every block" },
+                    { icon: "✓", color: "text-emerald-400", text: "Order queued on-chain", sub: "Non-custodial · your keys, your funds" },
+                    { icon: "◷", color: "text-gold-400/70", text: "Waiting for trigger", sub: "Auto-executes · no action needed" },
+                  ].map((item) => (
+                    <div key={item.text} className="flex items-start gap-3 px-3 py-2.5 bg-stone-950/40 border border-stone-800/40 rounded-lg">
+                      <span className={`${item.color} text-xs mt-0.5 shrink-0 font-mono`}>{item.icon}</span>
+                      <div>
+                        <p className="text-stone-200 text-xs font-medium">{item.text}</p>
+                        <p className="text-stone-600 text-[11px] mt-0.5">{item.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <div className="flex items-center justify-between px-3 py-2 bg-stone-950/60 border border-stone-800/40 rounded-lg">
+                    <span className="text-stone-500 text-[11px]">Current ETH price</span>
+                    <span className="text-stone-300 text-[11px] font-mono">$3,412.50</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-6">
+            <div className="flex items-center gap-2 text-stone-500 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+              Non-custodial
+            </div>
+            <div className="flex items-center gap-2 text-stone-500 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+              No account needed
+            </div>
+            <div className="flex items-center gap-2 text-stone-500 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+              Chainlink price feeds
+            </div>
           </div>
         </div>
       </section>
@@ -178,7 +300,7 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16 space-y-3">
             <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">How it works</p>
-            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Three steps. That&apos;s genuinely it.</h2>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Three steps. That&apos;s genuinely it.</h2>
           </div>
           <div className="space-y-px">
             {STEPS.map((s, i) => (
@@ -326,7 +448,7 @@ export default function LandingPage() {
             <span className="text-gold-400 text-2xl">⬡</span>
           </div>
           <div className="space-y-3">
-            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Ready to swap with intention?</h2>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Ready to swap with intention?</h2>
             <p className="text-stone-400 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
           </div>
           <Link
