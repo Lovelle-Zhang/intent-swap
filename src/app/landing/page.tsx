@@ -17,7 +17,7 @@ const FEATURES = [
   {
     icon: "◈",
     title: "Conditional Orders",
-    desc: "Set a price target and walk away. Executes automatically when conditions are met.",
+    desc: "Set a price target and walk away. Get notified the moment conditions are met, then execute with one tap.",
     example: "\"When ETH drops to $3000, buy 0.5 ETH\"",
     badge: "Pro",
   },
@@ -257,7 +257,7 @@ export default function LandingPage() {
                     { icon: "✓", color: "text-emerald-400", text: "Intent parsed", sub: "ETH/USD · target $3,000.00" },
                     { icon: "✓", color: "text-emerald-400", text: "Monitoring active", sub: "Chainlink oracle · checks every block" },
                     { icon: "✓", color: "text-emerald-400", text: "Order queued on-chain", sub: "Non-custodial · your keys, your funds" },
-                    { icon: "◷", color: "text-gold-400/70", text: "Waiting for trigger", sub: "Auto-executes · no action needed" },
+                    { icon: "◷", color: "text-gold-400/70", text: "Waiting for trigger", sub: "Notifies you instantly · one tap to execute" },
                   ].map((item) => (
                     <div key={item.text} className="flex items-start gap-3 px-3 py-2.5 bg-stone-950/40 border border-stone-800/40 rounded-lg">
                       <span className={`${item.color} text-xs mt-0.5 shrink-0 font-mono`}>{item.icon}</span>
