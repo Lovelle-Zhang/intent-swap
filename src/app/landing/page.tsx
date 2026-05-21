@@ -75,26 +75,31 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center min-h-screen px-6 text-center">
-        {/* Background glow */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-96 h-96 rounded-full bg-gold-500/3 blur-3xl" />
+      <section className="relative flex flex-col items-center justify-center min-h-screen px-6 text-center bg-grid overflow-hidden">
+        {/* Background glows */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Center glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gold-500/8 blur-[120px]" />
+          {/* Top-left accent */}
+          <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-amber-600/5 blur-[100px]" />
+          {/* Bottom-right accent */}
+          <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-gold-400/5 blur-[100px]" />
         </div>
 
         <div className="relative space-y-8 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-stone-900/60 border border-stone-800 rounded-full text-stone-500 text-[10px] tracking-widest uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-stone-900/80 border border-stone-700/60 rounded-full text-stone-400 text-[10px] tracking-widest uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Live on Ethereum · Arbitrum · Linea
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-light text-stone-100 leading-tight tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-light text-stone-50 leading-tight tracking-tight">
             Swap with<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-stone-500 to-gold-400 pr-2">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-400 to-amber-500 pr-2">
               intention
             </span>
           </h1>
 
-          <p className="text-stone-500 text-lg md:text-xl font-light max-w-xl mx-auto leading-relaxed">
+          <p className="text-stone-400 text-lg md:text-xl font-light max-w-xl mx-auto leading-relaxed">
             The first DeFi interface that understands what you mean.
             Natural language. Conditional orders. MEV protection.
           </p>
@@ -102,22 +107,22 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
               href="/"
-              className="px-8 py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/20"
+              className="px-8 py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
             >
               Start swapping
             </Link>
             <a
               href="#how"
-              className="px-8 py-3 border border-stone-800 hover:border-stone-600 text-stone-400 hover:text-stone-200 rounded-xl text-sm transition-colors"
+              className="px-8 py-3 border border-stone-700 hover:border-stone-500 text-stone-300 hover:text-stone-100 rounded-xl text-sm transition-colors"
             >
               See how it works
             </a>
           </div>
 
           {/* Example intent */}
-          <div className="mt-4 inline-flex items-center gap-3 px-5 py-3 bg-stone-900/50 border border-stone-800/60 rounded-2xl">
+          <div className="mt-4 inline-flex items-center gap-3 px-5 py-3 bg-stone-900/70 border border-stone-700/50 rounded-2xl hover:border-gold-500/20 transition-colors">
             <span className="text-stone-500 text-xs">Try:</span>
-            <span className="text-stone-400 text-sm font-light italic">
+            <span className="text-stone-300 text-sm font-light italic">
               &ldquo;When ETH drops to $3000, buy 0.5 ETH&rdquo;
             </span>
           </div>
@@ -126,7 +131,7 @@ export default function LandingPage() {
         {/* Scroll indicator */}
         <a
           href="#features"
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-stone-600 hover:text-stone-400 transition-colors group"
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-stone-500 hover:text-stone-300 transition-colors group"
         >
           <span className="text-[10px] tracking-widest uppercase">Explore</span>
           <div className="flex flex-col items-center gap-0.5 animate-bounce">
@@ -138,12 +143,12 @@ export default function LandingPage() {
       </section>
 
       {/* Stats */}
-      <section className="px-6 md:px-12 py-16 border-y border-stone-900">
+      <section className="px-6 md:px-12 py-16 border-y border-stone-800/60 bg-stone-900/20">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {STATS.map((s) => (
             <div key={s.label} className="text-center space-y-1">
-              <p className="text-2xl md:text-3xl font-light text-stone-200">{s.value}</p>
-              <p className="text-stone-600 text-xs tracking-widest uppercase">{s.label}</p>
+              <p className="text-2xl md:text-3xl font-light text-stone-50">{s.value}</p>
+              <p className="text-stone-500 text-xs tracking-widest uppercase">{s.label}</p>
             </div>
           ))}
         </div>
@@ -153,15 +158,15 @@ export default function LandingPage() {
       <section id="features" className="px-6 md:px-12 py-24">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16 space-y-3">
-            <p className="text-stone-500 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
-            <h2 className="text-2xl md:text-3xl font-light text-stone-200">Everything you need. Nothing you don&apos;t.</h2>
+            <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
+            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Everything you need. Nothing you don&apos;t.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f) => (
-              <div key={f.title} className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-6 py-5 space-y-3 hover:border-stone-700 transition-colors group">
-                <span className="text-2xl text-stone-600 group-hover:text-gold-400/60 transition-colors">{f.icon}</span>
-                <p className="text-stone-200 text-sm font-medium">{f.title}</p>
-                <p className="text-stone-600 text-xs leading-relaxed">{f.desc}</p>
+              <div key={f.title} className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-6 py-5 space-y-3 hover:border-gold-500/30 hover:bg-stone-900/60 hover:shadow-lg hover:shadow-gold-500/5 transition-all duration-200 group">
+                <span className="text-2xl text-stone-500 group-hover:text-gold-400/80 transition-colors">{f.icon}</span>
+                <p className="text-stone-100 text-sm font-medium">{f.title}</p>
+                <p className="text-stone-500 text-xs leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -169,19 +174,19 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="px-6 md:px-12 py-24 border-t border-stone-900">
+      <section id="how" className="px-6 md:px-12 py-24 border-t border-stone-800/60 bg-stone-900/10">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16 space-y-3">
-            <p className="text-stone-500 text-[10px] tracking-[0.3em] uppercase">How it works</p>
-            <h2 className="text-2xl md:text-3xl font-light text-stone-200">Three steps. That&apos;s genuinely it.</h2>
+            <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">How it works</p>
+            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Three steps. That&apos;s genuinely it.</h2>
           </div>
           <div className="space-y-px">
             {STEPS.map((s, i) => (
-              <div key={s.num} className={`flex gap-8 px-6 py-6 ${i < STEPS.length - 1 ? "border-b border-stone-900" : ""}`}>
-                <span className="text-gold-500/50 text-sm font-mono mt-0.5 shrink-0 w-6">{s.num}</span>
+              <div key={s.num} className={`flex gap-8 px-6 py-6 rounded-xl hover:bg-stone-900/40 transition-colors ${i < STEPS.length - 1 ? "border-b border-stone-800/60" : ""}`}>
+                <span className="text-gold-400/70 text-sm font-mono mt-0.5 shrink-0 w-6">{s.num}</span>
                 <div className="space-y-1.5">
-                  <p className="text-stone-200 text-sm font-medium">{s.title}</p>
-                  <p className="text-stone-600 text-xs leading-relaxed">{s.body}</p>
+                  <p className="text-stone-100 text-sm font-medium">{s.title}</p>
+                  <p className="text-stone-500 text-xs leading-relaxed">{s.body}</p>
                 </div>
               </div>
             ))}
@@ -291,18 +296,22 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="px-6 md:px-12 py-24 border-t border-stone-900">
-        <div className="max-w-xl mx-auto text-center space-y-8">
-          <div className="w-16 h-16 rounded-full border border-stone-800 flex items-center justify-center mx-auto">
-            <span className="text-gold-400/60 text-2xl">⬡</span>
+      <section className="relative px-6 md:px-12 py-24 border-t border-stone-800/60 overflow-hidden">
+        {/* CTA glow */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[600px] h-[300px] rounded-full bg-gold-500/6 blur-[100px]" />
+        </div>
+        <div className="relative max-w-xl mx-auto text-center space-y-8">
+          <div className="w-16 h-16 rounded-full border border-gold-500/30 bg-gold-500/5 flex items-center justify-center mx-auto animate-glow-pulse">
+            <span className="text-gold-400 text-2xl">⬡</span>
           </div>
           <div className="space-y-3">
-            <h2 className="text-2xl md:text-3xl font-light text-stone-200">Ready to swap with intention?</h2>
-            <p className="text-stone-500 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
+            <h2 className="text-2xl md:text-3xl font-light text-stone-100">Ready to swap with intention?</h2>
+            <p className="text-stone-400 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
           </div>
           <Link
             href="/"
-            className="inline-block px-10 py-3.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/20"
+            className="inline-block px-10 py-3.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
           >
             Launch Intent Swap
           </Link>

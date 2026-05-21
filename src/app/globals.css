@@ -28,16 +28,16 @@ body::before {
   opacity: 0.4;
 }
 
-/* 顶部光晕 */
+/* 顶部光晕 — 加强版 */
 body::after {
   content: "";
   position: fixed;
-  top: -200px;
+  top: -150px;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
-  height: 400px;
-  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.04) 0%, transparent 70%);
+  width: 900px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.03) 40%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -73,6 +73,19 @@ main, footer { position: relative; z-index: 1; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.05); }
+}
 
-.animate-fade-in { animation: fadeIn 0.5s ease-out both; }
-.animate-shimmer { animation: shimmer 2s ease-in-out infinite; }
+.animate-fade-in  { animation: fadeIn 0.5s ease-out both; }
+.animate-shimmer  { animation: shimmer 2s ease-in-out infinite; }
+.animate-glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
+
+/* Landing page grid background */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
