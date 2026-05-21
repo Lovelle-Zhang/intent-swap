@@ -269,29 +269,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Contract trust bar */}
-      <section className="px-6 md:px-12 py-8 border-t border-stone-900">
-        <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
-            <span className="text-stone-500 text-xs">Verified contract on Ethereum Mainnet</span>
+      {/* Trust section */}
+      <section className="px-6 md:px-12 py-16 border-t border-stone-800/60 bg-stone-900/10">
+        <div className="max-w-3xl mx-auto space-y-10">
+
+          {/* Built in the open */}
+          <div className="text-center space-y-2">
+            <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">Transparency</p>
+            <h2 className="text-xl font-light text-stone-200">Built in the open. Nothing hidden.</h2>
           </div>
-          <a
-            href={`https://etherscan.io/address/${CONTRACT_ADDRESS}#code`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-[11px] text-stone-600 hover:text-gold-400/80 transition-colors truncate max-w-xs"
-          >
-            {CONTRACT_ADDRESS}
-          </a>
-          <a
-            href={`https://sourcify.dev/#/lookup/${CONTRACT_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-stone-600 hover:text-stone-400 text-xs transition-colors shrink-0"
-          >
-            Sourcify ↗
-          </a>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <p className="text-stone-300 text-sm font-medium">Open Source</p>
+              </div>
+              <p className="text-stone-500 text-xs leading-relaxed">Full source code on GitHub. No hidden logic, no black box.</p>
+              <a href="https://github.com/Lovelle-Zhang/intent-swap" target="_blank" rel="noopener noreferrer" className="text-gold-400/60 hover:text-gold-400 text-xs transition-colors">
+                View on GitHub ↗
+              </a>
+            </div>
+
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <p className="text-stone-300 text-sm font-medium">Verified Contract</p>
+              </div>
+              <p className="text-stone-500 text-xs leading-relaxed">Deployed on Ethereum Mainnet. Source verified on Sourcify (perfect match).</p>
+              <a href={`https://etherscan.io/address/${CONTRACT_ADDRESS}#code`} target="_blank" rel="noopener noreferrer" className="text-gold-400/60 hover:text-gold-400 text-xs transition-colors font-mono">
+                {CONTRACT_ADDRESS.slice(0, 10)}…{CONTRACT_ADDRESS.slice(-6)} ↗
+              </a>
+            </div>
+
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70" />
+                <p className="text-stone-300 text-sm font-medium">Solo Project</p>
+              </div>
+              <p className="text-stone-500 text-xs leading-relaxed">No VC, no team, no token. Built by one person. Fast to ship, honest about limitations.</p>
+              <span className="text-stone-600 text-xs">0% protocol fee · forever</span>
+            </div>
+          </div>
+
         </div>
       </section>
 
