@@ -223,7 +223,7 @@ export default function LandingPage() {
                   <div className="bg-stone-950/80 border border-stone-700/50 rounded-xl px-4 py-3">
                     <p className="text-stone-200 text-sm font-mono leading-relaxed">
                       When ETH drops to{" "}
-                      <span className="text-gold-400">$3,000</span>
+                      <span className="text-gold-400">$2,200</span>
                       , buy{" "}
                       <span className="text-gold-400">0.5 ETH</span>
                     </p>
@@ -254,7 +254,7 @@ export default function LandingPage() {
                 <p className="text-stone-500 text-[10px] tracking-widest uppercase">System response</p>
                 <div className="space-y-2.5">
                   {[
-                    { icon: "✓", color: "text-emerald-400", text: "Intent parsed", sub: "ETH/USD · target $3,000.00" },
+                    { icon: "✓", color: "text-emerald-400", text: "Intent parsed", sub: "ETH/USD · target $2,200.00" },
                     { icon: "✓", color: "text-emerald-400", text: "Monitoring active", sub: "Chainlink oracle · checks every block" },
                     { icon: "✓", color: "text-emerald-400", text: "Order queued on-chain", sub: "Non-custodial · your keys, your funds" },
                     { icon: "◷", color: "text-gold-400/70", text: "Waiting for trigger", sub: "Notifies you instantly · one tap to execute" },

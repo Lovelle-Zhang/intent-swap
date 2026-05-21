@@ -10,10 +10,10 @@ const SWAP_EXAMPLES = [
 ];
 
 const CONDITIONAL_EXAMPLES = [
-  "When ETH drops to $2800, buy 0.1 ETH with USDC",
-  "If ETH rises above $4000, sell 0.05 ETH",
-  "When BTC drops below $90k, buy 0.001 WBTC",
-  "If ARB reaches $1.5, swap 500 USDC to ARB",
+  "When ETH drops to $2200, buy 0.1 ETH with USDC",
+  "If ETH rises above $3000, sell 0.05 ETH",
+  "When BTC drops below $95k, buy 0.001 WBTC",
+  "If ARB reaches $0.8, swap 500 USDC to ARB",
 ];
 
 const FX_EXAMPLES = [
@@ -57,7 +57,7 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
     ? "Describe your exchange (e.g. swap 1000 USDC to EURC...)"
     : mode === "swap"
     ? (tokenHint ? `Swap with ${tokenHint}...` : "Describe your swap intent...")
-    : "Set a price condition (e.g., when ETH drops to $3000...)";
+    : "Set a price condition (e.g., when ETH drops to $2200...)";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
