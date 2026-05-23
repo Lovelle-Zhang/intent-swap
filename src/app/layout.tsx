@@ -4,8 +4,8 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Intent Swap",
-  description: "Swap with intention. Not just tokens.",
+  title: "Intent Swap — Conditional Orders for DeFi",
+  description: "Set a price condition in plain language. We watch the market and execute when it hits. Non-custodial, multi-chain.",
 };
 
 export default function RootLayout({

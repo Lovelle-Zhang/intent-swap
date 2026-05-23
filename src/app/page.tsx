@@ -63,7 +63,7 @@ function TokenSearchCollapsible({
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<"swap" | "conditional" | "fx">("swap");
+  const [mode, setMode] = useState<"swap" | "conditional" | "fx">("conditional");
   const [tokenHint, setTokenHint] = useState<string>("");
   const chainId = useChainId();
   const { isConnected } = useAccount();
@@ -142,23 +142,23 @@ export default function Home() {
             </div>
 
             <h1 className="text-stone-100 text-2xl md:text-[2.5rem] font-light tracking-tight leading-tight mb-3 md:mb-4 px-4">
-              Just say what<br />
+              Set the trade.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
-                you want to trade.
+                Forget the chart.
               </span>
             </h1>
             <p className="text-stone-500 text-xs md:text-[13px] leading-relaxed max-w-md mx-auto px-4">
-              Describe your trade in plain language.<br />
-              We find the best route and execute it.
+              Type a price condition in plain language.<br />
+              We watch the market and execute when it hits.
             </p>
           </div>
 
           {/* Tab 切换 */}
           <div className="flex items-center justify-center gap-2 mb-6 px-4">
             {[
-              { key: "swap",        label: "Instant Swap" },
               { key: "conditional", label: "Conditional Order" },
-              // FX Exchange: coming soon, hidden until backend data source is ready
+              { key: "swap",        label: "Instant Swap" },
+              // FX Exchange: coming soon, hidden until data source is ready
               // { key: "fx",          label: "FX Exchange" },
             ].map((tab) => (
               <button
@@ -183,11 +183,11 @@ export default function Home() {
           {/* 底部特性 */}
           <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
             {[
+              { label: "Set & forget" },
+              { label: "·" },
+              { label: "Push + email alerts" },
+              { label: "·" },
               { label: "Non-custodial" },
-              { label: "·" },
-              { label: "Best route" },
-              { label: "·" },
-              { label: "~1s finality" },
             ].map((f, i) => (
               <span key={i} className="text-stone-600 text-[11px] tracking-wider font-light">
                 {f.label}
