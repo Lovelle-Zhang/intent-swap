@@ -20,7 +20,7 @@ A natural-language DEX interface. Type what you want — *"Swap 0.1 ETH to USDC"
 - **Intent parsing**: OpenAI GPT-4o-mini
 - **DEX**: Uniswap V3 (Ethereum, Arbitrum) · Izumi Finance (Linea)
 - **Automation**: Gelato Relay (conditional orders)
-- **Hosting**: Vercel (frontend) · separate Node service for the order monitor (`backend/`)
+- **Hosting**: Vercel (frontend) · separate Node service for the order monitor (`monitor/`)
 
 ## Quick Start
 
@@ -54,16 +54,15 @@ User input  →  Intent Parser (LLM)  →  Route + Quote  →  Wallet signs  →
 
 ```
 src/             Next.js app (frontend + API routes)
-backend/         Standalone Node service: order monitoring + price feeds
+monitor/         Standalone Node service: price polling + conditional-order triggers
 contracts/       Solidity: ConditionalSwapVault
-monitor/         Order-execution monitor
 public/          Static assets
 DEPLOYMENT.md    Deployment guide
 ```
 
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for Vercel setup, backend deployment, and Nginx config.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for Vercel setup, monitor service deployment, and Nginx config.
 
 ## License
 

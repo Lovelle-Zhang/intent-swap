@@ -80,9 +80,8 @@ async function deploy() {
   console.log(`\n✅ ConditionalSwapVault deployed at: ${receipt.contractAddress}`);
   console.log(`\nNext steps:`);
   console.log(`  1. Update VAULT_ADDRESS in .env.local`);
-  console.log(`  2. Update VAULT_ADDRESS in src/lib/vault.ts`);
-  console.log(`  3. Update backend server.js with vault address`);
-  console.log(`  4. Verify contract on Etherscan: https://etherscan.io/address/${receipt.contractAddress}`);
+  console.log(`  2. Update VAULT_ADDRESSES in src/lib/vault.ts`);
+  console.log(`  3. Verify contract on Etherscan: https://etherscan.io/address/${receipt.contractAddress}`);
 
   return receipt.contractAddress;
 }

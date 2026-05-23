@@ -46,23 +46,42 @@ npm run build && npm start   # production build
 
 ---
 
-## 3. Backend Service (Order Monitor)
+## 3. Order Monitor Service
 
-The conditional-order monitor lives in `backend/` and runs as a separate Node service. It exposes order CRUD + price polling endpoints.
+The conditional-order monitor lives in `monitor/` and runs as a separate Node service. It checks token prices every minute (via CoinGecko) and notifies users when their price conditions trigger.
+
+**Endpoints**:
+- `POST /orders` — accept a new conditional order from the frontend
+- `GET /orders` — list all stored orders
+- `GET /health` — service health check
+
+**Storage**: lowdb (single JSON file `orders.json` on disk — fine for a single-node deployment).
+
+### Optional email notifications
+
+If you want email alerts when orders trigger, set these env vars on the server:
+
+```env
+SMTP_HOST=smtp.your-provider.com
+SMTP_USER=alerts@your-domain.com
+SMTP_PASS=your_smtp_password
+```
+
+Without these, triggers are still detected — they just log to console instead of sending email.
 
 ### Deploy to a Linux server
 
 ```bash
 # Copy code
-scp -r backend/ root@<your-server>:/root/intent-swap-backend
+scp -r monitor/ root@<your-server>:/root/intent-swap-monitor
 
 # On the server
 ssh root@<your-server>
-cd /root/intent-swap-backend
+cd /root/intent-swap-monitor
 npm install
 
 # Run with PM2
-pm2 start server.js --name intent-swap-backend
+pm2 start index.js --name intent-swap-monitor
 pm2 save
 pm2 startup    # follow the printed command to enable boot autostart
 ```
@@ -73,16 +92,7 @@ Add to your server block (e.g. `/etc/nginx/sites-available/api.your-domain.com`)
 
 ```nginx
 location /swap-orders {
-    proxy_pass http://localhost:3002/orders;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_cache_bypass $http_upgrade;
-}
-
-location /swap-prices {
-    proxy_pass http://localhost:3002/prices;
+    proxy_pass http://localhost:3001/orders;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
 }
@@ -94,6 +104,16 @@ Reload:
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+### Frontend wiring
+
+In `.env.local` (and Vercel), set `NEXT_PUBLIC_MONITOR_URL` to the public URL where you mounted the monitor — e.g.:
+
+```env
+NEXT_PUBLIC_MONITOR_URL=https://api.your-domain.com/swap-orders
+```
+
+The frontend posts to `${NEXT_PUBLIC_MONITOR_URL}/orders` when a user creates a conditional order.
 
 ---
 
@@ -130,16 +150,17 @@ Currently deployed addresses are recorded in `src/lib/vault.ts`. Update that fil
 - Check the wallet has a non-zero balance for the source token
 - Inspect the browser console + Vercel function logs
 
-**Backend unreachable**
+**Monitor service unreachable**
 - `pm2 status` — is it running?
-- `pm2 logs intent-swap-backend` — any crashes?
-- `lsof -i :3002` — port available?
+- `pm2 logs intent-swap-monitor` — any crashes?
+- `lsof -i :3001` — port available?
+- Confirm `NEXT_PUBLIC_MONITOR_URL` points to the right host
 
 ---
 
 ## 7. Known Limitations
 
-1. **Conditional orders** use scheduled polling (hourly), not a real on-chain resolver. Production should implement a Gelato Web3 Function. See https://docs.gelato.network/web3-services/web3-functions.
+1. **Conditional orders** use scheduled polling (`monitor/` runs a 1-minute cron against CoinGecko), not a real on-chain resolver. Production should implement a Gelato Web3 Function. See https://docs.gelato.network/web3-services/web3-functions.
 2. **Gas estimates** are static heuristics. For precision, call `eth_estimateGas` on the actual swap calldata.
 3. **Arbitrum / Linea vaults** not yet deployed — conditional orders are Ethereum-only for now.
 
