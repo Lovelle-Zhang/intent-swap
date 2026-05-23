@@ -3,23 +3,22 @@ import type { Metadata } from "next";
 import { EthPriceTicker } from "./EthPriceTicker";
 
 export const metadata: Metadata = {
-  title: "Intent Swap — Swap with intention",
-  description: "The first DeFi swap that understands what you mean. Natural language intents, conditional orders, and MEV protection — all in one.",
+  title: "Intent Swap — Set the trade. Forget the chart.",
+  description: "Conditional DeFi orders in plain language. Set a price trigger and walk away — we watch the market and notify you the moment it hits. Non-custodial, no CEX, no KYC.",
 };
 
 const FEATURES = [
   {
-    icon: "◎",
-    title: "Natural Language",
-    desc: "Type what you want in plain English. No dropdowns, no token selectors.",
-    example: "\"Swap 0.5 ETH to USDC with low slippage\"",
-  },
-  {
     icon: "◈",
     title: "Conditional Orders",
-    desc: "Set a price target and walk away. Get notified the moment conditions are met, then execute with one tap.",
+    desc: "Set a price target and walk away. Get notified the moment conditions hit, then execute with one tap.",
     example: "\"When ETH drops to $3000, buy 0.5 ETH\"",
-    badge: "Pro",
+  },
+  {
+    icon: "◎",
+    title: "Plain Language",
+    desc: "Describe what you want. No dropdowns, no token pickers. The parser handles the rest.",
+    example: "\"Swap 0.5 ETH to USDC with low slippage\"",
   },
   {
     icon: "⬡",
@@ -101,15 +100,16 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-4xl md:text-6xl font-normal text-stone-50 leading-tight tracking-tight">
-            Swap with<br />
+            Set the trade.<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-300 via-gold-400 to-amber-500 pr-2">
-              intention
+              Forget the chart.
             </span>
           </h1>
 
           <p className="text-stone-400 text-lg md:text-xl font-light max-w-xl mx-auto leading-relaxed">
-            The first DeFi interface that understands what you mean.
-            Natural language. Conditional orders. MEV protection.
+            Set a price condition in plain language and walk away.
+            We watch the market and notify you the moment it triggers.
+            Non-custodial. No CEX. No KYC.
           </p>
 
           <div className="flex items-center justify-center gap-4 flex-wrap">
@@ -117,7 +117,7 @@ export default function LandingPage() {
               href="/"
               className="px-8 py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
             >
-              Start swapping
+              Set your first trigger
             </Link>
             <a
               href="#how"
@@ -446,14 +446,14 @@ export default function LandingPage() {
             <span className="text-gold-400 text-2xl">⬡</span>
           </div>
           <div className="space-y-3">
-            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Ready to swap with intention?</h2>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Ready to set it and forget it?</h2>
             <p className="text-stone-400 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
           </div>
           <Link
             href="/"
             className="inline-block px-10 py-3.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
           >
-            Launch Intent Swap
+            Set your first trigger
           </Link>
         </div>
       </section>
