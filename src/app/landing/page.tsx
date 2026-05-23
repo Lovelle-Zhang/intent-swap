@@ -13,6 +13,7 @@ const FEATURES = [
     title: "Conditional Orders",
     desc: "Set a price target and walk away. Get notified the moment conditions hit, then execute with one tap.",
     example: "\"When ETH drops to $3000, buy 0.5 ETH\"",
+    primary: true,
   },
   {
     icon: "◎",
@@ -162,35 +163,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="px-6 md:px-12 py-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16 space-y-3">
-            <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
-            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Everything you need. Nothing you don&apos;t.</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-6 py-5 space-y-3 hover:border-gold-500/30 hover:bg-stone-900/60 hover:shadow-lg hover:shadow-gold-500/5 transition-all duration-200 group flex flex-col">
-                <div className="flex items-start justify-between">
-                  <span className="text-2xl text-stone-500 group-hover:text-gold-400/80 transition-colors">{f.icon}</span>
-                  {"badge" in f && f.badge && (
-                    <span className="px-1.5 py-0.5 bg-gold-500/10 border border-gold-500/20 rounded text-gold-400 text-[9px] tracking-widest uppercase">{f.badge}</span>
-                  )}
-                </div>
-                <p className="text-stone-100 text-sm font-medium">{f.title}</p>
-                <p className="text-stone-500 text-xs leading-relaxed flex-1">{f.desc}</p>
-                <div className="pt-1 px-3 py-2 bg-stone-950/60 border border-stone-800/40 rounded-lg">
-                  <p className="text-stone-400 text-[11px] font-mono leading-relaxed">{f.example}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Conditional Orders Showcase */}
-      <section className="px-6 md:px-12 py-24 border-t border-stone-800/60">
+      <section className="px-6 md:px-12 py-24">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 space-y-3">
             <span className="inline-flex items-center gap-2 px-3 py-1 bg-gold-500/10 border border-gold-500/20 rounded-full text-gold-400 text-[10px] tracking-widest uppercase">
@@ -289,6 +263,43 @@ export default function LandingPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
               Chainlink price feeds
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="px-6 md:px-12 py-24 border-t border-stone-800/60">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16 space-y-3">
+            <p className="text-gold-400/60 text-[10px] tracking-[0.3em] uppercase">Capabilities</p>
+            <h2 className="text-2xl md:text-3xl font-normal text-stone-100">Everything you need. Nothing you don&apos;t.</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FEATURES.map((f) => {
+              const isPrimary = "primary" in f && f.primary;
+              return (
+                <div
+                  key={f.title}
+                  className={`rounded-xl px-6 py-5 space-y-3 hover:shadow-lg transition-all duration-200 group flex flex-col ${
+                    isPrimary
+                      ? "bg-gradient-to-br from-gold-500/[0.08] to-stone-900/40 border border-gold-500/30 hover:border-gold-500/50 hover:shadow-gold-500/10"
+                      : "bg-stone-900/40 border border-stone-800/60 hover:border-gold-500/30 hover:bg-stone-900/60 hover:shadow-gold-500/5"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className={`text-2xl transition-colors ${isPrimary ? "text-gold-400/90" : "text-stone-500 group-hover:text-gold-400/80"}`}>{f.icon}</span>
+                    {isPrimary && (
+                      <span className="px-1.5 py-0.5 bg-gold-500/15 border border-gold-500/30 rounded text-gold-400 text-[9px] tracking-widest uppercase">Main feature</span>
+                    )}
+                  </div>
+                  <p className="text-stone-100 text-sm font-medium">{f.title}</p>
+                  <p className="text-stone-500 text-xs leading-relaxed flex-1">{f.desc}</p>
+                  <div className={`pt-1 px-3 py-2 border rounded-lg ${isPrimary ? "bg-stone-950/70 border-gold-500/15" : "bg-stone-950/60 border-stone-800/40"}`}>
+                    <p className="text-stone-400 text-[11px] font-mono leading-relaxed">{f.example}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
