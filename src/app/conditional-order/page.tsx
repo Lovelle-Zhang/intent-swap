@@ -123,7 +123,8 @@ export default function ConditionalOrderPage() {
     try {
       if (email) localStorage.setItem("user-email", email);
 
-      const submitRes = await fetch("https://api.o-sheepps.com/swap-orders", {
+      // 走 Next.js 服务端代理：那一层会验证订阅 + 附加 internal API key 转发到 monitor
+      const submitRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

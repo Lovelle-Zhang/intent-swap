@@ -117,14 +117,40 @@ cron.schedule("* * * * *", async () => {
 // HTTP 服务：接收前端推送的订单
 const http = require("http");
 
+// 共享密钥：仅 Next.js 服务端代理知道。绕过 Next.js 直接打这个端口的请求会被 401 拒。
+// 部署时务必在 monitor 服务器和 Vercel 上设置相同的值。
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY ?? "";
+
+if (!INTERNAL_API_KEY) {
+  console.error("[FATAL] INTERNAL_API_KEY env var not set. POST /orders is disabled until you set it.");
+}
+
+function isAuthorized(req) {
+  if (!INTERNAL_API_KEY) return false;
+  const header = req.headers["authorization"] ?? "";
+  // 取消"Bearer "前缀，剩余部分跟 key 做常量时间比较（避免 timing attack）
+  const got = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (got.length !== INTERNAL_API_KEY.length) return false;
+  let diff = 0;
+  for (let i = 0; i < got.length; i++) {
+    diff |= got.charCodeAt(i) ^ INTERNAL_API_KEY.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
   if (req.method === "POST" && req.url === "/orders") {
+    if (!isAuthorized(req)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
     let body = "";
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
@@ -132,7 +158,7 @@ const server = http.createServer((req, res) => {
         const order = JSON.parse(body);
         addOrder(order);
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true }));
+        res.end(JSON.stringify({ ok: true, id: order.id ?? null }));
       } catch {
         res.writeHead(400);
         res.end(JSON.stringify({ error: "Invalid JSON" }));

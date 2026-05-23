@@ -25,8 +25,13 @@ Required keys:
 | `OPENAI_API_KEY` | LLM intent parsing | https://platform.openai.com/api-keys |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Wallet connect | https://cloud.walletconnect.com |
 | `GELATO_RELAY_API_KEY` | Conditional-order automation | https://app.gelato.network |
+| `MONITOR_URL` | URL of the monitor service (e.g. `https://api.your-domain.com/swap-orders`) | — |
+| `INTERNAL_API_KEY` | Shared secret between this app and the monitor service | `openssl rand -hex 32` |
+| `SUBSCRIPTION_CHECK_URL` | Endpoint that returns `{active: bool}` for a given email | — |
 
-> ⚠️ **Security note**: `GELATO_RELAY_API_KEY` should **not** have a `NEXT_PUBLIC_` prefix — it is used server-side only.
+> ⚠️ **Security note**: `GELATO_RELAY_API_KEY`, `MONITOR_URL`, `INTERNAL_API_KEY`, and `SUBSCRIPTION_CHECK_URL` must **not** have a `NEXT_PUBLIC_` prefix — they are used server-side only.
+>
+> ⚠️ **`INTERNAL_API_KEY` must match the value set on the monitor server.** Anyone with this key can create orders bypassing the subscription check.
 
 ### Run
 
@@ -57,9 +62,17 @@ The conditional-order monitor lives in `monitor/` and runs as a separate Node se
 
 **Storage**: lowdb (single JSON file `orders.json` on disk — fine for a single-node deployment).
 
+### Required env vars on the monitor server
+
+```env
+# Must match the INTERNAL_API_KEY you set on Vercel — without this,
+# POST /orders returns 401 and no new conditional orders can be created.
+INTERNAL_API_KEY=same_value_as_on_vercel
+```
+
 ### Optional email notifications
 
-If you want email alerts when orders trigger, set these env vars on the server:
+If you want email alerts when orders trigger, also set:
 
 ```env
 SMTP_HOST=smtp.your-provider.com
@@ -107,13 +120,14 @@ sudo systemctl reload nginx
 
 ### Frontend wiring
 
-In `.env.local` (and Vercel), set `NEXT_PUBLIC_MONITOR_URL` to the public URL where you mounted the monitor — e.g.:
+In `.env.local` (and Vercel), set the **server-side** `MONITOR_URL` to the public URL where you mounted the monitor — e.g.:
 
 ```env
-NEXT_PUBLIC_MONITOR_URL=https://api.your-domain.com/swap-orders
+MONITOR_URL=https://api.your-domain.com/swap-orders
+INTERNAL_API_KEY=<same value as on the monitor server>
 ```
 
-The frontend posts to `${NEXT_PUBLIC_MONITOR_URL}/orders` when a user creates a conditional order.
+The browser **never** talks to the monitor directly. The conditional-order page posts to the Next.js route `/api/orders`, which (1) validates the user has an active subscription via `SUBSCRIPTION_CHECK_URL`, (2) attaches `Authorization: Bearer ${INTERNAL_API_KEY}`, and (3) forwards the order to the monitor. The monitor refuses any POST `/orders` without a matching bearer token (401).
 
 ---
 
@@ -154,7 +168,8 @@ Currently deployed addresses are recorded in `src/lib/vault.ts`. Update that fil
 - `pm2 status` — is it running?
 - `pm2 logs intent-swap-monitor` — any crashes?
 - `lsof -i :3001` — port available?
-- Confirm `NEXT_PUBLIC_MONITOR_URL` points to the right host
+- Confirm `MONITOR_URL` (server-side) points to the right host
+- Confirm `INTERNAL_API_KEY` matches on both sides (Vercel + monitor server) — mismatch = 401 from monitor
 
 ---
 
