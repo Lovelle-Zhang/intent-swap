@@ -183,12 +183,13 @@ export default function SubscribePage() {
           </div>
 
           {/* Quick send + Etherscan */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* MetaMask deep link only resolves on mobile — hide on md+ so desktop users don't get a dead button */}
             <a
               href={`https://metamask.app.link/send/${USDT_CONTRACT}@1/transfer?address=${USDT_ADDRESS}&uint256=9900000`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
+              className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
             >
               <span>🦊</span> Open in MetaMask
             </a>
@@ -200,6 +201,9 @@ export default function SubscribePage() {
             >
               View on Etherscan ↗
             </a>
+            <span className="hidden md:inline text-stone-700 text-[11px]">
+              On desktop? Just paste this address into your wallet's Send screen.
+            </span>
           </div>
         </div>
 

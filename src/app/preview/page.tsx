@@ -195,7 +195,9 @@ export default function PreviewPage() {
         </div>
 
         <div className="text-center space-y-1">
-          <p className="text-stone-500 text-xs tracking-widest uppercase">Review your swap</p>
+          <p className="text-stone-500 text-xs tracking-widest uppercase">
+            {isConditional ? "Review your trigger" : "Review your swap"}
+          </p>
           <p className="text-stone-400 text-sm italic">"{intent.raw}"</p>
         </div>
 
@@ -361,13 +363,15 @@ export default function PreviewPage() {
               disabled={insufficientBalance}
               className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
             >
-              {insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
+              {insufficientBalance ? "Insufficient balance" : isConditional ? "Set trigger →" : "Confirm & Swap"}
             </button>
           )}
         </div>
 
         <p className="text-center text-stone-700 text-xs">
-          Rates are estimates. Final amount may vary within slippage tolerance.
+          {isConditional
+            ? "Final rate is determined at trigger time. Slippage applies."
+            : "Rates are estimates. Final amount may vary within slippage tolerance."}
         </p>
       </div>
     </main>
