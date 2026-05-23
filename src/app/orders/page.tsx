@@ -51,7 +51,8 @@ export default function OrdersPage() {
   const fetchOrders = async (userEmail: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://api.o-sheepps.com/swap-orders?email=${encodeURIComponent(userEmail)}`);
+      // /api/orders 是服务端代理：校验订阅 + 附带内部 bearer key
+      const res = await fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`);
       if (res.ok) setOrders((await res.json()).orders ?? []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
@@ -67,8 +68,11 @@ export default function OrdersPage() {
 
   const handleCancel = async (orderId: string) => {
     try {
-      await fetch(`https://api.o-sheepps.com/swap-orders/${orderId}`, { method: "DELETE" });
-      setOrders(orders.filter((o) => o.id !== orderId));
+      const res = await fetch(
+        `/api/orders/${encodeURIComponent(orderId)}?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) setOrders(orders.filter((o) => o.id !== orderId));
     } catch { /* ignore */ }
   };
 

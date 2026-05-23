@@ -44,6 +44,44 @@ async function verifySubscription(email: string | null | undefined): Promise<boo
   }
 }
 
+export async function GET(req: NextRequest) {
+  if (!MONITOR_URL || !INTERNAL_API_KEY) {
+    return NextResponse.json(
+      { error: "Server misconfigured: MONITOR_URL or INTERNAL_API_KEY missing" },
+      { status: 500 },
+    );
+  }
+
+  const email = req.nextUrl.searchParams.get("email");
+  if (!email) {
+    return NextResponse.json({ error: "Missing email" }, { status: 400 });
+  }
+
+  const active = await verifySubscription(email);
+  if (!active) {
+    return NextResponse.json({ error: "Active subscription required" }, { status: 403 });
+  }
+
+  try {
+    const upstream = await fetch(`${MONITOR_URL}/orders?email=${encodeURIComponent(email)}`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${INTERNAL_API_KEY}` },
+      cache: "no-store",
+    });
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      return NextResponse.json(
+        { error: data?.error ?? "Monitor service rejected the request" },
+        { status: upstream.status },
+      );
+    }
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("[api/orders GET] upstream error:", err);
+    return NextResponse.json({ error: "Failed to reach monitor service" }, { status: 502 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!MONITOR_URL || !INTERNAL_API_KEY) {
     return NextResponse.json(

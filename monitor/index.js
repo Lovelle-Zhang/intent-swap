@@ -138,46 +138,67 @@ function isAuthorized(req) {
   return diff === 0;
 }
 
+function jsonResponse(res, status, body) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body));
+}
+
 const server = http.createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
-  if (req.method === "POST" && req.url === "/orders") {
-    if (!isAuthorized(req)) {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Unauthorized" }));
-      return;
-    }
+  // Parse URL once (req.url may include ?query)
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+
+  // ─── /health ─── (public, no auth)
+  if (req.method === "GET" && pathname === "/health") {
+    return jsonResponse(res, 200, { ok: true, orders: db.get("orders").size().value() });
+  }
+
+  // ─── POST /orders ── create
+  if (req.method === "POST" && pathname === "/orders") {
+    if (!isAuthorized(req)) return jsonResponse(res, 401, { error: "Unauthorized" });
     let body = "";
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
         const order = JSON.parse(body);
         addOrder(order);
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, id: order.id ?? null }));
+        jsonResponse(res, 200, { ok: true, id: order.id ?? null });
       } catch {
-        res.writeHead(400);
-        res.end(JSON.stringify({ error: "Invalid JSON" }));
+        jsonResponse(res, 400, { error: "Invalid JSON" });
       }
     });
     return;
   }
 
-  if (req.method === "GET" && req.url === "/orders") {
-    const orders = db.get("orders").value();
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(orders));
-    return;
+  // ─── GET /orders?email=X ── list by email
+  if (req.method === "GET" && pathname === "/orders") {
+    if (!isAuthorized(req)) return jsonResponse(res, 401, { error: "Unauthorized" });
+    const email = url.searchParams.get("email");
+    if (!email) return jsonResponse(res, 400, { error: "Missing email query param" });
+    const orders = db.get("orders").filter((o) => o.notifyEmail === email || o.email === email).value();
+    return jsonResponse(res, 200, { orders });
   }
 
-  if (req.method === "GET" && req.url === "/health") {
-    res.writeHead(200);
-    res.end(JSON.stringify({ ok: true, orders: db.get("orders").size().value() }));
-    return;
+  // ─── DELETE /orders/:id?email=X ── cancel (with ownership check)
+  if (req.method === "DELETE" && pathname.startsWith("/orders/")) {
+    if (!isAuthorized(req)) return jsonResponse(res, 401, { error: "Unauthorized" });
+    const id = pathname.slice("/orders/".length);
+    if (!id) return jsonResponse(res, 400, { error: "Missing order id" });
+    const email = url.searchParams.get("email");
+    if (!email) return jsonResponse(res, 400, { error: "Missing email query param" });
+    const order = db.get("orders").find((o) => String(o.id) === String(id)).value();
+    if (!order) return jsonResponse(res, 404, { error: "Order not found" });
+    const ownerEmail = order.notifyEmail || order.email;
+    if (ownerEmail !== email) return jsonResponse(res, 403, { error: "Order does not belong to this email" });
+    db.get("orders").remove((o) => String(o.id) === String(id)).write();
+    console.log(`[CANCEL] Order ${id} cancelled by ${email}`);
+    return jsonResponse(res, 200, { ok: true });
   }
 
   res.writeHead(404);
