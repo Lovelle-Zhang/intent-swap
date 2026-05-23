@@ -69,12 +69,12 @@ export default function HistoryPage() {
             <div className="w-12 h-12 rounded-full border border-stone-800 flex items-center justify-center mx-auto">
               <span className="text-stone-700 text-lg">✦</span>
             </div>
-            <p className="text-stone-600 text-sm">No swaps yet</p>
+            <p className="text-stone-600 text-sm">Nothing here yet</p>
             <Link
               href="/"
               className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors"
             >
-              Make your first swap →
+              Set your first trade →
             </Link>
           </div>
         ) : (

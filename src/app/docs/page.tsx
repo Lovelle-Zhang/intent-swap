@@ -95,8 +95,8 @@ export default function DocsPage() {
             </span>
           </h1>
           <p className="text-stone-500 text-sm leading-relaxed max-w-sm">
-            Describe what you want in plain language.
-            We find the optimal route and execute the swap.
+            Set a price condition or swap on the spot — all in plain language.
+            Non-custodial, multi-chain, no KYC.
           </p>
         </div>
 
