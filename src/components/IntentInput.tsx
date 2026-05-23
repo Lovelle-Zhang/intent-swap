@@ -9,6 +9,7 @@ import {
   FX_PAIRS,
   LOADING_STEPS,
   PLACEHOLDERS,
+  MAX_INTENT_LENGTH,
 } from "@/config/constants";
 
 interface IntentInputProps {
@@ -35,6 +36,10 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!value.trim()) return;
+    if (value.trim().length > MAX_INTENT_LENGTH) {
+      setError(`Too long — keep it under ${MAX_INTENT_LENGTH} characters.`);
+      return;
+    }
     setLoading(true);
     setLoadingStep(0);
     setError("");
@@ -84,6 +89,7 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
               onBlur={() => setFocused(false)}
               placeholder={placeholder}
               rows={3}
+              maxLength={MAX_INTENT_LENGTH}
               className="w-full bg-transparent text-stone-200 placeholder-stone-700 resize-none focus:outline-none text-base leading-relaxed font-light"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -94,12 +100,12 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
             />
 
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-800/50">
-              <span className="text-stone-700 text-xs">
-                {value.length > 0 ? `${value.length} chars` : "Enter to submit"}
+              <span className={`text-xs ${value.length >= MAX_INTENT_LENGTH ? "text-amber-500/80" : "text-stone-700"}`}>
+                {value.length > 0 ? `${value.length} / ${MAX_INTENT_LENGTH}` : "Enter to submit"}
               </span>
               <button
                 type="submit"
-                disabled={loading || !value.trim()}
+                disabled={loading || !value.trim() || value.trim().length > MAX_INTENT_LENGTH}
                 className="flex items-center gap-2 px-4 py-1.5 bg-stone-800/80 hover:bg-stone-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-stone-700/50 hover:border-stone-600 text-stone-300 text-xs rounded-lg transition-all duration-200"
               >
                 {loading ? (

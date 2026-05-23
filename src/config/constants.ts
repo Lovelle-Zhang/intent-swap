@@ -36,6 +36,8 @@ export const FX_PAIRS = [
   { from: "USDC", to: "EURT", label: "USD → EUR (T)" },
 ] as const;
 
+export const MAX_INTENT_LENGTH = 500;
+
 export const LOADING_STEPS = [
   "Reading your intent...",
   "Fetching token prices...",

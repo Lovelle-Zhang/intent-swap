@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { logger } from "@/lib/logger";
 
 const API_BASE = "https://api.o-sheepps.com";
 
@@ -41,7 +42,7 @@ export function useWebPush() {
       setState("ready");
       return true;
     } catch (err) {
-      console.error("[WebPush] Prepare failed:", err);
+      logger.error("[WebPush] Prepare failed:", err);
       setState("idle");
       return false;
     }
@@ -50,7 +51,7 @@ export function useWebPush() {
   const bind = useCallback(async (orderId: string): Promise<boolean> => {
     const sub = pendingSubRef.current;
     if (!sub) {
-      console.warn("[WebPush] bind called but no pending subscription");
+      logger.warn("[WebPush] bind called but no pending subscription");
       return false;
     }
 
@@ -63,10 +64,10 @@ export function useWebPush() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setState("subscribed");
       pendingSubRef.current = null;
-      console.log(`[WebPush] Bound to order ${orderId}`);
+      logger.debug(`[WebPush] Bound to order ${orderId}`);
       return true;
     } catch (err) {
-      console.error("[WebPush] Bind failed:", err);
+      logger.error("[WebPush] Bind failed:", err);
       return false;
     }
   }, []);

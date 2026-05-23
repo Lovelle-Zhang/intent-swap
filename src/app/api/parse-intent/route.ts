@@ -157,20 +157,32 @@ async function llmParse(intent: string) {
 
 export const maxDuration = 30; // Vercel 函数最大 30s
 
+const MAX_INTENT_LENGTH = 500;
+
 export async function POST(req: NextRequest) {
   try {
     const { intent } = await req.json();
     if (!intent || typeof intent !== "string") {
       return NextResponse.json({ error: "Missing intent" }, { status: 400 });
     }
+    const trimmed = intent.trim();
+    if (trimmed.length === 0) {
+      return NextResponse.json({ error: "Empty intent" }, { status: 400 });
+    }
+    if (trimmed.length > MAX_INTENT_LENGTH) {
+      return NextResponse.json(
+        { error: `Intent too long (max ${MAX_INTENT_LENGTH} characters)` },
+        { status: 400 },
+      );
+    }
 
     // 优先 LLM，失败降级规则
     try {
-      const result = await llmParse(intent);
+      const result = await llmParse(trimmed);
       return NextResponse.json(result);
     } catch (llmErr) {
       console.warn("[parse-intent] LLM failed, falling back to rules:", llmErr);
-      return NextResponse.json(ruleParse(intent));
+      return NextResponse.json(ruleParse(trimmed));
     }
   } catch {
     return NextResponse.json({ error: "Parse failed" }, { status: 500 });
