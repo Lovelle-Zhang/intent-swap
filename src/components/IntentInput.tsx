@@ -2,34 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-const SWAP_EXAMPLES = [
-  "Swap 0.1 ETH to USDC",
-  "500 USDC to ARB, low slippage",
-  "Convert all my DAI to WETH",
-];
-
-const CONDITIONAL_EXAMPLES = [
-  "When ETH drops to $2200, buy 0.1 ETH with USDC",
-  "If ETH rises above $3000, sell 0.05 ETH",
-  "When BTC drops below $95k, buy 0.001 WBTC",
-  "If ARB reaches $0.8, swap 500 USDC to ARB",
-];
-
-const FX_EXAMPLES = [
-  "Exchange 1000 USDC to EURC",
-  "When USD/EUR reaches 1.12, swap 2000 USDC",
-  "Convert all my USDC to GBPT",
-];
-
-const FX_PAIRS = [
-  { from: "USDC", to: "EURC",  label: "USD → EUR" },
-  { from: "USDC", to: "GBPT",  label: "USD → GBP" },
-  { from: "EURC", to: "USDC",  label: "EUR → USD" },
-  { from: "GBPT", to: "USDC",  label: "GBP → USD" },
-  { from: "EURC", to: "GBPT",  label: "EUR → GBP" },
-  { from: "USDC", to: "EURT",  label: "USD → EUR (T)" },
-];
+import {
+  SWAP_EXAMPLES,
+  CONDITIONAL_EXAMPLES,
+  FX_EXAMPLES,
+  FX_PAIRS,
+  LOADING_STEPS,
+  PLACEHOLDERS,
+} from "@/config/constants";
 
 interface IntentInputProps {
   mode: "swap" | "conditional" | "fx";
@@ -45,19 +25,12 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
   const [focused, setFocused] = useState(false);
   const router = useRouter();
 
-  const LOADING_STEPS = [
-    "Reading your intent...",
-    "Fetching token prices...",
-    "Finding best route...",
-    "Almost there...",
-  ];
-
   const examples = mode === "swap" ? SWAP_EXAMPLES : mode === "fx" ? FX_EXAMPLES : CONDITIONAL_EXAMPLES;
   const placeholder = mode === "fx"
-    ? "Describe your exchange (e.g. swap 1000 USDC to EURC...)"
+    ? PLACEHOLDERS.fx
     : mode === "swap"
-    ? (tokenHint ? `Swap with ${tokenHint}...` : "Describe your swap intent...")
-    : "Set a price condition (e.g., when ETH drops to $2200...)";
+    ? (tokenHint ? PLACEHOLDERS.swapWithHint(tokenHint) : PLACEHOLDERS.swap)
+    : PLACEHOLDERS.conditional;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

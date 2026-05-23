@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useChainId, useAccount, useSwitchChain } from "wagmi";
-import { mainnet, arbitrum, linea } from "wagmi/chains";
+import { mainnet } from "wagmi/chains";
 import { WalletButton } from "@/components/WalletButton";
 import { IntentInput } from "@/components/IntentInput";
 import { TokenSearch, type TokenInfo } from "@/components/TokenSearch";
+import { CHAIN_LABELS, DEFAULT_CHAIN_LABEL } from "@/config/constants";
 
 function TokenSearchCollapsible({
   chainId,
@@ -61,19 +62,13 @@ function TokenSearchCollapsible({
   );
 }
 
-const CHAIN_LABELS: Record<number, string> = {
-  [mainnet.id]: "Ethereum · Uniswap V3",
-  [arbitrum.id]: "Arbitrum · Uniswap V3",
-  [linea.id]: "Linea · Izumi Finance",
-};
-
 export default function Home() {
   const [mode, setMode] = useState<"swap" | "conditional" | "fx">("swap");
   const [tokenHint, setTokenHint] = useState<string>("");
   const chainId = useChainId();
   const { isConnected } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
-  const chainLabel = CHAIN_LABELS[chainId] ?? "Ethereum · Uniswap V3";
+  const chainLabel = CHAIN_LABELS[chainId] ?? DEFAULT_CHAIN_LABEL;
   const isWrongChain = isConnected && chainId !== mainnet.id;
 
   const handleTokenSelect = (token: TokenInfo) => {
@@ -147,13 +142,13 @@ export default function Home() {
             </div>
 
             <h1 className="text-stone-100 text-2xl md:text-[2.5rem] font-light tracking-tight leading-tight mb-3 md:mb-4 px-4">
-              Where should your<br />
+              Just say what<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
-                wealth flow?
+                you want to trade.
               </span>
             </h1>
             <p className="text-stone-500 text-xs md:text-[13px] leading-relaxed max-w-md mx-auto px-4">
-              Describe your intent in plain language.<br />
+              Describe your trade in plain language.<br />
               We find the best route and execute it.
             </p>
           </div>
