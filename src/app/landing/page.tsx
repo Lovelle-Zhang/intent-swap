@@ -338,7 +338,6 @@ export default function LandingPage() {
                   "MEV protection",
                   "Smart routing (1,700+ tokens)",
                   "Portfolio view",
-                  "3 conditional orders / month",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3 text-stone-400 text-sm">
                     <span className="text-stone-600 mt-0.5 shrink-0">◎</span>
