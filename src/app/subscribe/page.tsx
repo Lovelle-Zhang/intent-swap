@@ -139,12 +139,17 @@ export default function SubscribePage() {
         <div className="bg-stone-900/40 border border-stone-800/60 rounded-2xl p-5 space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-stone-200 text-base font-medium">Pro</p>
-              <p className="text-stone-600 text-xs mt-0.5">Monthly subscription</p>
+              <p className="text-stone-200 text-base font-medium">
+                Pro <span className="ml-1.5 text-[10px] text-gold-500/70 tracking-widest uppercase">· beta</span>
+              </p>
+              <p className="text-stone-600 text-xs mt-0.5">Optional during beta</p>
             </div>
             <div className="text-right">
-              <p className="text-gold-400 text-2xl font-light">$9.9</p>
-              <p className="text-stone-600 text-xs">/ month</p>
+              <div className="flex items-baseline justify-end gap-2">
+                <p className="text-stone-200 text-2xl font-light">Free</p>
+                <p className="text-stone-600 text-base font-light line-through decoration-stone-700">$9.9</p>
+              </div>
+              <p className="text-stone-600 text-xs">until auto-execute ships</p>
             </div>
           </div>
 

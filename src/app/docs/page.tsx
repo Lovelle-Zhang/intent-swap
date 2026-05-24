@@ -52,7 +52,7 @@ const CONTRACT_INFO = [
 
 const PRICING = [
   { label: "Free",  features: ["Unlimited manual swaps", "1,700+ tokens", "Multi-hop routing", "Gas estimation", "MEV protection"], price: null },
-  { label: "Pro",   features: ["Everything in Free", "Unlimited conditional orders", "Auto-execute on price trigger", "WeChat + browser notifications", "Priority support"], price: "$9.9 / month", highlight: true },
+  { label: "Pro",   features: ["Everything in Free", "Unlimited conditional orders", "Auto-execute on price trigger", "WeChat + browser notifications", "Priority support"], price: "$9.9 / month", originalPrice: "$9.9 / month", beta: true, highlight: true },
 ];
 
 function Divider() {
@@ -170,11 +170,18 @@ export default function DocsPage() {
               >
                 <div>
                   <p className={`text-xs font-medium ${plan.highlight ? "text-gold-400" : "text-stone-400"}`}>
-                    {plan.label}
+                    {plan.label}{("beta" in plan && plan.beta) && <span className="ml-1.5 text-[9px] text-gold-500/70 tracking-widest uppercase">· beta</span>}
                   </p>
-                  <p className={`text-lg font-light mt-1 ${plan.highlight ? "text-gold-300" : "text-stone-500"}`}>
-                    {plan.price ?? "Free"}
-                  </p>
+                  {("beta" in plan && plan.beta) ? (
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <p className="text-lg font-light text-gold-300">Free</p>
+                      <p className="text-stone-600 text-xs font-light line-through decoration-stone-700">{plan.price}</p>
+                    </div>
+                  ) : (
+                    <p className={`text-lg font-light mt-1 ${plan.highlight ? "text-gold-300" : "text-stone-500"}`}>
+                      {plan.price ?? "Free"}
+                    </p>
+                  )}
                 </div>
                 <ul className="space-y-1.5">
                   {plan.features.map((f) => (
@@ -186,10 +193,10 @@ export default function DocsPage() {
                 </ul>
                 {plan.highlight && (
                   <a
-                    href="/subscribe"
+                    href="/"
                     className="block w-full text-center py-2 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-lg text-xs transition-colors mt-2"
                   >
-                    Subscribe →
+                    Use it — free
                   </a>
                 )}
               </div>
