@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 
 // ─── 规则解析（降级兜底） ───────────────────────────────────────────────────
 
@@ -122,34 +121,38 @@ async function llmParse(intent: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("No OPENAI_API_KEY");
 
-  const client = new OpenAI({ apiKey });
-
   // 拉实时价格，注入 prompt
   const prices = await fetchPrices();
   const priceContext = Object.keys(prices).length > 0
     ? `\nCurrent market prices (USD): ${Object.entries(prices).map(([k, v]) => `${k}=$${v.toLocaleString()}`).join(", ")}`
     : "";
 
-  const completion = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT + priceContext },
-      { role: "user", content: intent },
-    ],
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT + priceContext },
+        { role: "user", content: intent },
+      ],
+    }),
   });
+  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+  const completion = await res.json();
 
-  const raw = completion.choices[0]?.message?.content;
+  const raw = completion?.choices?.[0]?.message?.content;
   if (!raw) throw new Error("Empty LLM response");
 
   const parsed = JSON.parse(raw);
-
-  // 基本校验
   if (!parsed.fromToken || !parsed.toToken || !parsed.intentType) {
     throw new Error("Invalid LLM response structure");
   }
-
   return { ...parsed, parsedBy: "llm" };
 }
 

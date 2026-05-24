@@ -16,7 +16,6 @@
     "wagmi": "^2.9.4",
     "viem": "^2.13.0",
     "@tanstack/react-query": "^5.40.0",
-    "openai": "^4.47.1",
     "framer-motion": "^11.2.10"
   },
   "devDependencies": {
