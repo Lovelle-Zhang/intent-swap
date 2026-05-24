@@ -68,7 +68,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(`${MONITOR_URL}/orders?email=${encodeURIComponent(email)}`, {
+    // MONITOR_URL already includes the collection path (e.g. /swap-orders), so don't append /orders
+    const upstream = await fetch(`${MONITOR_URL}?email=${encodeURIComponent(email)}`, {
       method: "GET",
       headers: { "Authorization": `Bearer ${INTERNAL_API_KEY}` },
       cache: "no-store",
@@ -119,7 +120,8 @@ export async function POST(req: NextRequest) {
 
   // 转发到 monitor，附上 bearer key
   try {
-    const upstream = await fetch(`${MONITOR_URL}/orders`, {
+    // MONITOR_URL already includes the collection path (e.g. /swap-orders), so don't append /orders
+    const upstream = await fetch(`${MONITOR_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

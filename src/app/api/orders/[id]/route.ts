@@ -50,8 +50,9 @@ export async function DELETE(
 
   // Monitor verifies ownership (email must match the order's notifyEmail)
   try {
+    // MONITOR_URL already includes the collection path (e.g. /swap-orders), so don't append /orders
     const upstream = await fetch(
-      `${MONITOR_URL}/orders/${encodeURIComponent(id)}?email=${encodeURIComponent(email)}`,
+      `${MONITOR_URL}/${encodeURIComponent(id)}?email=${encodeURIComponent(email)}`,
       {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${INTERNAL_API_KEY}` },
