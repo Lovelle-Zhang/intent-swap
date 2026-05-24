@@ -369,10 +369,15 @@ export default function LandingPage() {
               <div className="absolute top-4 right-4 px-2 py-0.5 bg-gold-500/10 border border-gold-500/20 rounded-full text-gold-400 text-[10px] tracking-widest uppercase">
                 Beta
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-gold-400/80 text-xs tracking-widest uppercase">Conditional orders</p>
-                <p className="text-3xl font-light text-stone-200">Free<span className="text-stone-500 text-base font-light"> during beta</span></p>
-                <p className="text-stone-600 text-xs">Pay-per-trigger model coming when auto-execute is live</p>
+                <div className="flex items-baseline gap-3">
+                  <p className="text-3xl font-light text-stone-200">Free</p>
+                  <p className="text-stone-600 text-lg font-light line-through decoration-stone-700">$9.9/mo</p>
+                </div>
+                <p className="text-stone-500 text-xs leading-relaxed">
+                  Free for everyone during beta. Pricing returns once auto-execute on price trigger ships.
+                </p>
               </div>
               <ul className="space-y-3">
                 {[
