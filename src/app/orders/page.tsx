@@ -48,12 +48,19 @@ export default function OrdersPage() {
     else setLoading(false);
   }, []);
 
+  // 后端返回的字段是 triggered: boolean；页面用 status 来呈现。这里做归一化
+  const normalize = (raw: Array<Partial<ConditionalOrder> & { triggered?: boolean }>): ConditionalOrder[] =>
+    raw.map((o) => ({
+      ...o,
+      status: (o.status as ConditionalOrder["status"]) ?? (o.triggered ? "triggered" : "pending"),
+    }) as ConditionalOrder);
+
   const fetchOrders = async (userEmail: string) => {
     setLoading(true);
     try {
       // /api/orders 是服务端代理：校验订阅 + 附带内部 bearer key
       const res = await fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`);
-      if (res.ok) setOrders((await res.json()).orders ?? []);
+      if (res.ok) setOrders(normalize((await res.json()).orders ?? []));
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
