@@ -86,26 +86,32 @@ export default function PreviewPage() {
     const isConditionalMode = intent.intentType === "conditional";
     const amountForQuote = isConditionalMode && resolvedAmount === null ? 100 : resolvedAmount;
     if (!amountForQuote || intent.fromToken === intent.toToken) return;
-    
+
     setQuoteLoading(true);
     setQuote(null);
     setGasEstimate(null);
-    
-    fetch("/api/swap-quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fromToken: intent.fromToken,
-        toToken: intent.toToken,
-        amount: amountForQuote,
-        slippagePref,
-        walletAddress: address ?? "0x0000000000000000000000000000000000000001",
-        quoteOnly: true,
-        chainId: TARGET_CHAIN_ID,
-      }),
-    })
-      .then((r) => r.json())
-      .then(async (data) => {
+
+    const ac = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch("/api/swap-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromToken: intent.fromToken,
+            toToken: intent.toToken,
+            amount: amountForQuote,
+            slippagePref,
+            walletAddress: address ?? "0x0000000000000000000000000000000000000001",
+            quoteOnly: true,
+            chainId: TARGET_CHAIN_ID,
+          }),
+          signal: ac.signal,
+        });
+        const data = await res.json();
+        if (ac.signal.aborted) return;
+
         if (data.amountOut || data.toAmount) {
           setQuote({
             amountOut: data.amountOut ?? data.toAmount,
@@ -114,25 +120,34 @@ export default function PreviewPage() {
             hops: data.hops,
           });
         }
-        // Gas 估算（简化版：根据链和操作类型估算）
+
         if (address) {
           const isNative = intent.fromToken === "ETH";
           const baseGas = isNative ? 21000 : 65000;
           const currentChain = chainId || TARGET_CHAIN_ID;
           const gasPrice = currentChain === 42161 ? 0.1 : currentChain === 59144 ? 0.05 : 30;
-          // 拉实时 ETH 价格
-          let ethPrice = 3500;
+          let ethPrice: number | null = null;
           try {
-            const pr = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
+            const pr = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", { signal: ac.signal });
             if (pr.ok) { const pd = await pr.json(); if (pd.price) ethPrice = parseFloat(pd.price); }
-          } catch (_) {}
-          const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
-          setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
+          } catch { /* aborted or network */ }
+          if (ac.signal.aborted) return;
+          if (ethPrice !== null) {
+            const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;
+            setGasEstimate(`~$${gasCostUSD.toFixed(2)}`);
+          } else {
+            setGasEstimate("—");
+          }
         }
-      })
-      .catch(() => {})
-      .finally(() => setQuoteLoading(false));
-  }, [intent, slippagePref, resolvedAmount, address, TARGET_CHAIN_ID]);
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return;
+      } finally {
+        if (!ac.signal.aborted) setQuoteLoading(false);
+      }
+    })();
+
+    return () => ac.abort();
+  }, [intent, slippagePref, resolvedAmount, address, chainId, TARGET_CHAIN_ID]);
 
   if (!intent) return null;
 
