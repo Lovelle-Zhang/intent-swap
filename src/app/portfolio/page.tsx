@@ -271,7 +271,7 @@ export default function PortfolioPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <p className="text-stone-600 text-[10px] tracking-widest uppercase">Recent Swaps</p>
-              <Link href="/history" className="text-stone-700 hover:text-stone-500 text-[10px] transition-colors">
+              <Link href="/activity?filter=swaps" className="text-stone-700 hover:text-stone-500 text-[10px] transition-colors">
                 View all →
               </Link>
             </div>

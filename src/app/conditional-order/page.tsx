@@ -271,8 +271,8 @@ export default function ConditionalOrderPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Link href="/orders" className="flex-1 py-2.5 text-center text-stone-400 hover:text-stone-200 border border-stone-800 hover:border-stone-700 rounded-xl text-xs transition-colors">
-                View orders
+              <Link href="/activity?filter=orders" className="flex-1 py-2.5 text-center text-stone-400 hover:text-stone-200 border border-stone-800 hover:border-stone-700 rounded-xl text-xs transition-colors">
+                View activity
               </Link>
               <Link href="/" className="flex-1 py-2.5 text-center bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-xs transition-colors">
                 New swap
