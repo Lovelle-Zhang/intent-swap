@@ -72,13 +72,7 @@ export function useWebPush() {
     }
   }, []);
 
-  const subscribe = useCallback(async (orderId: string): Promise<boolean> => {
-    const ok = await prepare();
-    if (!ok) return false;
-    return bind(orderId);
-  }, [prepare, bind]);
-
-  return { state, prepare, bind, subscribe };
+  return { state, prepare, bind };
 }
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

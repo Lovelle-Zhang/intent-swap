@@ -9,7 +9,7 @@ A natural-language DEX interface. Type what you want — *"Swap 0.1 ETH to USDC"
 ## Features
 
 - **Instant swap** — natural-language Uniswap V3 swaps on Ethereum / Arbitrum / Linea
-- **Conditional orders** — price-triggered swaps, executed automatically via Gelato
+- **Conditional orders** — set a price trigger, get notified by email when it fires (auto-execute via on-chain Vault is in progress)
 - **Multi-chain** — Ethereum mainnet (Uniswap V3), Arbitrum (Uniswap V3), Linea (Izumi)
 - **Non-custodial** — your wallet signs every transaction
 - **1,700+ tokens** — search by symbol or paste a contract address
@@ -17,10 +17,10 @@ A natural-language DEX interface. Type what you want — *"Swap 0.1 ETH to USDC"
 ## Tech Stack
 
 - **Frontend**: Next.js 14 · TypeScript · Tailwind · wagmi · RainbowKit
-- **Intent parsing**: OpenAI GPT-4o-mini
+- **Intent parsing**: OpenAI GPT-4o-mini (via raw HTTP)
 - **DEX**: Uniswap V3 (Ethereum, Arbitrum) · Izumi Finance (Linea)
-- **Automation**: Gelato Relay (conditional orders)
-- **Hosting**: Vercel (frontend) · separate Node service for the order monitor (`monitor/`)
+- **Monitor**: standalone Node service polls prices and emails on trigger (`monitor/`)
+- **Hosting**: Vercel (frontend) · separate host for the monitor service
 
 ## Quick Start
 
@@ -40,14 +40,14 @@ Visit http://localhost:3000.
 |---|---|---|
 | `OPENAI_API_KEY` | Intent parsing | https://platform.openai.com/api-keys |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Wallet connect (RainbowKit) | https://cloud.walletconnect.com |
-| `GELATO_RELAY_API_KEY` | Conditional-order execution | https://app.gelato.network |
+| `MONITOR_URL` + `INTERNAL_API_KEY` | Conditional-order proxy | self-hosted, see DEPLOYMENT.md |
 
 ## Architecture
 
 ```
 User input  →  Intent Parser (LLM)  →  Route + Quote  →  Wallet signs  →  On-chain swap
                                                               ↓
-                                              (conditional orders → Gelato)
+                                                conditional orders → monitor → email
 ```
 
 ## Project Layout

@@ -7,6 +7,8 @@ import { http, fallback } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+type EthereumRequest = (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+
 const config = getDefaultConfig({
   appName: "Intent Swap",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo",
@@ -43,11 +45,10 @@ function MobileChainSyncFix() {
         setTimeout(async () => {
           try {
             // 直接查询当前连接的 provider 的 chainId
-            const provider = await (window as any).ethereum?.request?.({
-              method: "eth_chainId",
-            });
-            if (provider && provider !== lastChainId) {
-              lastChainId = provider;
+            const eth = (window as { ethereum?: { request?: EthereumRequest } }).ethereum;
+            const chainId = await eth?.request?.({ method: "eth_chainId" });
+            if (typeof chainId === "string" && chainId !== lastChainId) {
+              lastChainId = chainId;
               // 触发页面软刷新，让 wagmi 重新同步链状态
               window.dispatchEvent(new Event("focus"));
               queryClient.invalidateQueries();

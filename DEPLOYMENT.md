@@ -24,12 +24,13 @@ Required keys:
 |---|---|---|
 | `OPENAI_API_KEY` | LLM intent parsing | https://platform.openai.com/api-keys |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Wallet connect | https://cloud.walletconnect.com |
-| `GELATO_RELAY_API_KEY` | Conditional-order automation | https://app.gelato.network |
 | `MONITOR_URL` | URL of the monitor service (e.g. `https://api.your-domain.com/swap-orders`) | — |
 | `INTERNAL_API_KEY` | Shared secret between this app and the monitor service | `openssl rand -hex 32` |
 | `SUBSCRIPTION_CHECK_URL` | Endpoint that returns `{active: bool}` for a given email | — |
+| `FREE_TIER` | Optional. Set to `0` to enforce subscription. Any other value disables the paywall during beta. | — |
+| `NEXT_PUBLIC_FREE_TIER` | Same as above, but for the client-side gate in `/conditional-order` | — |
 
-> ⚠️ **Security note**: `GELATO_RELAY_API_KEY`, `MONITOR_URL`, `INTERNAL_API_KEY`, and `SUBSCRIPTION_CHECK_URL` must **not** have a `NEXT_PUBLIC_` prefix — they are used server-side only.
+> ⚠️ **Security note**: `MONITOR_URL`, `INTERNAL_API_KEY`, and `SUBSCRIPTION_CHECK_URL` must **not** have a `NEXT_PUBLIC_` prefix — they are used server-side only.
 >
 > ⚠️ **`INTERNAL_API_KEY` must match the value set on the monitor server.** Anyone with this key can create orders bypassing the subscription check.
 
@@ -158,11 +159,6 @@ Currently deployed addresses are recorded in `src/lib/vault.ts`. Update that fil
 **Build fails**
 - Confirm Node 18+ (`node -v`)
 - Delete `node_modules/` and `.next/`, then `npm install`
-
-**Gelato task creation fails**
-- Verify `GELATO_RELAY_API_KEY` is set (server-side, not `NEXT_PUBLIC_`)
-- Check the wallet has a non-zero balance for the source token
-- Inspect the browser console + Vercel function logs
 
 **Monitor service unreachable**
 - `pm2 status` — is it running?
