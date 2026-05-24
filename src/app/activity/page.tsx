@@ -253,11 +253,17 @@ function ActivityContent() {
               <span className="text-stone-700 text-lg">✦</span>
             </div>
             <p className="text-stone-600 text-sm">
-              {ordersLoading ? "Loading…" : "Nothing here yet"}
+              {ordersLoading
+                ? "Loading…"
+                : !email && filter !== "swaps"
+                ? "Enter your email above to load conditional orders"
+                : "Nothing here yet"}
             </p>
-            <Link href="/" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
-              Set your first trade →
-            </Link>
+            {(email || filter === "swaps") && (
+              <Link href="/" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+                Set your first trade →
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-2.5">
