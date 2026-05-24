@@ -62,7 +62,6 @@ function ExecutePageInner() {
   const [needsApproval, setNeedsApproval] = useState(false);
   const [amountOut, setAmountOut] = useState<string>("");
   const [priceImpact, setPriceImpact] = useState<string>("");
-  const [mevProtect, setMevProtect] = useState(false);
   const recordedRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -218,7 +217,6 @@ function ExecutePageInner() {
         slippagePref: "normal",
       };
       setIntent(parsed);
-      setMevProtect(true);
       setFromLink(true);
       // 不自动执行，等用户连接钱包后手动触发
       return;
@@ -226,9 +224,8 @@ function ExecutePageInner() {
     // fallback：从 sessionStorage 读（正常预览流程）
     const raw = sessionStorage.getItem("intent-preview");
     if (!raw) { router.push("/"); return; }
-    const parsed = JSON.parse(raw) as ParsedIntent & { mevProtect?: boolean };
+    const parsed = JSON.parse(raw) as ParsedIntent;
     setIntent(parsed);
-    setMevProtect(parsed.mevProtect ?? true);
     execute(parsed);
   }, [router, execute, searchParams]);
 
@@ -319,9 +316,6 @@ function ExecutePageInner() {
               >
                 {swapTxHash.slice(0, 10)}…{swapTxHash.slice(-6)} ↗
               </a>
-            )}
-            {mevProtect && chainId === 1 && status === "signing" && (
-              <p className="text-gold-500/50 text-[10px] tracking-wide">⬡ Flashbots · MEV protected</p>
             )}
           </>
         )}

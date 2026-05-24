@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   SWAP_EXAMPLES,
   CONDITIONAL_EXAMPLES,
-  FX_EXAMPLES,
-  FX_PAIRS,
   LOADING_STEPS,
   PLACEHOLDERS,
   MAX_INTENT_LENGTH,
 } from "@/config/constants";
 
 interface IntentInputProps {
-  mode: "swap" | "conditional" | "fx";
+  mode: "swap" | "conditional";
   tokenHint?: string;
   onClearHint?: () => void;
 }
@@ -26,10 +24,8 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
   const [focused, setFocused] = useState(false);
   const router = useRouter();
 
-  const examples = mode === "swap" ? SWAP_EXAMPLES : mode === "fx" ? FX_EXAMPLES : CONDITIONAL_EXAMPLES;
-  const placeholder = mode === "fx"
-    ? PLACEHOLDERS.fx
-    : mode === "swap"
+  const examples = mode === "swap" ? SWAP_EXAMPLES : CONDITIONAL_EXAMPLES;
+  const placeholder = mode === "swap"
     ? (tokenHint ? PLACEHOLDERS.swapWithHint(tokenHint) : PLACEHOLDERS.swap)
     : PLACEHOLDERS.conditional;
 
@@ -138,21 +134,6 @@ export function IntentInput({ mode, tokenHint, onClearHint }: IntentInputProps) 
         ))}
       </div>
 
-      {/* FX 快速选择货币对 */}
-      {mode === "fx" && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="text-stone-700 text-[10px] tracking-widest uppercase w-full mb-1">Quick pairs</span>
-          {FX_PAIRS.map((pair) => (
-            <button
-              key={`${pair.from}-${pair.to}`}
-              onClick={() => setValue(`Exchange 1000 ${pair.from} to ${pair.to}`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/40 border border-stone-800/60 hover:border-gold-500/30 rounded-lg text-xs text-stone-400 hover:text-gold-400/70 transition-all"
-            >
-              <span className="font-mono text-[10px]">{pair.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

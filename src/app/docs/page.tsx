@@ -37,7 +37,6 @@ const SECURITY = [
   { title: "Non-custodial",         desc: "We never hold your assets. All swaps happen directly between your wallet and the smart contract." },
   { title: "On-chain execution",    desc: "Every transaction is executed on Ethereum and is fully transparent on-chain." },
   { title: "Preview before swap",   desc: "Every trade requires explicit confirmation. You stay in full control at all times." },
-  { title: "MEV Protection",        desc: "Transactions routed through Flashbots Protect on Mainnet by default, shielding you from sandwich attacks." },
   { title: "Price impact warning",  desc: "Amber warning above 1% impact, red alert above 5%. Powered by DeFiLlama price feeds." },
 ];
 

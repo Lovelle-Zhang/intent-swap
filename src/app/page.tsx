@@ -63,7 +63,7 @@ function TokenSearchCollapsible({
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<"swap" | "conditional" | "fx">("conditional");
+  const [mode, setMode] = useState<"swap" | "conditional">("conditional");
   const [tokenHint, setTokenHint] = useState<string>("");
   const chainId = useChainId();
   const { isConnected } = useAccount();
@@ -158,8 +158,6 @@ export default function Home() {
             {[
               { key: "conditional", label: "Conditional Order" },
               { key: "swap",        label: "Instant Swap" },
-              // FX Exchange: coming soon, hidden until data source is ready
-              // { key: "fx",          label: "FX Exchange" },
             ].map((tab) => (
               <button
                 key={tab.key}

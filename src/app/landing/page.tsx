@@ -22,12 +22,6 @@ const FEATURES = [
     example: "\"Swap 0.5 ETH to USDC with low slippage\"",
   },
   {
-    icon: "⬡",
-    title: "MEV Protected",
-    desc: "Routed through Flashbots. No sandwich attacks. You get the price you see.",
-    example: "Private mempool · front-running blocked",
-  },
-  {
     icon: "≋",
     title: "Smart Routing",
     desc: "Multi-hop paths across 1,700+ tokens. Best route found automatically.",
