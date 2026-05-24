@@ -112,15 +112,26 @@ export default function SubscribePage() {
     <main className="min-h-screen flex flex-col items-center px-5 py-12">
       <div className="w-full max-w-sm space-y-10">
 
+        {/* Beta banner — no need to pay during beta */}
+        <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl px-4 py-3 space-y-1">
+          <p className="text-emerald-400 text-xs font-medium">✓ Free during beta</p>
+          <p className="text-stone-400 text-[11px] leading-relaxed">
+            Conditional orders are currently free for everyone. No payment needed — just go
+            to <Link href="/" className="underline underline-offset-2 hover:text-stone-200">the app</Link> and set a trigger.
+            Auto-execute is coming; we&apos;ll switch to a per-trigger fee then.
+          </p>
+        </div>
+
         {/* Header */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
-            <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Subscribe</span>
+            <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Subscribe (optional)</span>
           </div>
           <h1 className="text-stone-200 text-2xl font-light">Conditional Orders</h1>
           <p className="text-stone-500 text-sm leading-relaxed">
-            Auto-execute swaps when your price target is hit. Set it and forget it.
+            Support early development with an optional payment. Subscribers will get priority
+            access to auto-execute when it ships.
           </p>
         </div>
 

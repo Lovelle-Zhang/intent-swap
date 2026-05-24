@@ -364,35 +364,38 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* Pro */}
+            {/* Pro — beta period: free, with planned features clearly marked */}
             <div className="relative bg-stone-900/50 border border-gold-500/30 rounded-2xl p-8 space-y-6">
               <div className="absolute top-4 right-4 px-2 py-0.5 bg-gold-500/10 border border-gold-500/20 rounded-full text-gold-400 text-[10px] tracking-widest uppercase">
-                Pro
+                Beta
               </div>
               <div className="space-y-1">
-                <p className="text-gold-400/80 text-xs tracking-widest uppercase">Pro</p>
-                <p className="text-3xl font-light text-stone-200">$9.9<span className="text-stone-500 text-base font-light">/mo</span></p>
-                <p className="text-stone-600 text-xs">Pay with USDT on Ethereum</p>
+                <p className="text-gold-400/80 text-xs tracking-widest uppercase">Conditional orders</p>
+                <p className="text-3xl font-light text-stone-200">Free<span className="text-stone-500 text-base font-light"> during beta</span></p>
+                <p className="text-stone-600 text-xs">Pay-per-trigger model coming when auto-execute is live</p>
               </div>
               <ul className="space-y-3">
                 {[
-                  "Everything in Free",
-                  "Unlimited conditional orders",
-                  "Price-triggered auto-execution",
-                  "On-chain Gelato automation",
-                  "Priority support",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-stone-300 text-sm">
-                    <span className="text-gold-400/60 mt-0.5 shrink-0">◈</span>
-                    {item}
+                  { text: "Unlimited conditional orders", ready: true },
+                  { text: "Price-triggered email + push alerts", ready: true },
+                  { text: "Multi-chain price monitoring", ready: true },
+                  { text: "Auto-execute on trigger (no manual swap)", ready: false },
+                  { text: "On-chain vault (non-custodial automation)", ready: false },
+                ].map((f) => (
+                  <li key={f.text} className="flex items-start gap-3 text-sm">
+                    <span className={`mt-0.5 shrink-0 ${f.ready ? "text-gold-400/60" : "text-stone-600"}`}>{f.ready ? "◈" : "◷"}</span>
+                    <span className={f.ready ? "text-stone-300" : "text-stone-500"}>
+                      {f.text}
+                      {!f.ready && <span className="ml-1.5 text-[10px] text-stone-600 uppercase tracking-wider">soon</span>}
+                    </span>
                   </li>
                 ))}
               </ul>
               <Link
-                href="/subscribe"
+                href="/"
                 className="block w-full text-center px-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/20"
               >
-                Upgrade to Pro
+                Set a trigger — free
               </Link>
             </div>
           </div>

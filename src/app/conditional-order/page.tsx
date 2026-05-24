@@ -8,10 +8,18 @@ import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 
 // ─── 订阅检查 ────────────────────────────────────────────────────────────────
+// FREE BETA: conditional orders are free during beta. The hook below always
+// returns "active". To re-enable the paywall, set NEXT_PUBLIC_FREE_TIER=0
+// and restore the network-based check (see git history pre-2026-05-24).
 function useSubscription() {
   const [status, setStatus] = useState<"loading" | "active" | "inactive">("loading");
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_FREE_TIER !== "0") {
+      setStatus("active");
+      return;
+    }
+
     const localStatus = localStorage.getItem("subscription-status");
     const localExpiry = Number(localStorage.getItem("subscription-expiry") ?? 0);
 
@@ -20,7 +28,6 @@ function useSubscription() {
       return;
     }
 
-    // 本地过期或没有，去后端验证
     const email = localStorage.getItem("user-email");
     if (!email) { setStatus("inactive"); return; }
 
@@ -37,7 +44,6 @@ function useSubscription() {
         }
       })
       .catch(() => {
-        // 网络失败时信任本地缓存（降级）
         setStatus(localStatus === "active" ? "active" : "inactive");
       });
   }, []);

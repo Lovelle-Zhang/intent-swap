@@ -57,9 +57,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing email" }, { status: 400 });
   }
 
-  const active = await verifySubscription(email);
-  if (!active) {
-    return NextResponse.json({ error: "Active subscription required" }, { status: 403 });
+  // FREE BETA: subscription check disabled — set FREE_TIER=0 to re-enable
+  if (process.env.FREE_TIER !== "0") {
+    // pass — anyone can list their own orders during beta
+  } else {
+    const active = await verifySubscription(email);
+    if (!active) {
+      return NextResponse.json({ error: "Active subscription required" }, { status: 403 });
+    }
   }
 
   try {
@@ -101,12 +106,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid order payload" }, { status: 400 });
   }
 
-  const active = await verifySubscription(body.email);
-  if (!active) {
-    return NextResponse.json(
-      { error: "Active subscription required to create conditional orders" },
-      { status: 403 },
-    );
+  // FREE BETA: subscription check disabled — set FREE_TIER=0 to re-enable
+  if (process.env.FREE_TIER === "0") {
+    const active = await verifySubscription(body.email);
+    if (!active) {
+      return NextResponse.json(
+        { error: "Active subscription required to create conditional orders" },
+        { status: 403 },
+      );
+    }
   }
 
   // 转发到 monitor，附上 bearer key

@@ -40,9 +40,12 @@ export async function DELETE(
     return NextResponse.json({ error: "Missing email" }, { status: 400 });
   }
 
-  const active = await verifySubscription(email);
-  if (!active) {
-    return NextResponse.json({ error: "Active subscription required" }, { status: 403 });
+  // FREE BETA: subscription check disabled — set FREE_TIER=0 to re-enable
+  if (process.env.FREE_TIER === "0") {
+    const active = await verifySubscription(email);
+    if (!active) {
+      return NextResponse.json({ error: "Active subscription required" }, { status: 403 });
+    }
   }
 
   // Monitor verifies ownership (email must match the order's notifyEmail)
