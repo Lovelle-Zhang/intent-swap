@@ -2,10 +2,27 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useChainId, useSwitchChain, useWriteContract } from "wagmi";
 
 const USDT_ADDRESS = "0x0f10A63a15c9E0825A67d2858cC8dB0042155D17";
 const USDT_AMOUNT = "9.9";
 const USDT_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const USDT_AMOUNT_RAW = 9_900_000n; // 9.9 USDT (6 decimals)
+
+// USDT's transfer() returns nothing, which is non-standard — declare it as having no outputs
+const USDT_ABI = [
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
 
 type Step = "idle" | "submitting" | "success" | "error";
 
@@ -16,6 +33,12 @@ export default function SubscribePage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [walletError, setWalletError] = useState("");
+
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const { writeContract, data: payTxHash, isPending: isSending, reset: resetWrite } = useWriteContract();
 
   useEffect(() => {
     const saved = localStorage.getItem("user-email");
@@ -23,6 +46,28 @@ export default function SubscribePage() {
     const sub = localStorage.getItem("subscription-status");
     if (sub === "active") setIsSubscribed(true);
   }, []);
+
+  // Auto-fill txHash once the wallet returns it
+  useEffect(() => {
+    if (payTxHash) setTxHash(payTxHash);
+  }, [payTxHash]);
+
+  const sendPayment = () => {
+    setWalletError("");
+    resetWrite();
+    writeContract(
+      {
+        address: USDT_CONTRACT as `0x${string}`,
+        abi: USDT_ABI,
+        functionName: "transfer",
+        args: [USDT_ADDRESS as `0x${string}`, USDT_AMOUNT_RAW],
+        chainId: 1,
+      },
+      {
+        onError: (e) => setWalletError(e.message.split("\n")[0]),
+      },
+    );
+  };
 
   const copyAddress = () => {
     navigator.clipboard.writeText(USDT_ADDRESS);
@@ -198,27 +243,70 @@ export default function SubscribePage() {
           </div>
 
           {/* Quick send + Etherscan */}
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* MetaMask deep link only resolves on mobile — hide on md+ so desktop users don't get a dead button */}
-            <a
-              href={`https://metamask.app.link/send/${USDT_CONTRACT}@1/transfer?address=${USDT_ADDRESS}&uint256=9900000`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
-            >
-              <span>🦊</span> Open in MetaMask
-            </a>
-            <a
-              href={`https://etherscan.io/token/${USDT_CONTRACT}?a=${USDT_ADDRESS}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-stone-700 hover:text-stone-500 text-[11px] transition-colors"
-            >
-              View on Etherscan ↗
-            </a>
-            <span className="hidden md:inline text-stone-700 text-[11px]">
-              On desktop? Just paste this address into your wallet's Send screen.
-            </span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Mobile: MetaMask deep link */}
+              <a
+                href={`https://metamask.app.link/send/${USDT_CONTRACT}@1/transfer?address=${USDT_ADDRESS}&uint256=9900000`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
+              >
+                <span>🦊</span> Open in MetaMask
+              </a>
+
+              {/* Desktop: connect → switch → send via wagmi */}
+              <div className="hidden md:inline-flex">
+                {!isConnected ? (
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <button
+                        type="button"
+                        onClick={openConnectModal}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors"
+                      >
+                        Connect wallet to pay
+                      </button>
+                    )}
+                  </ConnectButton.Custom>
+                ) : chainId !== 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => switchChain({ chainId: 1 })}
+                    disabled={isSwitching}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors disabled:opacity-50"
+                  >
+                    {isSwitching ? "Switching…" : "Switch to Ethereum"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={sendPayment}
+                    disabled={isSending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/60 border border-stone-700/60 hover:border-stone-600 rounded-lg text-stone-400 hover:text-stone-200 text-[11px] transition-colors disabled:opacity-50"
+                  >
+                    {isSending ? "Confirming…" : <>Send {USDT_AMOUNT} USDT</>}
+                  </button>
+                )}
+              </div>
+
+              <a
+                href={`https://etherscan.io/token/${USDT_CONTRACT}?a=${USDT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-stone-700 hover:text-stone-500 text-[11px] transition-colors"
+              >
+                View on Etherscan ↗
+              </a>
+            </div>
+            {walletError && (
+              <p className="text-red-400/70 text-[11px] px-1">{walletError}</p>
+            )}
+            {payTxHash && (
+              <p className="text-emerald-400/70 text-[11px] px-1">
+                ✓ Sent — tx hash filled in below. Click Verify once it confirms.
+              </p>
+            )}
           </div>
         </div>
 
