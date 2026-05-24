@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getHistory, removeRecord, clearHistory, getExplorerUrl, getExplorerName, type SwapRecord } from "@/lib/history";
@@ -61,6 +61,14 @@ function normalizeOrders(raw: Array<Partial<ConditionalOrder> & { triggered?: bo
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function ActivityPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen px-5 py-8 md:py-12"><div className="max-w-xl mx-auto text-stone-600 text-sm">Loading…</div></main>}>
+      <ActivityContent />
+    </Suspense>
+  );
+}
+
+function ActivityContent() {
   const [swaps, setSwaps] = useState<SwapRecord[]>([]);
   const [orders, setOrders] = useState<ConditionalOrder[]>([]);
   const [email, setEmail] = useState("");
