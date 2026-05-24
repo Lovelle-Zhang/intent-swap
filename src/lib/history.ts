@@ -34,6 +34,11 @@ export function clearHistory() {
   localStorage.removeItem(KEY);
 }
 
+export function removeRecord(id: string) {
+  const history = getHistory();
+  localStorage.setItem(KEY, JSON.stringify(history.filter((r) => r.id !== id)));
+}
+
 export function getExplorerUrl(txHash: string, chainId?: number): string {
   if (chainId === 42161) return `https://arbiscan.io/tx/${txHash}`;
   if (chainId === 59144) return `https://lineascan.build/tx/${txHash}`;

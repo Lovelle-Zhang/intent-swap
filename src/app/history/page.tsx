@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getHistory, clearHistory, getExplorerUrl, getExplorerName, type SwapRecord } from "@/lib/history";
+import { getHistory, clearHistory, removeRecord, getExplorerUrl, getExplorerName, type SwapRecord } from "@/lib/history";
 
 function timeAgo(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);
@@ -32,6 +32,11 @@ export default function HistoryPage() {
   const handleClear = () => {
     clearHistory();
     setRecords([]);
+  };
+
+  const handleRemove = (id: string) => {
+    removeRecord(id);
+    setRecords((prev) => prev.filter((r) => r.id !== id));
   };
 
   return (
@@ -91,7 +96,7 @@ export default function HistoryPage() {
               return (
                 <div
                   key={r.id}
-                  className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 space-y-3"
+                  className="group bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 space-y-3 relative"
                 >
                   {/* Top row: tokens + time */}
                   <div className="flex items-center justify-between">
@@ -102,7 +107,17 @@ export default function HistoryPage() {
                       <span className="text-stone-500 text-sm">{toIcon}</span>
                       <span className="text-stone-400 text-sm">{r.toToken}</span>
                     </div>
-                    <span className="text-stone-700 text-xs">{timeAgo(r.timestamp)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-stone-700 text-xs">{timeAgo(r.timestamp)}</span>
+                      <button
+                        onClick={() => handleRemove(r.id)}
+                        aria-label="Remove from history"
+                        title="Remove from history"
+                        className="text-stone-700 hover:text-red-400/70 text-base leading-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   {/* Details */}
