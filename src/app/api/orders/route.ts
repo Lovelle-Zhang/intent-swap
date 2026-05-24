@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CHAIN_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
 
 const MONITOR_URL = process.env.MONITOR_URL ?? process.env.NEXT_PUBLIC_MONITOR_URL ?? "";
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY ?? "";
 const SUBSCRIPTION_CHECK_URL = process.env.SUBSCRIPTION_CHECK_URL ?? "https://api.o-sheepps.com/subscriptions/check";
+
+// Whitelist of tokens we'll route monitor alerts for. Pulled from the
+// mainnet config since trigger prices are USD-denominated and don't depend
+// on chain. WETH is excluded because the UI normalizes to ETH.
+const ALLOWED_TOKENS = new Set(
+  Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter((t) => t !== "WETH"),
+);
+
+// RFC 5322-ish, deliberately lenient.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const MAX_AMOUNT = 1_000_000;
+const MAX_TARGET_PRICE = 10_000_000;
+
+// TODO(auth): when auto-execute ships, require a wallet signature over
+// {email, fromToken, toToken, amount, condition} and bind the order to
+// that wallet address — until then, only email + symbol/value validation.
 
 interface OrderBody {
   email?: string | null;
@@ -14,20 +32,22 @@ interface OrderBody {
     operator: "above" | "below";
     targetPrice: number;
   };
-  // Allow extra fields (summary, raw, wallet, etc.) but they are not validated here
   [key: string]: unknown;
 }
 
 function isValidOrder(body: unknown): body is OrderBody {
   if (!body || typeof body !== "object") return false;
   const o = body as Record<string, unknown>;
-  if (typeof o.fromToken !== "string" || typeof o.toToken !== "string") return false;
-  if (typeof o.amount !== "number" || !isFinite(o.amount) || o.amount <= 0) return false;
+  if (typeof o.fromToken !== "string" || !ALLOWED_TOKENS.has(o.fromToken)) return false;
+  if (typeof o.toToken !== "string" || !ALLOWED_TOKENS.has(o.toToken)) return false;
+  if (o.fromToken === o.toToken) return false;
+  if (typeof o.amount !== "number" || !isFinite(o.amount) || o.amount <= 0 || o.amount > MAX_AMOUNT) return false;
+  if (o.email != null && (typeof o.email !== "string" || !EMAIL_RE.test(o.email) || o.email.length > 254)) return false;
   if (!o.condition || typeof o.condition !== "object") return false;
   const c = o.condition as Record<string, unknown>;
-  if (typeof c.token !== "string") return false;
+  if (typeof c.token !== "string" || !ALLOWED_TOKENS.has(c.token)) return false;
   if (c.operator !== "above" && c.operator !== "below") return false;
-  if (typeof c.targetPrice !== "number" || !isFinite(c.targetPrice) || c.targetPrice <= 0) return false;
+  if (typeof c.targetPrice !== "number" || !isFinite(c.targetPrice) || c.targetPrice <= 0 || c.targetPrice > MAX_TARGET_PRICE) return false;
   return true;
 }
 
