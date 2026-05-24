@@ -195,9 +195,11 @@ export default function ConditionalOrderPage() {
               href="/subscribe"
               className="block w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors text-center"
             >
-              <span className="line-through decoration-stone-950/40 mr-2 opacity-50">$9.9/mo</span>
-              <span>Free during beta →</span>
+              Subscribe for $9.9 / month →
             </Link>
+            <p className="text-center text-emerald-400 text-[11px]">
+              · Free during beta — try without paying
+            </p>
             <Link href="/" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
               ← Back to swap
             </Link>

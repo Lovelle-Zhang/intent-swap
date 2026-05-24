@@ -170,17 +170,16 @@ export default function DocsPage() {
               >
                 <div>
                   <p className={`text-xs font-medium ${plan.highlight ? "text-gold-400" : "text-stone-400"}`}>
-                    {plan.label}{("beta" in plan && plan.beta) && <span className="ml-1.5 text-[9px] text-gold-500/70 tracking-widest uppercase">· beta</span>}
+                    {plan.label}
                   </p>
-                  {("beta" in plan && plan.beta) ? (
-                    <div className="mt-1 flex items-baseline gap-2">
-                      <p className="text-lg font-light text-gold-300">Free</p>
-                      <p className="text-stone-600 text-xs font-light line-through decoration-stone-700">{plan.price}</p>
+                  <p className={`text-lg font-light mt-1 ${plan.highlight ? "text-gold-300" : "text-stone-500"}`}>
+                    {plan.price ?? "Free"}
+                  </p>
+                  {("beta" in plan && plan.beta) && (
+                    <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 bg-emerald-950/40 border border-emerald-800/40 rounded-full">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                      <span className="text-emerald-400 text-[9px] font-medium tracking-wide">Free during beta</span>
                     </div>
-                  ) : (
-                    <p className={`text-lg font-light mt-1 ${plan.highlight ? "text-gold-300" : "text-stone-500"}`}>
-                      {plan.price ?? "Free"}
-                    </p>
                   )}
                 </div>
                 <ul className="space-y-1.5">

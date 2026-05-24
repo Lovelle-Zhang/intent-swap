@@ -370,13 +370,14 @@ export default function LandingPage() {
                 Beta
               </div>
               <div className="space-y-2">
-                <p className="text-gold-400/80 text-xs tracking-widest uppercase">Conditional orders</p>
-                <div className="flex items-baseline gap-3">
-                  <p className="text-3xl font-light text-stone-200">Free</p>
-                  <p className="text-stone-600 text-lg font-light line-through decoration-stone-700">$9.9/mo</p>
+                <p className="text-gold-400/80 text-xs tracking-widest uppercase">Pro · Conditional orders</p>
+                <p className="text-3xl font-light text-stone-200">$9.9<span className="text-stone-500 text-base font-light">/mo</span></p>
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-emerald-950/40 border border-emerald-800/40 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-400 text-[11px] font-medium tracking-wide">Free during beta · $0 today</span>
                 </div>
                 <p className="text-stone-500 text-xs leading-relaxed">
-                  Free for everyone during beta. Pricing returns once auto-execute on price trigger ships.
+                  Beta pricing applies until auto-execute on price trigger ships.
                 </p>
               </div>
               <ul className="space-y-3">

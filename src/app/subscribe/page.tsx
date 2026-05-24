@@ -139,18 +139,17 @@ export default function SubscribePage() {
         <div className="bg-stone-900/40 border border-stone-800/60 rounded-2xl p-5 space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-stone-200 text-base font-medium">
-                Pro <span className="ml-1.5 text-[10px] text-gold-500/70 tracking-widest uppercase">· beta</span>
-              </p>
-              <p className="text-stone-600 text-xs mt-0.5">Optional during beta</p>
+              <p className="text-stone-200 text-base font-medium">Pro</p>
+              <p className="text-stone-600 text-xs mt-0.5">Monthly subscription</p>
             </div>
             <div className="text-right">
-              <div className="flex items-baseline justify-end gap-2">
-                <p className="text-stone-200 text-2xl font-light">Free</p>
-                <p className="text-stone-600 text-base font-light line-through decoration-stone-700">$9.9</p>
-              </div>
-              <p className="text-stone-600 text-xs">until auto-execute ships</p>
+              <p className="text-gold-400 text-2xl font-light">$9.9</p>
+              <p className="text-stone-600 text-xs">/ month</p>
             </div>
+          </div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-emerald-950/40 border border-emerald-800/40 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-400 text-[11px] font-medium tracking-wide">Currently free · $0 during beta</span>
           </div>
 
           <div className="border-t border-stone-800/50 pt-4 space-y-2.5">
