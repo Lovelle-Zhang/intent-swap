@@ -1,10 +1,7 @@
 "use client";
 
 import type { ParsedIntent } from "@/app/preview/page";
-
-const TOKEN_ICONS: Record<string, string> = {
-  ETH: "Ξ", USDC: "$", DAI: "◈", WBTC: "₿", USDT: "₮", ARB: "⬡",
-};
+import { TOKEN_ICONS } from "@/config/tokens";
 
 interface Props {
   intent: ParsedIntent & { parsedBy?: "llm" | "rules" };

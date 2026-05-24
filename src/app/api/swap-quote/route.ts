@@ -1,65 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http, fallback, encodeFunctionData, encodePacked, parseUnits, formatUnits } from "viem";
 import { arbitrum, linea, mainnet } from "viem/chains";
+import { CHAIN_TOKENS, DECIMALS, HOP_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
 
-// ─── 链配置 ────────────────────────────────────────────────────────────────
-
-const CHAIN_CONFIG: Record<number, {
-  quoter: `0x${string}`;
-  router: `0x${string}`;
-  tokens: Record<string, `0x${string}`>;
-  rpcUrls: string[];
-}> = {
-  1: {
-    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-    tokens: {
-      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-      USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-      WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-    },
-    rpcUrls: ["https://rpc.ankr.com/eth", "https://ethereum.publicnode.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"],
-  },
-  42161: {
-    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-    tokens: {
-      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-      USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-      USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-      DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-      WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-      ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
-    },
-    rpcUrls: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com", "https://arbitrum.llamarpc.com"],
-  },
-  59144: {
-    quoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-    router: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-    tokens: {
-      ETH:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
-      USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
-      USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
-      DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
-      WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
-    },
-    rpcUrls: ["https://rpc.linea.build", "https://linea.drpc.org"],
-  },
+// Server-only: RPC providers used by the quote / route-search loop.
+const RPC_URLS: Record<number, string[]> = {
+  1: ["https://rpc.ankr.com/eth", "https://ethereum.publicnode.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"],
+  42161: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com", "https://arbitrum.llamarpc.com"],
+  59144: ["https://rpc.linea.build", "https://linea.drpc.org"],
 };
 
-const DEFAULT_CHAIN_ID = 1;
-const DECIMALS: Record<string, number> = { ETH: 18, WETH: 18, USDC: 6, USDT: 6, DAI: 18, WBTC: 8, ARB: 18 };
-const HOP_TOKENS = ["WETH", "USDC", "USDT", "DAI"];
 const FEE_TIERS = [500, 3000, 10000];
 
 function getChainConfig(chainId?: number) {
   const id = chainId ?? DEFAULT_CHAIN_ID;
-  return { id, ...(CHAIN_CONFIG[id] ?? CHAIN_CONFIG[DEFAULT_CHAIN_ID]) };
+  const cfg = CHAIN_TOKENS[id] ?? CHAIN_TOKENS[DEFAULT_CHAIN_ID];
+  const rpcUrls = RPC_URLS[id] ?? RPC_URLS[DEFAULT_CHAIN_ID];
+  return { id, ...cfg, rpcUrls };
 }
 function getViemChain(chainId: number) {
   if (chainId === 42161) return arbitrum;
@@ -72,7 +29,7 @@ function resolveToken(symbol: string, tokens: Record<string, `0x${string}`>): `0
 
 async function getPriceQuote(fromToken: string, toToken: string, amount: number, chainId: number): Promise<string | null> {
   try {
-    const chainTokens = CHAIN_CONFIG[chainId]?.tokens ?? CHAIN_CONFIG[1].tokens;
+    const chainTokens = (CHAIN_TOKENS[chainId] ?? CHAIN_TOKENS[DEFAULT_CHAIN_ID]).tokens;
     const fromAddr = fromToken === "ETH" ? chainTokens["WETH"] : chainTokens[fromToken];
     const toAddr = toToken === "ETH" ? chainTokens["WETH"] : chainTokens[toToken];
     if (!fromAddr || !toAddr) return null;

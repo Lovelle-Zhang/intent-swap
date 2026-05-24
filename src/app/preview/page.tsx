@@ -6,31 +6,7 @@ import { useAccount, useBalance, useChainId, useSwitchChain } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-
-const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
-  1: {
-    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-    WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  },
-  42161: {
-    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-    DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-    ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
-    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  },
-  59144: {
-    USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
-    USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
-    DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
-    WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
-    WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
-  },
-};
+import { resolveTokenAddress } from "@/config/tokens";
 
 export interface ParsedIntent {
   raw: string;
@@ -67,7 +43,7 @@ export default function PreviewPage() {
   // 余额查询：只在正确链上查
   const isNativeETH = intent?.fromToken === "ETH";
   const tokenAddress = intent && !isNativeETH
-    ? (TOKEN_ADDRESSES[TARGET_CHAIN_ID]?.[intent.fromToken] ?? undefined)
+    ? resolveTokenAddress(intent.fromToken, TARGET_CHAIN_ID)
     : undefined;
 
   const { data: balance } = useBalance({

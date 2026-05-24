@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
+import { CHAIN_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
 
 // ─── 订阅检查 ────────────────────────────────────────────────────────────────
 // FREE BETA: conditional orders are free during beta. The hook below always
@@ -51,14 +52,9 @@ function useSubscription() {
   return status;
 }
 
-// Token list for condition selector
-const TOKEN_ADDRESSES: Record<string, { address: string; decimals: number }> = {
-  ETH:  { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", decimals: 18 },
-  USDC: { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
-  USDT: { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", decimals: 6 },
-  WBTC: { address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", decimals: 8 },
-  DAI:  { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", decimals: 18 },
-};
+// Selector list: pull symbols from the canonical mainnet token map.
+// Exclude WETH (UI prefers "ETH" for the same trigger token).
+const CONDITION_TOKENS = Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter(t => t !== "WETH");
 
 type Step = "form" | "submitting" | "done" | "error";
 
@@ -314,7 +310,7 @@ export default function ConditionalOrderPage() {
                   onChange={(e) => setCondToken(e.target.value)}
                   className="flex-1 bg-stone-900/80 border border-stone-700/60 rounded-lg px-3 py-2.5 text-stone-200 text-xs focus:outline-none focus:border-stone-500 transition-colors"
                 >
-                  {Object.keys(TOKEN_ADDRESSES).filter(t => t !== "WETH").map((t) => (
+                  {CONDITION_TOKENS.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>

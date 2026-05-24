@@ -16,6 +16,7 @@ import {
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
 import { friendlyError } from "@/lib/errors";
+import { getChainTokens, resolveTokenAddress, getTokenDecimals } from "@/config/tokens";
 
 type Status =
   | "idle"
@@ -27,37 +28,6 @@ type Status =
   | "confirming"
   | "success"
   | "error";
-
-const TOKEN_ADDRESSES: Record<number, Record<string, `0x${string}`>> = {
-  1: { // Ethereum Mainnet
-    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    DAI:  "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-    WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  },
-  42161: { // Arbitrum
-    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-    DAI:  "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    WBTC: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-    ARB:  "0x912CE59144191C1204E64559FE8253a0e49E6548",
-    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  },
-  59144: { // Linea
-    USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
-    USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
-    DAI:  "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5",
-    WBTC: "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b2",
-    WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
-  },
-};
-
-const TOKEN_DECIMALS: Record<string, number> = {
-  USDC: 6, USDT: 6, DAI: 18, WBTC: 8, ARB: 18, WETH: 18, ETH: 18,
-};
-
-const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564" as const;
 
 const ERC20_ABI = [
   {
@@ -98,7 +68,7 @@ function ExecutePageInner() {
   const searchParams = useSearchParams();
   const { address } = useAccount();
   const chainId = useChainId();
-  const chainTokens = TOKEN_ADDRESSES[chainId] ?? TOKEN_ADDRESSES[1];
+  const swapRouter = getChainTokens(chainId).router;
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
@@ -107,13 +77,12 @@ function ExecutePageInner() {
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
 
   // 读取 allowance
-  const SWAP_ROUTER_ADDR = "0xE592427A0AEce92De3Edee1F18E0157C05861564" as const;
-  const tokenAddress = intent ? chainTokens[intent.fromToken] : undefined;
+  const tokenAddress = intent ? resolveTokenAddress(intent.fromToken, chainId) : undefined;
   const { data: allowance } = useReadContract({
     address: tokenAddress,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: address && tokenAddress ? [address, SWAP_ROUTER_ADDR] : undefined,
+    args: address && tokenAddress ? [address, swapRouter] : undefined,
     query: { enabled: !!address && !!tokenAddress },
   });
 
@@ -204,7 +173,7 @@ function ExecutePageInner() {
     if (!isNativeETH && tokenAddress) {
       // 检查 allowance
       setStatus("checking");
-      const decimals = TOKEN_DECIMALS[parsed.fromToken] ?? 18;
+      const decimals = getTokenDecimals(parsed.fromToken);
       const amountNeeded = parseUnits(String(parsed.amount ?? 0.01), decimals);
       const currentAllowance: bigint = allowance ? (allowance as bigint) : BigInt(0);
 
@@ -216,7 +185,7 @@ function ExecutePageInner() {
             address: tokenAddress,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [SWAP_ROUTER, amountNeeded * BigInt(10)], // approve 10x 避免频繁授权
+            args: [swapRouter, amountNeeded * BigInt(10)], // approve 10x 避免频繁授权
           },
           {
             onError: (err) => {

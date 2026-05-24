@@ -6,6 +6,7 @@ import { useAccount, useChainId, usePublicClient } from "wagmi";
 import { formatUnits } from "viem";
 import type { Hex } from "viem";
 import { getHistory, type SwapRecord } from "@/lib/history";
+import { TOKEN_ICONS } from "@/config/tokens";
 
 // Token config
 interface TokenConfig {
@@ -51,10 +52,6 @@ function fmtUSD(n: number): string {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
   return `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
-
-const TOKEN_ICONS: Record<string, string> = {
-  ETH: "Ξ", USDC: "$", DAI: "◈", WBTC: "₿", USDT: "₮", ARB: "⬡", WETH: "Ξ",
-};
 
 function timeAgo(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getHistory, removeRecord, clearHistory, getExplorerUrl, getExplorerName, type SwapRecord } from "@/lib/history";
 import { getArchivedIds, archive, unarchive } from "@/lib/archivedOrders";
+import { TOKEN_ICONS, CHAIN_NAMES } from "@/config/tokens";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -29,12 +30,6 @@ type ActivityItem =
 type Filter = "all" | "swaps" | "orders";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-
-const TOKEN_ICONS: Record<string, string> = {
-  ETH: "Ξ", USDC: "$", DAI: "◈", WBTC: "₿", USDT: "₮", ARB: "⬡", WETH: "Ξ",
-};
-
-const CHAIN_NAMES: Record<number, string> = { 1: "Ethereum", 42161: "Arbitrum", 59144: "Linea" };
 
 const STATUS_STYLES: Record<string, string> = {
   pending:   "text-gold-400/70 border-gold-800/40",
