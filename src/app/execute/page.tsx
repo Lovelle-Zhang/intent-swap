@@ -78,7 +78,7 @@ function ExecutePageInner() {
 
   // 读取 allowance
   const tokenAddress = intent ? resolveTokenAddress(intent.fromToken, chainId) : undefined;
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenAddress,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -86,9 +86,10 @@ function ExecutePageInner() {
     query: { enabled: !!address && !!tokenAddress },
   });
 
-  // approve 确认后继续 swap
+  // approve 确认后继续 swap，并刷新 allowance 缓存以免下次重入时用旧值
   useEffect(() => {
     if (approveSuccess && intent) {
+      refetchAllowance();
       setStatus("quoting");
       doSwap(intent);
     }
