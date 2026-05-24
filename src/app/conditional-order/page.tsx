@@ -7,6 +7,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 import { CHAIN_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
+import { fetchEthPrice } from "@/lib/prices";
 
 // ─── 订阅检查 ────────────────────────────────────────────────────────────────
 // FREE BETA: conditional orders are free during beta. The hook below always
@@ -94,22 +95,7 @@ export default function ConditionalOrderPage() {
     const savedEmail = localStorage.getItem("user-email") ?? "";
     setEmail(savedEmail);
 
-    // 拉当前价格 — 优先 Binance（无需 key，无速率限制），降级 CoinGecko
-    const fetchPrice = async () => {
-      try {
-        const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
-        if (r.ok) {
-          const d = await r.json();
-          if (d.price) { setCurrentPrice(parseFloat(d.price)); return; }
-        }
-      } catch (_) {}
-      try {
-        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-        const d = await r.json();
-        if (d.ethereum?.usd) setCurrentPrice(d.ethereum.usd);
-      } catch (_) {}
-    };
-    fetchPrice();
+    fetchEthPrice().then((v) => { if (v !== null) setCurrentPrice(v); });
   }, [router]);
 
   const handleSubmit = async () => {

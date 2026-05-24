@@ -7,6 +7,7 @@ import { mainnet } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { resolveTokenAddress } from "@/config/tokens";
+import { fetchEthPrice } from "@/lib/prices";
 
 export interface ParsedIntent {
   raw: string;
@@ -126,11 +127,7 @@ export default function PreviewPage() {
           const baseGas = isNative ? 21000 : 65000;
           const currentChain = chainId || TARGET_CHAIN_ID;
           const gasPrice = currentChain === 42161 ? 0.1 : currentChain === 59144 ? 0.05 : 30;
-          let ethPrice: number | null = null;
-          try {
-            const pr = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", { signal: ac.signal });
-            if (pr.ok) { const pd = await pr.json(); if (pd.price) ethPrice = parseFloat(pd.price); }
-          } catch { /* aborted or network */ }
+          const ethPrice = await fetchEthPrice(ac.signal);
           if (ac.signal.aborted) return;
           if (ethPrice !== null) {
             const gasCostUSD = (baseGas * gasPrice * ethPrice) / 1e9;

@@ -1,31 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchEthPrice } from "@/lib/prices";
 
 export function EthPriceTicker() {
   const [price, setPrice] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPrice = async () => {
-      try {
-        const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT");
-        if (r.ok) {
-          const d = await r.json();
-          if (d.price) {
-            setPrice(parseFloat(d.price).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-            return;
-          }
-        }
-      } catch (_) {}
-      try {
-        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
-        const d = await r.json();
-        if (d.ethereum?.usd) setPrice(d.ethereum.usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-      } catch (_) {}
+    let cancelled = false;
+    const refresh = async () => {
+      const v = await fetchEthPrice();
+      if (!cancelled && v !== null) {
+        setPrice(v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      }
     };
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 60_000); // 每分钟刷新
-    return () => clearInterval(interval);
+    refresh();
+    const interval = setInterval(refresh, 60_000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   return (
