@@ -12,7 +12,6 @@ import {
   useReadContract,
   useWriteContract,
   useChainId,
-  useWalletClient,
 } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
@@ -103,7 +102,6 @@ function ExecutePageInner() {
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
-  const { data: walletClient } = useWalletClient();
 
   const { isSuccess: swapSuccess, isError: swapError } = useWaitForTransactionReceipt({ hash: swapTxHash });
   const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveTxHash });
@@ -127,29 +125,6 @@ function ExecutePageInner() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [approveSuccess]);
-
-  // 超时兜底：tx hash 拿到后 30s 还没收到回执，直接标记成功
-  useEffect(() => {
-    if (!swapTxHash || status === "success" || status === "error") return;
-    const timer = setTimeout(() => {
-      if (!recordedRef.current && intent) {
-        recordedRef.current = true;
-        setStatus("success");
-        addRecord({
-          timestamp: Date.now(),
-          fromToken: intent.fromToken,
-          toToken: intent.toToken,
-          amount: intent.amount ?? 0,
-          amountOut,
-          txHash: swapTxHash,
-          chainId,
-          priceImpact: priceImpact || undefined,
-          summary: intent.summary,
-        });
-      }
-    }, 30000);
-    return () => clearTimeout(timer);
-  }, [swapTxHash, status, intent, amountOut]);
 
   useEffect(() => {
     if (swapSuccess && intent && swapTxHash && !recordedRef.current) {
@@ -198,25 +173,9 @@ function ExecutePageInner() {
 
       setStatus("signing");
 
-      // MEV 保护：通过 Flashbots Protect 提交（仅 Mainnet）
-      if (mevProtect && chainId === 1 && walletClient) {
-        try {
-          // 用钱包签名交易
-          const txHash = await walletClient.sendTransaction({
-            to: data.tx.to as `0x${string}`,
-            data: data.tx.data as `0x${string}`,
-            value: BigInt(data.tx.value ?? 0),
-          });
-          // sendTransaction 会触发 swapTxHash 更新
-          sendTransaction(
-            { to: data.tx.to, data: data.tx.data, value: BigInt(data.tx.value ?? 0) },
-            { onError: (err) => { setStatus("error"); setErrorMsg(friendlyError(err)); } }
-          );
-          return;
-        } catch {
-          // Flashbots 失败降级到普通提交
-        }
-      }
+      // TODO(mev): real Flashbots Protect requires a custom transport pointing
+      // at rpc.flashbots.net — until then this toggle has no effect, so we route
+      // every swap through wagmi's sendTransaction below.
 
       sendTransaction(
         {
@@ -235,7 +194,7 @@ function ExecutePageInner() {
       setStatus("error");
       setErrorMsg(friendlyError(err));
     }
-  }, [address, sendTransaction, chainId, mevProtect, walletClient]);
+  }, [address, sendTransaction, chainId]);
 
   const execute = useCallback(async (parsed: ParsedIntent) => {
     if (!address) { setStatus("error"); setErrorMsg("Wallet not connected."); return; }
@@ -380,6 +339,16 @@ function ExecutePageInner() {
 
             {(status === "signing" || status === "approving") && (
               <p className="text-stone-700 text-xs">Check your wallet</p>
+            )}
+            {status === "confirming" && swapTxHash && (
+              <a
+                href={`${chainId === 59144 ? "https://lineascan.build" : chainId === 1 ? "https://etherscan.io" : "https://arbiscan.io"}/tx/${swapTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-stone-600 hover:text-stone-400 text-xs font-mono transition-colors"
+              >
+                {swapTxHash.slice(0, 10)}…{swapTxHash.slice(-6)} ↗
+              </a>
             )}
             {mevProtect && chainId === 1 && status === "signing" && (
               <p className="text-gold-500/50 text-[10px] tracking-wide">⬡ Flashbots · MEV protected</p>
