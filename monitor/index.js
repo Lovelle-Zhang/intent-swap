@@ -1,5 +1,13 @@
-// 自动加载 .env（如果存在）— 让运维只需维护一个文件
-try { require("dotenv").config(); } catch { /* dotenv 没装就跳过，回退到外部 env */ }
+// 自动加载 .env（按优先级查找：脚本所在目录 → 进程 cwd）
+const _path = require("path");
+const _fs = require("fs");
+try {
+  const dotenv = require("dotenv");
+  for (const dir of [__dirname, process.cwd()]) {
+    const p = _path.join(dir, ".env");
+    if (_fs.existsSync(p)) { dotenv.config({ path: p }); break; }
+  }
+} catch { /* dotenv 没装就跳过，回退到外部 env */ }
 
 const cron = require("node-cron");
 const low = require("lowdb");
@@ -24,13 +32,20 @@ const SMTP_PASS = process.env.SMTP_PASS ?? "";
 const KEEPER_PRIVATE_KEY = process.env.KEEPER_PRIVATE_KEY ?? "";
 const ARB_RPC = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc";
 
-const VAULT_ARTIFACT_PATH = path.join(__dirname, "..", "contracts", "artifacts", "ConditionalSwapVault.json");
+// Vault ABI 优先用 monitor/vault-abi.json（自包含），降级到 ../contracts/artifacts
 let VAULT_ABI = null;
-try {
-  VAULT_ABI = JSON.parse(fs.readFileSync(VAULT_ARTIFACT_PATH, "utf8")).abi;
-} catch (e) {
-  console.warn(`[WARN] Could not load vault artifact from ${VAULT_ARTIFACT_PATH}: ${e.message}`);
+for (const candidate of [
+  path.join(__dirname, "vault-abi.json"),
+  path.join(__dirname, "..", "contracts", "artifacts", "ConditionalSwapVault.json"),
+]) {
+  try {
+    const json = JSON.parse(fs.readFileSync(candidate, "utf8"));
+    VAULT_ABI = json.abi ?? json; // abi 文件可能是 artifact 整体或仅 abi 数组
+    console.log(`[EXEC] Vault ABI loaded from ${candidate}`);
+    break;
+  } catch { /* try next */ }
 }
+if (!VAULT_ABI) console.warn(`[WARN] No vault ABI found — on-chain execution disabled.`);
 
 // chainId → known deployed vault
 const VAULT_ADDRESSES = {
