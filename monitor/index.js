@@ -1,3 +1,6 @@
+// 自动加载 .env（如果存在）— 让运维只需维护一个文件
+try { require("dotenv").config(); } catch { /* dotenv 没装就跳过，回退到外部 env */ }
+
 const cron = require("node-cron");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
