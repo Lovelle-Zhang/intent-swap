@@ -662,12 +662,17 @@ export default function ConditionalOrderPage() {
                           </div>
                           {needsApproval ? (
                             <button type="button" onClick={doApprove} disabled={isApprovePending || (!!approveTxHash && !approveConfirmed)} className="w-full py-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors disabled:opacity-50">
-                              {isApprovePending ? "Confirm in wallet…" : approveTxHash && !approveConfirmed ? "Approving…" : `Approve ${intent.fromToken}`}
+                              {isApprovePending ? "→ Open your wallet to approve" : approveTxHash && !approveConfirmed ? "Approving…" : `Approve ${intent.fromToken}`}
                             </button>
                           ) : (
                             <button type="button" onClick={doDeposit} disabled={isDepositPending || (!!depositTxHash && !depositConfirmed)} className="w-full py-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors disabled:opacity-50">
-                              {isDepositPending ? "Confirm in wallet…" : depositTxHash && !depositConfirmed ? "Depositing…" : `Deposit ${fmtBalance(depositShortfall, intent.fromToken)} ${intent.fromToken}`}
+                              {isDepositPending ? "→ Open your wallet to confirm" : depositTxHash && !depositConfirmed ? "Depositing…" : `Deposit ${fmtBalance(depositShortfall, intent.fromToken)} ${intent.fromToken}`}
                             </button>
+                          )}
+                          {(isApprovePending || isDepositPending) && (
+                            <p className="text-amber-400/70 text-[10px] text-center">
+                              Wallet popup hidden? Click your MetaMask / OKX extension icon in the browser toolbar.
+                            </p>
                           )}
                           <p className="text-stone-700 text-[10px] leading-relaxed">
                             Tokens stay in the Vault under your address. You can <code className="text-stone-500">withdraw</code> at any time or cancel the order before it triggers.
