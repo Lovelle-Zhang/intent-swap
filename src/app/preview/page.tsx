@@ -36,9 +36,10 @@ export default function PreviewPage() {
   const chainId = useChainId();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
 
-  // 目标链：固定 Ethereum Mainnet
-  const TARGET_CHAIN_ID = mainnet.id; // 1
-  const isWrongChain = isConnected && chainId !== TARGET_CHAIN_ID;
+  // 支持的链。用户在哪条就操作哪条；未连钱包时落回 Ethereum 用作显示。
+  const SUPPORTED_CHAINS = [mainnet.id, 42161, 59144];
+  const TARGET_CHAIN_ID = isConnected && SUPPORTED_CHAINS.includes(chainId) ? chainId : mainnet.id;
+  const isWrongChain = isConnected && !SUPPORTED_CHAINS.includes(chainId);
 
   // 余额查询：只在正确链上查
   const isNativeETH = intent?.fromToken === "ETH";
@@ -50,7 +51,7 @@ export default function PreviewPage() {
     address: address,
     chainId: TARGET_CHAIN_ID,
     ...(tokenAddress ? { token: tokenAddress } : {}),
-    query: { enabled: !!address && !!intent },
+    query: { enabled: !!address && !!intent && !isWrongChain },
   });
 
   // 计算实际 swap 数量
@@ -278,14 +279,14 @@ export default function PreviewPage() {
         {isWrongChain && (
           <div className="flex items-center justify-between bg-amber-950/30 border border-amber-800/40 rounded-xl px-4 py-3">
             <p className="text-amber-400/80 text-xs">
-              Switch to Ethereum Mainnet to swap
+              Unsupported network — switch to Ethereum, Arbitrum, or Linea.
             </p>
             <button
-              onClick={() => switchChain({ chainId: TARGET_CHAIN_ID })}
+              onClick={() => switchChain({ chainId: mainnet.id })}
               disabled={isSwitching}
               className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors ml-4 shrink-0"
             >
-              {isSwitching ? "Switching..." : "Switch →"}
+              {isSwitching ? "Switching..." : "Use Ethereum →"}
             </button>
           </div>
         )}

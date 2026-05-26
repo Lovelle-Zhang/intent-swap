@@ -69,7 +69,9 @@ export default function Home() {
   const { isConnected } = useAccount();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const chainLabel = CHAIN_LABELS[chainId] ?? DEFAULT_CHAIN_LABEL;
-  const isWrongChain = isConnected && chainId !== mainnet.id;
+  // We support Ethereum, Arbitrum, Linea. Only warn if user is on something unsupported.
+  const SUPPORTED_CHAINS = [1, 42161, 59144];
+  const isWrongChain = isConnected && !SUPPORTED_CHAINS.includes(chainId);
 
   const handleTokenSelect = (token: TokenInfo) => {
     setTokenHint(`${token.symbol} (${token.address.slice(0, 6)}…${token.address.slice(-4)})`);
@@ -114,15 +116,14 @@ export default function Home() {
         <div className="relative z-40 mx-4 md:mx-8 mt-0 mb-2">
           <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/40 rounded-xl px-4 py-2.5">
             <p className="text-amber-400/80 text-xs">
-              This app runs on Ethereum Mainnet.
-              <span className="text-amber-600/70 ml-1 hidden md:inline">Switch in your wallet if the button below doesn't work.</span>
+              This network isn&apos;t supported. Switch to Ethereum, Arbitrum, or Linea.
             </p>
             <button
               onClick={() => switchChain({ chainId: mainnet.id })}
               disabled={isSwitching}
               className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors ml-4 shrink-0"
             >
-              {isSwitching ? "Switching..." : "Switch →"}
+              {isSwitching ? "Switching..." : "Use Ethereum →"}
             </button>
           </div>
         </div>
