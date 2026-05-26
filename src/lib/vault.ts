@@ -8,8 +8,8 @@ import { encodePacked, keccak256, encodeAbiParameters, parseAbiParameters, type 
 // 已部署合约地址（部署后填入）
 export const VAULT_ADDRESSES: Record<number, Hex> = {
   1:     "0x52a8fe40324621d310ede9bfd20396b82dfec0ee", // Ethereum Mainnet
-  42161: "0x0000000000000000000000000000000000000000", // TODO: deploy to arbitrum
-  59144: "0x0000000000000000000000000000000000000000", // TODO: deploy to linea
+  42161: "0x3e89119234c0635e861cce71efa274f1defd6818", // Arbitrum
+  59144: "0x0000000000000000000000000000000000000000", // TODO: deploy to linea (needs Izumi adapter)
 };
 
 export const VAULT_ABI = [
