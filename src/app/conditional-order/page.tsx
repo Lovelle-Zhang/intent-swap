@@ -245,21 +245,17 @@ export default function ConditionalOrderPage() {
         if (balanceBig < amountInRaw) throw new Error("Deposit more tokens to the vault first");
         if (vaultNonce == null) throw new Error("Could not read vault nonce");
 
-        // amountOutMinimum: based on target price, with 5% slippage tolerance
+        // amountOutMinimum: rate-anchored to target price with 5% slippage tolerance.
+        // The user is saying "only execute at target price or better"; the contract
+        // enforces this by reverting if Uniswap returns less than the minimum.
         const targetPrice = Number(condPrice);
-        const fromDecimals = getTokenDecimals(intent.fromToken);
         const toDecimals = getTokenDecimals(intent.toToken);
-        // Rough USD-anchored estimate: amount * (1 unit fromToken in USD) / (1 unit toToken in USD)
-        // For MVP we only support the common case where the condition token is one of the swap tokens
-        // and is denominated in USD. If condition.token == toToken: targetPrice is "what 1 toToken costs in fromToken units"
-        // If condition.token == fromToken: invert.
         let expectedOut: number;
         if (condToken === intent.toToken) {
           expectedOut = (intent.amount as number) / targetPrice;
         } else if (condToken === intent.fromToken) {
           expectedOut = (intent.amount as number) * targetPrice;
         } else {
-          // Cross-pair (e.g. WBTC condition for ETH→USDC swap) — refuse to auto-execute in MVP
           throw new Error("Auto-execute requires condition token = from or to token");
         }
         const amountOutMin = parseUnits(expectedOut.toFixed(toDecimals).slice(0, toDecimals + 10), toDecimals);
