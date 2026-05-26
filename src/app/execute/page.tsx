@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { addRecord } from "@/lib/history";
 import {
   useAccount,
@@ -12,7 +13,9 @@ import {
   useReadContract,
   useWriteContract,
   useChainId,
+  useSwitchChain,
 } from "wagmi";
+import { mainnet } from "wagmi/chains";
 import { parseUnits, formatUnits } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
 import { friendlyError } from "@/lib/errors";
@@ -65,9 +68,12 @@ function ExecutePageInner() {
   const recordedRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const swapRouter = getChainTokens(chainId).router;
+  const SUPPORTED_CHAINS = [1, 42161, 59144];
+  const onSupportedChain = SUPPORTED_CHAINS.includes(chainId);
 
   const { sendTransaction, data: swapTxHash } = useSendTransaction();
   const { writeContract, data: approveTxHash } = useWriteContract();
@@ -245,9 +251,9 @@ function ExecutePageInner() {
     <main className="min-h-screen flex flex-col items-center justify-center px-4 animate-fade-in">
       <div className="w-full max-w-sm text-center space-y-8">
 
-        {/* 从通知链接进入：展示订单详情 + 连接钱包 */}
+        {/* 从通知链接进入：展示订单详情 + 一键执行 */}
         {fromLink && status === "idle" && intent && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-5 animate-fade-in">
             <div className="text-gold-500/60 text-xs uppercase tracking-widest">Conditional Order Triggered</div>
             <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-5 text-left space-y-3">
               <div className="flex justify-between items-center">
@@ -259,16 +265,35 @@ function ExecutePageInner() {
                 <span className="text-stone-300">{intent.amount} {intent.fromToken}</span>
               </div>
             </div>
-            {!address ? (
-              <p className="text-stone-500 text-sm">Connect your wallet to execute this swap</p>
+
+            {!isConnected ? (
+              <ConnectButton.Custom>
+                {({ openConnectModal }) => (
+                  <button
+                    onClick={openConnectModal}
+                    className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors"
+                  >
+                    Connect wallet to execute →
+                  </button>
+                )}
+              </ConnectButton.Custom>
+            ) : !onSupportedChain ? (
+              <button
+                onClick={() => switchChain({ chainId: mainnet.id })}
+                disabled={isSwitching}
+                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors disabled:opacity-50"
+              >
+                {isSwitching ? "Switching…" : "Switch to a supported network →"}
+              </button>
             ) : (
               <button
                 onClick={() => { setFromLink(false); execute(intent); }}
-                className="w-full py-3 bg-gold-500/10 border border-gold-500/30 text-gold-400 rounded-xl hover:bg-gold-500/20 transition-colors text-sm font-medium"
+                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors"
               >
-                Execute Swap →
+                Execute swap →
               </button>
             )}
+
             <Link href="/" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
               ← Back to home
             </Link>
