@@ -269,7 +269,7 @@ export default function PreviewPage() {
           ) : (
             <p className="text-stone-600 text-xs">
               {balance
-                ? `Balance: ${Number(balance.formatted).toFixed(4)} ${balance.symbol} · Ethereum Mainnet`
+                ? `Balance: ${Number(balance.formatted).toFixed(4)} ${balance.symbol} · ${chainId === 42161 ? "Arbitrum" : chainId === 59144 ? "Linea" : "Ethereum"}`
                 : "Loading balance..."}
             </p>
           )}
