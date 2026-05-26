@@ -10,6 +10,7 @@
   "dependencies": {
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13",
-    "lowdb": "^1.0.0"
+    "lowdb": "^1.0.0",
+    "viem": "^2.13.0"
   }
 }

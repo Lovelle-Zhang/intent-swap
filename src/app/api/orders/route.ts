@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CHAIN_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
+import { VAULT_ADDRESSES, isVaultDeployed } from "@/lib/vault";
 
 const MONITOR_URL = process.env.MONITOR_URL ?? process.env.NEXT_PUBLIC_MONITOR_URL ?? "";
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY ?? "";
@@ -11,6 +12,11 @@ const SUBSCRIPTION_CHECK_URL = process.env.SUBSCRIPTION_CHECK_URL ?? "https://ap
 const ALLOWED_TOKENS = new Set(
   Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter((t) => t !== "WETH"),
 );
+
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const BYTES32_RE = /^0x[0-9a-fA-F]+$/;
+const SIG_RE = /^0x[0-9a-fA-F]{130}$/;
+const UINT_RE = /^\d+$/;
 
 // RFC 5322-ish, deliberately lenient.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -32,7 +38,45 @@ interface OrderBody {
     operator: "above" | "below";
     targetPrice: number;
   };
+  exec?: ExecPayload;
   [key: string]: unknown;
+}
+
+interface ExecPayload {
+  chainId: number;
+  user: string;
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  amountOutMinimum: string;
+  path: string;
+  isMultiHop: boolean;
+  nonce: string;
+  deadline: string;
+  signature: string;
+  vaultAddress: string;
+}
+
+function isValidExec(e: unknown): e is ExecPayload {
+  if (!e || typeof e !== "object") return false;
+  const x = e as Record<string, unknown>;
+  if (x.chainId !== 1 && x.chainId !== 42161) return false;
+  if (typeof x.user !== "string" || !ADDRESS_RE.test(x.user)) return false;
+  if (typeof x.tokenIn !== "string" || !ADDRESS_RE.test(x.tokenIn)) return false;
+  if (typeof x.tokenOut !== "string" || !ADDRESS_RE.test(x.tokenOut)) return false;
+  if (typeof x.vaultAddress !== "string" || !ADDRESS_RE.test(x.vaultAddress)) return false;
+  if (!isVaultDeployed(x.chainId) || x.vaultAddress.toLowerCase() !== VAULT_ADDRESSES[x.chainId].toLowerCase()) return false;
+  if (typeof x.amountIn !== "string" || !UINT_RE.test(x.amountIn)) return false;
+  if (typeof x.amountOutMinimum !== "string" || !UINT_RE.test(x.amountOutMinimum)) return false;
+  if (typeof x.path !== "string" || !BYTES32_RE.test(x.path)) return false;
+  if (typeof x.isMultiHop !== "boolean") return false;
+  if (typeof x.nonce !== "string" || !UINT_RE.test(x.nonce)) return false;
+  if (typeof x.deadline !== "string" || !UINT_RE.test(x.deadline)) return false;
+  if (typeof x.signature !== "string" || !SIG_RE.test(x.signature)) return false;
+  // Reject obviously-expired orders (give a small grace window for clock skew)
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Number(x.deadline) < nowSec - 60) return false;
+  return true;
 }
 
 function isValidOrder(body: unknown): body is OrderBody {
@@ -48,6 +92,8 @@ function isValidOrder(body: unknown): body is OrderBody {
   if (typeof c.token !== "string" || !ALLOWED_TOKENS.has(c.token)) return false;
   if (c.operator !== "above" && c.operator !== "below") return false;
   if (typeof c.targetPrice !== "number" || !isFinite(c.targetPrice) || c.targetPrice <= 0 || c.targetPrice > MAX_TARGET_PRICE) return false;
+  // exec is optional — only validated when present
+  if (o.exec !== undefined && !isValidExec(o.exec)) return false;
   return true;
 }
 

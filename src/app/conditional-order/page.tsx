@@ -1,13 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useChainId, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSignTypedData } from "wagmi";
+import { parseUnits, formatUnits, encodePacked, type Hex } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
-import { CHAIN_TOKENS, DEFAULT_CHAIN_ID } from "@/config/tokens";
+import { CHAIN_TOKENS, DEFAULT_CHAIN_ID, getChainTokens, resolveTokenAddress, getTokenDecimals } from "@/config/tokens";
 import { fetchEthPrice } from "@/lib/prices";
+import { VAULT_ADDRESSES, VAULT_ABI, buildOrderTypedData, isVaultDeployed, type VaultOrder } from "@/lib/vault";
+
+// MVP: 自动执行只支持 Arbitrum（Mainnet vault owner 未轮换、Linea 缺 Izumi 适配）
+const EXEC_CHAIN_ID = 42161;
+
+const ERC20_ALLOWANCE_ABI = [
+  { name: "allowance", type: "function", stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }],
+    outputs: [{ type: "uint256" }] },
+  { name: "approve", type: "function", stateMutability: "nonpayable",
+    inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }],
+    outputs: [{ type: "bool" }] },
+] as const;
 
 // ─── 订阅检查 ────────────────────────────────────────────────────────────────
 // FREE BETA: conditional orders are free during beta. The hook below always
@@ -58,6 +73,7 @@ function useSubscription() {
 const CONDITION_TOKENS = Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter(t => t !== "WETH");
 
 type Step = "form" | "submitting" | "done" | "error";
+type ExecMode = "notify" | "auto";
 
 export default function ConditionalOrderPage() {
   const router = useRouter();
@@ -75,6 +91,105 @@ export default function ConditionalOrderPage() {
   const [condOp, setCondOp] = useState<"above" | "below">("below");
   const [condPrice, setCondPrice] = useState("");
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+
+  // ─── Auto-execute (Arbitrum only MVP) ─────────────────────────────────
+  const [execMode, setExecMode] = useState<ExecMode>("auto");
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const onExecChain = chainId === EXEC_CHAIN_ID;
+
+  // Token addresses on the exec chain
+  const execTokens = getChainTokens(EXEC_CHAIN_ID).tokens;
+  const fromAddr = intent ? resolveTokenAddress(intent.fromToken, EXEC_CHAIN_ID) : undefined;
+  const toAddr = intent ? resolveTokenAddress(intent.toToken, EXEC_CHAIN_ID) : undefined;
+  const isFromETH = intent?.fromToken === "ETH";
+  // Vault uses address(0) as the ETH key; ERC20 path uses the WETH address.
+  const depositTokenKey = isFromETH ? ("0x0000000000000000000000000000000000000000" as Hex) : (fromAddr as Hex | undefined);
+
+  const vaultAddr = VAULT_ADDRESSES[EXEC_CHAIN_ID];
+  const vaultReady = isVaultDeployed(EXEC_CHAIN_ID);
+
+  // Required input amount in raw units
+  const amountInRaw = useMemo(() => {
+    if (!intent || intent.amount == null) return 0n;
+    const decimals = getTokenDecimals(intent.fromToken);
+    try { return parseUnits(String(intent.amount), decimals); } catch { return 0n; }
+  }, [intent]);
+
+  // Vault balance for the input token
+  const { data: vaultBalance, refetch: refetchVaultBalance } = useReadContract({
+    address: vaultAddr,
+    abi: VAULT_ABI,
+    functionName: "getUserDeposit",
+    args: address && depositTokenKey ? [address, depositTokenKey] : undefined,
+    chainId: EXEC_CHAIN_ID,
+    query: { enabled: !!address && !!depositTokenKey && vaultReady && execMode === "auto" },
+  });
+
+  // Current nonce for the user
+  const { data: vaultNonce } = useReadContract({
+    address: vaultAddr,
+    abi: VAULT_ABI,
+    functionName: "nonces",
+    args: address ? [address] : undefined,
+    chainId: EXEC_CHAIN_ID,
+    query: { enabled: !!address && vaultReady && execMode === "auto" },
+  });
+
+  // ERC20 allowance (for non-ETH deposits)
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: fromAddr,
+    abi: ERC20_ALLOWANCE_ABI,
+    functionName: "allowance",
+    args: address ? [address, vaultAddr] : undefined,
+    chainId: EXEC_CHAIN_ID,
+    query: { enabled: !!address && !!fromAddr && !isFromETH && execMode === "auto" },
+  });
+
+  const balanceBig = (vaultBalance as bigint | undefined) ?? 0n;
+  const allowanceBig = (allowance as bigint | undefined) ?? 0n;
+  const needsDeposit = amountInRaw > 0n && balanceBig < amountInRaw;
+  const needsApproval = !isFromETH && needsDeposit && allowanceBig < amountInRaw;
+  const depositShortfall = amountInRaw > balanceBig ? amountInRaw - balanceBig : 0n;
+
+  // Write hooks for approve + deposit
+  const { writeContract: writeApprove, data: approveTxHash, isPending: isApprovePending } = useWriteContract();
+  const { writeContract: writeDeposit, data: depositTxHash, isPending: isDepositPending } = useWriteContract();
+  const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({ hash: approveTxHash });
+  const { isSuccess: depositConfirmed } = useWaitForTransactionReceipt({ hash: depositTxHash });
+
+  useEffect(() => { if (approveConfirmed) refetchAllowance(); }, [approveConfirmed, refetchAllowance]);
+  useEffect(() => { if (depositConfirmed) refetchVaultBalance(); }, [depositConfirmed, refetchVaultBalance]);
+
+  // EIP-712 signing
+  const { signTypedDataAsync, isPending: isSigning } = useSignTypedData();
+
+  const fmtBalance = (raw: bigint, sym: string) => {
+    try { return formatUnits(raw, getTokenDecimals(sym)); } catch { return "0"; }
+  };
+
+  const doApprove = () => {
+    if (!fromAddr || amountInRaw === 0n) return;
+    writeApprove({
+      address: fromAddr,
+      abi: ERC20_ALLOWANCE_ABI,
+      functionName: "approve",
+      args: [vaultAddr, depositShortfall * 10n], // approve 10x to avoid frequent re-approval
+      chainId: EXEC_CHAIN_ID,
+    });
+  };
+
+  const doDeposit = () => {
+    if (depositShortfall === 0n) return;
+    if (isFromETH) {
+      writeDeposit({ address: vaultAddr, abi: VAULT_ABI, functionName: "depositETH",
+        args: [], value: depositShortfall, chainId: EXEC_CHAIN_ID });
+    } else if (fromAddr) {
+      writeDeposit({ address: vaultAddr, abi: VAULT_ABI, functionName: "deposit",
+        args: [fromAddr, depositShortfall], chainId: EXEC_CHAIN_ID });
+    }
+  };
 
   useEffect(() => {
     const raw = sessionStorage.getItem("conditional-order");
@@ -111,28 +226,100 @@ export default function ConditionalOrderPage() {
     try {
       if (email) localStorage.setItem("user-email", email);
 
-      // 走 Next.js 服务端代理：那一层会验证订阅 + 附加 internal API key 转发到 monitor
+      // Base payload (notify-only fields — always sent)
+      const payload: Record<string, unknown> = {
+        email: email || null,
+        fromToken: intent.fromToken,
+        toToken: intent.toToken,
+        amount: intent.amount ?? 0.01,
+        condition: { token: condToken, operator: condOp, targetPrice: Number(condPrice) },
+      };
+
+      // Auto-execute path: build signed Order
+      if (execMode === "auto") {
+        if (!isConnected || !address) throw new Error("Connect wallet to enable auto-execute");
+        if (!onExecChain) throw new Error("Switch to Arbitrum to enable auto-execute");
+        if (!vaultReady) throw new Error("Vault not deployed on this chain");
+        if (!intent.amount) throw new Error("Amount is required for auto-execute");
+        if (!fromAddr || !toAddr) throw new Error("Token not supported on Arbitrum");
+        if (balanceBig < amountInRaw) throw new Error("Deposit more tokens to the vault first");
+        if (vaultNonce == null) throw new Error("Could not read vault nonce");
+
+        // amountOutMinimum: based on target price, with 5% slippage tolerance
+        const targetPrice = Number(condPrice);
+        const fromDecimals = getTokenDecimals(intent.fromToken);
+        const toDecimals = getTokenDecimals(intent.toToken);
+        // Rough USD-anchored estimate: amount * (1 unit fromToken in USD) / (1 unit toToken in USD)
+        // For MVP we only support the common case where the condition token is one of the swap tokens
+        // and is denominated in USD. If condition.token == toToken: targetPrice is "what 1 toToken costs in fromToken units"
+        // If condition.token == fromToken: invert.
+        let expectedOut: number;
+        if (condToken === intent.toToken) {
+          expectedOut = (intent.amount as number) / targetPrice;
+        } else if (condToken === intent.fromToken) {
+          expectedOut = (intent.amount as number) * targetPrice;
+        } else {
+          // Cross-pair (e.g. WBTC condition for ETH→USDC swap) — refuse to auto-execute in MVP
+          throw new Error("Auto-execute requires condition token = from or to token");
+        }
+        const amountOutMin = parseUnits(expectedOut.toFixed(toDecimals).slice(0, toDecimals + 10), toDecimals);
+        const amountOutMinimum = (amountOutMin * 95n) / 100n; // 5% slippage from target
+
+        // Path: single hop, 0.3% fee tier (most common for major pairs).
+        // ETH input is wrapped to WETH on the swap side; vault handles the unwrap for ETH deposits.
+        const pathFrom = isFromETH ? (execTokens["WETH"] as Hex) : (fromAddr as Hex);
+        const pathTo = intent.toToken === "ETH" ? (execTokens["WETH"] as Hex) : (toAddr as Hex);
+        const path: Hex = encodePacked(["address", "uint24", "address"], [pathFrom, 3000, pathTo]);
+
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60); // 30 days
+
+        const order: VaultOrder = {
+          user: address as Hex,
+          tokenIn: (isFromETH ? "0x0000000000000000000000000000000000000000" : fromAddr) as Hex,
+          tokenOut: pathTo,
+          amountIn: amountInRaw,
+          amountOutMinimum,
+          path,
+          isMultiHop: false,
+          nonce: vaultNonce as bigint,
+          deadline,
+        };
+
+        const typedData = buildOrderTypedData(order, EXEC_CHAIN_ID, vaultAddr);
+        const signature = await signTypedDataAsync({
+          domain: typedData.domain,
+          types: typedData.types,
+          primaryType: typedData.primaryType,
+          message: typedData.message,
+        });
+
+        // Attach exec fields. Stringify BigInts.
+        payload.exec = {
+          chainId: EXEC_CHAIN_ID,
+          user: address,
+          tokenIn: order.tokenIn,
+          tokenOut: order.tokenOut,
+          amountIn: order.amountIn.toString(),
+          amountOutMinimum: order.amountOutMinimum.toString(),
+          path: order.path,
+          isMultiHop: order.isMultiHop,
+          nonce: order.nonce.toString(),
+          deadline: order.deadline.toString(),
+          signature,
+          vaultAddress: vaultAddr,
+        };
+      }
+
       const submitRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email || null,
-          fromToken: intent.fromToken,
-          toToken: intent.toToken,
-          amount: intent.amount ?? 0.01,
-          condition: {
-            token: condToken,
-            operator: condOp,
-            targetPrice: Number(condPrice),
-          },
-        }),
+        body: JSON.stringify(payload),
       });
       const submitData = await submitRes.json();
       if (!submitRes.ok) throw new Error(submitData.error ?? "Submit failed");
 
       setOrderId(submitData.id);
       setStep("done");
-      // 订单创建成功后绑定 Push 订阅
       bindPush(submitData.id).catch(() => {});
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create order");
@@ -407,27 +594,111 @@ export default function ConditionalOrderPage() {
               />
             </div>
 
-            {/* 按钮 */}
-            {/* 提示 */}
-            <div className="flex items-center gap-2 px-1">
-              <span className="text-gold-400/40 text-xs">⬡</span>
-              <p className="text-stone-600 text-[11px]">
-                Notified when triggered — you execute the swap. No pre-signing.
-              </p>
+            {/* Execution mode */}
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-stone-500 text-[10px] tracking-widest uppercase">When condition hits</p>
+                <div className="flex bg-stone-950/60 rounded-lg p-0.5 border border-stone-800/60">
+                  <button
+                    type="button"
+                    onClick={() => setExecMode("auto")}
+                    className={`px-2.5 py-1 rounded-md text-[10px] tracking-wide transition-colors ${execMode === "auto" ? "bg-gold-500/20 text-gold-300" : "text-stone-500 hover:text-stone-300"}`}
+                  >
+                    Auto-execute
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExecMode("notify")}
+                    className={`px-2.5 py-1 rounded-md text-[10px] tracking-wide transition-colors ${execMode === "notify" ? "bg-stone-800 text-stone-200" : "text-stone-500 hover:text-stone-300"}`}
+                  >
+                    Notify only
+                  </button>
+                </div>
+              </div>
+
+              {execMode === "notify" && (
+                <p className="text-stone-600 text-[11px] leading-relaxed">
+                  You&apos;ll get a notification when triggered. Execute the swap yourself.
+                </p>
+              )}
+
+              {execMode === "auto" && (
+                <div className="space-y-2.5">
+                  {!isConnected ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-stone-600 text-[11px]">Wallet required to pre-fund the vault.</p>
+                      <ConnectButton.Custom>
+                        {({ openConnectModal }) => (
+                          <button type="button" onClick={openConnectModal} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0">
+                            Connect
+                          </button>
+                        )}
+                      </ConnectButton.Custom>
+                    </div>
+                  ) : !onExecChain ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-stone-600 text-[11px]">Auto-execute lives on Arbitrum.</p>
+                      <button type="button" onClick={() => switchChain({ chainId: EXEC_CHAIN_ID })} disabled={isSwitching} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0 disabled:opacity-50">
+                        {isSwitching ? "Switching…" : "Switch to Arbitrum"}
+                      </button>
+                    </div>
+                  ) : !vaultReady ? (
+                    <p className="text-amber-400/70 text-[11px]">Vault not deployed on this chain yet.</p>
+                  ) : !intent.amount ? (
+                    <p className="text-amber-400/70 text-[11px]">Order needs a specific amount (e.g. &quot;swap 100 USDC&quot;) for auto-execute.</p>
+                  ) : !fromAddr || !toAddr ? (
+                    <p className="text-amber-400/70 text-[11px]">Token pair not supported on Arbitrum yet.</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-stone-600">Vault balance ({intent.fromToken})</span>
+                        <span className="text-stone-400 font-mono">{fmtBalance(balanceBig, intent.fromToken)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-stone-600">Order needs</span>
+                        <span className="text-stone-400 font-mono">{fmtBalance(amountInRaw, intent.fromToken)}</span>
+                      </div>
+                      {needsDeposit && (
+                        <>
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-stone-800/60">
+                            <span className="text-amber-400/70">Short by</span>
+                            <span className="text-amber-400/70 font-mono">{fmtBalance(depositShortfall, intent.fromToken)}</span>
+                          </div>
+                          {needsApproval ? (
+                            <button type="button" onClick={doApprove} disabled={isApprovePending || (!!approveTxHash && !approveConfirmed)} className="w-full py-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors disabled:opacity-50">
+                              {isApprovePending ? "Confirm in wallet…" : approveTxHash && !approveConfirmed ? "Approving…" : `Approve ${intent.fromToken}`}
+                            </button>
+                          ) : (
+                            <button type="button" onClick={doDeposit} disabled={isDepositPending || (!!depositTxHash && !depositConfirmed)} className="w-full py-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors disabled:opacity-50">
+                              {isDepositPending ? "Confirm in wallet…" : depositTxHash && !depositConfirmed ? "Depositing…" : `Deposit ${fmtBalance(depositShortfall, intent.fromToken)} ${intent.fromToken}`}
+                            </button>
+                          )}
+                          <p className="text-stone-700 text-[10px] leading-relaxed">
+                            Tokens stay in the Vault under your address. You can <code className="text-stone-500">withdraw</code> at any time or cancel the order before it triggers.
+                          </p>
+                        </>
+                      )}
+                      {!needsDeposit && (
+                        <p className="text-emerald-400/70 text-[11px]">✓ Vault has enough — sign the order to arm it.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {step === "submitting" ? (
               <div className="flex items-center justify-center gap-3 py-3">
                 <div className="w-4 h-4 border border-stone-700 border-t-gold-500/60 rounded-full animate-spin" />
-                <p className="text-stone-500 text-sm">Creating order...</p>
+                <p className="text-stone-500 text-sm">{isSigning ? "Sign in wallet…" : "Creating order..."}</p>
               </div>
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!condPrice}
+                disabled={!condPrice || (execMode === "auto" && (!isConnected || !onExecChain || !vaultReady || !intent.amount || needsDeposit))}
                 className="w-full py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-30 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
               >
-                Create Order
+                {execMode === "auto" ? "Sign & Create Order" : "Create Order"}
               </button>
             )}
           </div>

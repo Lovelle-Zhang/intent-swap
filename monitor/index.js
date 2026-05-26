@@ -2,6 +2,8 @@ const cron = require("node-cron");
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
 const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
 
 // DB 初始化
 const adapter = new FileSync("orders.json");
@@ -12,6 +14,86 @@ db.defaults({ orders: [] }).write();
 const SMTP_HOST = process.env.SMTP_HOST ?? "";
 const SMTP_USER = process.env.SMTP_USER ?? "";
 const SMTP_PASS = process.env.SMTP_PASS ?? "";
+
+// ─── 链上执行配置 ───────────────────────────────────────────────────────────
+// 仅在 KEEPER_PRIVATE_KEY 设置时启用。Phase 2: 仅 Arbitrum (chainId 42161)。
+
+const KEEPER_PRIVATE_KEY = process.env.KEEPER_PRIVATE_KEY ?? "";
+const ARB_RPC = process.env.ARBITRUM_RPC_URL ?? "https://arb1.arbitrum.io/rpc";
+
+const VAULT_ARTIFACT_PATH = path.join(__dirname, "..", "contracts", "artifacts", "ConditionalSwapVault.json");
+let VAULT_ABI = null;
+try {
+  VAULT_ABI = JSON.parse(fs.readFileSync(VAULT_ARTIFACT_PATH, "utf8")).abi;
+} catch (e) {
+  console.warn(`[WARN] Could not load vault artifact from ${VAULT_ARTIFACT_PATH}: ${e.message}`);
+}
+
+// chainId → known deployed vault
+const VAULT_ADDRESSES = {
+  42161: "0x3e89119234c0635e861cce71efa274f1defd6818",
+  // 1: "0x52a8fe40324621d310ede9bfd20396b82dfec0ee", // owner not yet rotated — leave disabled
+};
+
+let viemClients = null;
+async function getViemClients() {
+  if (viemClients) return viemClients;
+  if (!KEEPER_PRIVATE_KEY || !VAULT_ABI) return null;
+  const { createWalletClient, createPublicClient, http } = await import("viem");
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const { arbitrum } = await import("viem/chains");
+  const account = privateKeyToAccount(KEEPER_PRIVATE_KEY.startsWith("0x") ? KEEPER_PRIVATE_KEY : `0x${KEEPER_PRIVATE_KEY}`);
+  viemClients = {
+    account,
+    walletClients: {
+      42161: createWalletClient({ account, chain: arbitrum, transport: http(ARB_RPC) }),
+    },
+    publicClients: {
+      42161: createPublicClient({ chain: arbitrum, transport: http(ARB_RPC) }),
+    },
+  };
+  console.log(`[EXEC] Keeper configured: ${account.address}`);
+  return viemClients;
+}
+
+async function executeOnChain(order) {
+  const exec = order.exec;
+  if (!exec) return { skipped: "not-executable" };
+  const vaultAddr = VAULT_ADDRESSES[exec.chainId];
+  if (!vaultAddr) return { skipped: `chain ${exec.chainId} not supported` };
+  if (vaultAddr.toLowerCase() !== String(exec.vaultAddress).toLowerCase()) {
+    return { skipped: "vault address mismatch" };
+  }
+
+  const clients = await getViemClients();
+  if (!clients) return { skipped: "keeper not configured" };
+  const wc = clients.walletClients[exec.chainId];
+  const pc = clients.publicClients[exec.chainId];
+  if (!wc || !pc) return { skipped: `no client for chain ${exec.chainId}` };
+
+  // BigInt-string → BigInt
+  const orderStruct = {
+    user: exec.user,
+    tokenIn: exec.tokenIn,
+    tokenOut: exec.tokenOut,
+    amountIn: BigInt(exec.amountIn),
+    amountOutMinimum: BigInt(exec.amountOutMinimum),
+    path: exec.path,
+    isMultiHop: !!exec.isMultiHop,
+    nonce: BigInt(exec.nonce),
+    deadline: BigInt(exec.deadline),
+  };
+
+  const hash = await wc.writeContract({
+    address: vaultAddr,
+    abi: VAULT_ABI,
+    functionName: "executeOrder",
+    args: [orderStruct, exec.signature],
+  });
+  console.log(`[EXEC] tx submitted ${hash}`);
+  const receipt = await pc.waitForTransactionReceipt({ hash });
+  return { hash, status: receipt.status };
+}
 
 const mailer = SMTP_HOST
   ? nodemailer.createTransport({
@@ -70,8 +152,10 @@ async function notify(order, currentPrice) {
 
 // 添加订单（供前端 API 调用）
 function addOrder(order) {
-  db.get("orders").push({ ...order, status: "active" }).write();
-  console.log(`[ORDER] Added: ${order.summary}`);
+  const executable = !!order.exec; // 带 exec 字段的订单可以被链上自动执行
+  const stored = { ...order, status: "active", executable };
+  db.get("orders").push(stored).write();
+  console.log(`[ORDER] Added: ${order.summary} (executable=${executable})`);
 }
 
 // 检查所有活跃订单
@@ -102,8 +186,35 @@ async function checkOrders() {
 
     if (triggered) {
       await notify(order, currentPrice);
-      // 标记为已触发
-      db.get("orders").find({ id: order.id }).assign({ status: "triggered", triggeredAt: new Date().toISOString(), triggeredPrice: currentPrice }).write();
+
+      // 链上自动执行（如果订单带有 exec 字段且 monitor 配置了 keeper 私钥）
+      let execResult = null;
+      if (order.executable) {
+        try {
+          execResult = await executeOnChain(order);
+          if (execResult.skipped) {
+            console.warn(`[EXEC] Skipped order ${order.id}: ${execResult.skipped}`);
+          } else if (execResult.status === "success") {
+            console.log(`[EXEC] ✅ Order ${order.id} executed: ${execResult.hash}`);
+          } else {
+            console.error(`[EXEC] ❌ Order ${order.id} reverted: ${execResult.hash}`);
+          }
+        } catch (err) {
+          console.error(`[EXEC] Order ${order.id} threw:`, err.message ?? err);
+          execResult = { error: String(err.message ?? err) };
+        }
+      }
+
+      const newStatus = execResult && execResult.status === "success" ? "executed"
+                      : execResult && (execResult.error || execResult.status === "reverted") ? "exec-failed"
+                      : "triggered";
+      db.get("orders").find({ id: order.id }).assign({
+        status: newStatus,
+        triggeredAt: new Date().toISOString(),
+        triggeredPrice: currentPrice,
+        execTxHash: execResult?.hash ?? null,
+        execError: execResult?.error ?? null,
+      }).write();
     }
   }
 }
