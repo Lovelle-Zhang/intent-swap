@@ -592,31 +592,58 @@ export default function ConditionalOrderPage() {
 
             {/* Execution mode */}
             <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-stone-500 text-[10px] tracking-widest uppercase">When condition hits</p>
-                <div className="flex bg-stone-950/60 rounded-lg p-0.5 border border-stone-800/60">
-                  <button
-                    type="button"
-                    onClick={() => setExecMode("auto")}
-                    className={`px-2.5 py-1 rounded-md text-[10px] tracking-wide transition-colors ${execMode === "auto" ? "bg-gold-500/20 text-gold-300" : "text-stone-500 hover:text-stone-300"}`}
-                  >
-                    Auto-execute
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExecMode("notify")}
-                    className={`px-2.5 py-1 rounded-md text-[10px] tracking-wide transition-colors ${execMode === "notify" ? "bg-stone-800 text-stone-200" : "text-stone-500 hover:text-stone-300"}`}
-                  >
-                    Notify only
-                  </button>
-                </div>
-              </div>
+              <p className="text-stone-500 text-[10px] tracking-widest uppercase">When condition hits</p>
 
-              {execMode === "notify" && (
-                <p className="text-stone-600 text-[11px] leading-relaxed">
-                  You&apos;ll get a notification when triggered. Execute the swap yourself.
+              {/* Auto-execute card (primary) */}
+              <button
+                type="button"
+                onClick={() => setExecMode("auto")}
+                className={`w-full text-left rounded-lg px-4 py-3 border transition-all ${
+                  execMode === "auto"
+                    ? "border-gold-500/60 bg-gold-500/10 ring-1 ring-gold-500/30"
+                    : "border-stone-800/60 bg-stone-950/40 hover:border-stone-700"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all ${execMode === "auto" ? "border-gold-400 bg-gold-400/30" : "border-stone-700"}`}>
+                      {execMode === "auto" && <span className="w-1.5 h-1.5 rounded-full bg-gold-300" />}
+                    </span>
+                    <span className={`text-sm font-medium ${execMode === "auto" ? "text-gold-200" : "text-stone-300"}`}>
+                      Auto-execute
+                    </span>
+                  </div>
+                  <span className="text-[9px] tracking-wide uppercase px-1.5 py-0.5 rounded bg-gold-500/20 text-gold-300 border border-gold-500/30">
+                    Recommended
+                  </span>
+                </div>
+                <p className="text-stone-500 text-[11px] leading-relaxed pl-5">
+                  Sign once, walk away. Swap fires on-chain the moment your price hits — no need to come back.
                 </p>
-              )}
+              </button>
+
+              {/* Notify-only card (secondary) */}
+              <button
+                type="button"
+                onClick={() => setExecMode("notify")}
+                className={`w-full text-left rounded-lg px-4 py-3 border transition-all ${
+                  execMode === "notify"
+                    ? "border-stone-600 bg-stone-800/40"
+                    : "border-stone-800/60 bg-stone-950/40 hover:border-stone-700"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-all ${execMode === "notify" ? "border-stone-300 bg-stone-400/30" : "border-stone-700"}`}>
+                    {execMode === "notify" && <span className="w-1.5 h-1.5 rounded-full bg-stone-200" />}
+                  </span>
+                  <span className={`text-sm ${execMode === "notify" ? "text-stone-200" : "text-stone-400"}`}>
+                    Notify only
+                  </span>
+                </div>
+                <p className="text-stone-600 text-[11px] leading-relaxed pl-5">
+                  Just send me an alert. I&apos;ll execute the swap manually myself.
+                </p>
+              </button>
 
               {execMode === "auto" && (
                 <div className="space-y-2.5">
