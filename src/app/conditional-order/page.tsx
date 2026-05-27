@@ -9,7 +9,7 @@ import { parseUnits, formatUnits, encodePacked, type Hex } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
 import { CHAIN_TOKENS, DEFAULT_CHAIN_ID, getChainTokens, resolveTokenAddress, getTokenDecimals } from "@/config/tokens";
-import { fetchEthPrice } from "@/lib/prices";
+import { fetchTokenPrice } from "@/lib/prices";
 import { VAULT_ADDRESSES, VAULT_ABI, buildOrderTypedData, isVaultDeployed, type VaultOrder } from "@/lib/vault";
 
 // MVP: 自动执行只支持 Arbitrum（Mainnet vault owner 未轮换、Linea 缺 Izumi 适配）
@@ -70,7 +70,13 @@ function useSubscription() {
 
 // Selector list: pull symbols from the canonical mainnet token map.
 // Exclude WETH (UI prefers "ETH" for the same trigger token).
-const CONDITION_TOKENS = Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter(t => t !== "WETH");
+// Tokens the price monitor tracks. ARB is on Arbitrum (not in mainnet token
+// map); BTC is an alias for WBTC's USD price. Excludes WETH (UI uses "ETH").
+const CONDITION_TOKENS = [
+  ...Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter(t => t !== "WETH"),
+  "ARB",
+  "BTC",
+];
 
 type Step = "form" | "submitting" | "done" | "error";
 type ExecMode = "notify" | "auto";
@@ -209,9 +215,15 @@ export default function ConditionalOrderPage() {
     }
     const savedEmail = localStorage.getItem("user-email") ?? "";
     setEmail(savedEmail);
-
-    fetchEthPrice().then((v) => { if (v !== null) setCurrentPrice(v); });
   }, [router]);
+
+  // Re-fetch the current price whenever the user picks a different condition token
+  useEffect(() => {
+    setCurrentPrice(null);
+    const ac = new AbortController();
+    fetchTokenPrice(condToken, ac.signal).then((v) => { if (v !== null) setCurrentPrice(v); });
+    return () => ac.abort();
+  }, [condToken]);
 
   const handleSubmit = async () => {
     if (!intent) return;
@@ -504,7 +516,7 @@ export default function ConditionalOrderPage() {
               </div>
 
               {/* 快捷价格选项 */}
-              {condToken === "ETH" && currentPrice && (
+              {currentPrice && (
                 <div className="space-y-2 pt-1 border-t border-stone-800/60">
                   <div className="flex items-center justify-between">
                     <p className="text-stone-600 text-[10px] uppercase tracking-wider">Quick select</p>

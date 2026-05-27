@@ -6,12 +6,16 @@ const MONITOR_URL = process.env.MONITOR_URL ?? process.env.NEXT_PUBLIC_MONITOR_U
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY ?? "";
 const SUBSCRIPTION_CHECK_URL = process.env.SUBSCRIPTION_CHECK_URL ?? "https://api.o-sheepps.com/subscriptions/check";
 
-// Whitelist of tokens we'll route monitor alerts for. Pulled from the
-// mainnet config since trigger prices are USD-denominated and don't depend
-// on chain. WETH is excluded because the UI normalizes to ETH.
-const ALLOWED_TOKENS = new Set(
-  Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter((t) => t !== "WETH"),
-);
+// Whitelist of tokens accepted as condition.token (the price-tracked symbol)
+// and as fromToken/toToken (the swap legs). Trigger prices are USD-denominated
+// and don't depend on a specific chain. WETH is excluded because the UI
+// normalizes to ETH. BTC is an alias the parser may emit for WBTC trigger
+// prices. ARB lives on Arbitrum but its price is tracked globally.
+const ALLOWED_TOKENS = new Set([
+  ...Object.keys(CHAIN_TOKENS[DEFAULT_CHAIN_ID].tokens).filter((t) => t !== "WETH"),
+  "ARB",
+  "BTC",
+]);
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 const BYTES32_RE = /^0x[0-9a-fA-F]+$/;
