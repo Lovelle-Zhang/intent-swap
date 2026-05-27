@@ -3,9 +3,16 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useAccount, useChainId, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { formatUnits, type Hex } from "viem";
 import { getHistory, removeRecord, clearHistory, getExplorerUrl, getExplorerName, type SwapRecord } from "@/lib/history";
 import { getArchivedIds, archive, unarchive } from "@/lib/archivedOrders";
-import { TOKEN_ICONS, CHAIN_NAMES } from "@/config/tokens";
+import { TOKEN_ICONS, CHAIN_NAMES, getChainTokens, getTokenDecimals } from "@/config/tokens";
+import { VAULT_ADDRESSES, VAULT_ABI, isVaultDeployed } from "@/lib/vault";
+
+const VAULT_CHAIN_ID = 42161; // MVP: Arbitrum only
+const ETH_KEY = "0x0000000000000000000000000000000000000000" as Hex;
+const WATCHED_TOKENS = ["ETH", "USDC", "USDT", "DAI", "WBTC", "ARB"] as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -21,6 +28,7 @@ interface ConditionalOrder {
   createdAt: number;
   triggeredAt?: number;
   txHash?: string;
+  exec?: { chainId: number; user: string; tokenIn: string; tokenOut: string; vaultAddress: string } | null;
 }
 
 type ActivityItem =
@@ -51,6 +59,86 @@ function normalizeOrders(raw: Array<Partial<ConditionalOrder> & { triggered?: bo
     ...o,
     status: (o.status as ConditionalOrder["status"]) ?? (o.triggered ? "triggered" : "pending"),
   }) as ConditionalOrder);
+}
+
+// ─── Vault deposit row (one per token) ───────────────────────────────────
+
+function VaultTokenRow({ symbol }: { symbol: string }) {
+  const { address } = useAccount();
+  const chainTokens = getChainTokens(VAULT_CHAIN_ID).tokens;
+  // The vault uses address(0) as the ETH key, but for ERC20s we use the token's contract address.
+  const key: Hex = symbol === "ETH" ? ETH_KEY : (chainTokens[symbol] as Hex);
+  const vaultAddr = VAULT_ADDRESSES[VAULT_CHAIN_ID];
+
+  const { data: balance, refetch } = useReadContract({
+    address: vaultAddr,
+    abi: VAULT_ABI,
+    functionName: "getUserDeposit",
+    args: address && key ? [address as Hex, key] : undefined,
+    chainId: VAULT_CHAIN_ID,
+    query: { enabled: !!address && !!key },
+  });
+
+  const { writeContract, data: txHash, isPending } = useWriteContract();
+  const { isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
+  useEffect(() => { if (isSuccess) refetch(); }, [isSuccess, refetch]);
+
+  const bal = (balance as bigint | undefined) ?? 0n;
+  if (bal === 0n) return null;
+
+  const decimals = getTokenDecimals(symbol);
+  const formatted = formatUnits(bal, decimals);
+  const display = Number(formatted).toFixed(decimals === 18 ? 6 : 4);
+
+  const onWithdraw = () => {
+    writeContract({
+      address: vaultAddr,
+      abi: VAULT_ABI,
+      functionName: "withdraw",
+      args: [key, bal],
+      chainId: VAULT_CHAIN_ID,
+    });
+  };
+
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <div className="flex items-center gap-2.5">
+        <span className="text-stone-500 text-sm">{TOKEN_ICONS[symbol] ?? "?"}</span>
+        <span className="text-stone-300 text-sm">{display}</span>
+        <span className="text-stone-600 text-xs">{symbol}</span>
+      </div>
+      <button
+        onClick={onWithdraw}
+        disabled={isPending || (!!txHash && !isSuccess)}
+        className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-300 text-[11px] transition-colors disabled:opacity-50"
+      >
+        {isPending ? "Confirm…" : txHash && !isSuccess ? "Withdrawing…" : "Withdraw"}
+      </button>
+    </div>
+  );
+}
+
+function VaultPanel() {
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+
+  if (!isConnected) return null;
+  if (chainId !== VAULT_CHAIN_ID) return null; // MVP: only Arbitrum
+  if (!isVaultDeployed(VAULT_CHAIN_ID)) return null;
+
+  return (
+    <div className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 mb-5">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-stone-500 text-[10px] tracking-widest uppercase">Vault deposits</span>
+        <span className="text-stone-700 text-[10px]">Arbitrum</span>
+      </div>
+      <div className="divide-y divide-stone-800/40">
+        {WATCHED_TOKENS.map((sym) => (
+          <VaultTokenRow key={sym} symbol={sym} />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────
@@ -138,6 +226,33 @@ function ActivityContent() {
     } catch { /* ignore */ }
   };
 
+  // For auto-execute orders: cancelOrders() on the vault increments the user's
+  // nonce, invalidating *all* their pending signed orders at once. We then
+  // sweep the backend DB for any of their auto orders so the UI is consistent.
+  const { writeContract: writeCancelOnChain, data: cancelOnChainTx, isPending: cancelOnChainPending } = useWriteContract();
+  const { isSuccess: cancelOnChainConfirmed } = useWaitForTransactionReceipt({ hash: cancelOnChainTx });
+  const handleCancelAllAuto = async () => {
+    if (!isVaultDeployed(VAULT_CHAIN_ID)) return;
+    writeCancelOnChain({
+      address: VAULT_ADDRESSES[VAULT_CHAIN_ID],
+      abi: VAULT_ABI,
+      functionName: "cancelOrders",
+      args: [],
+      chainId: VAULT_CHAIN_ID,
+    });
+  };
+  // After the on-chain cancel confirms, also remove all auto-execute orders from the backend DB
+  useEffect(() => {
+    if (!cancelOnChainConfirmed || !email) return;
+    const autos = orders.filter((o) => o.exec && (o.status === "pending"));
+    Promise.all(autos.map((o) =>
+      fetch(`/api/orders/${encodeURIComponent(o.id)}?email=${encodeURIComponent(email)}`, { method: "DELETE" })
+    )).then(() => {
+      setOrders((prev) => prev.filter((o) => !(o.exec && o.status === "pending")));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cancelOnChainConfirmed]);
+
   const handleArchive = (orderId: string) => {
     archive(orderId);
     setArchivedIds(new Set([...archivedIds, orderId]));
@@ -165,6 +280,9 @@ function ActivityContent() {
   return (
     <main className="min-h-screen px-5 py-8 md:py-12">
       <div className="max-w-xl mx-auto">
+
+        {/* Vault deposits (only on Arbitrum + when connected) */}
+        <VaultPanel />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -364,22 +482,40 @@ function ActivityContent() {
                     </div>
                   </div>
                   {(order.status === "pending" || order.status === "triggered") && (
-                    <div className="pt-1 border-t border-stone-800/40 flex justify-end gap-4">
-                      {order.status === "pending" && (
-                        <button onClick={() => handleCancelOrder(order.id)} className="text-stone-700 hover:text-red-400/70 text-xs transition-colors">
-                          Cancel order
-                        </button>
-                      )}
-                      {order.status === "triggered" && !isArchived && (
-                        <button onClick={() => handleArchive(order.id)} className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
-                          Dismiss
-                        </button>
-                      )}
-                      {isArchived && (
-                        <button onClick={() => handleUnarchive(order.id)} className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
-                          Restore
-                        </button>
-                      )}
+                    <div className="pt-1 border-t border-stone-800/40 flex items-center justify-between">
+                      <span className="text-[10px] text-stone-700">
+                        {order.exec ? "Auto-execute · signed" : "Notify only"}
+                      </span>
+                      <div className="flex justify-end gap-4">
+                        {order.status === "pending" && order.exec && (
+                          <button
+                            onClick={() => {
+                              if (confirm("This will cancel ALL your pending auto-execute orders on-chain (one transaction). Continue?")) {
+                                handleCancelAllAuto();
+                              }
+                            }}
+                            disabled={cancelOnChainPending || (!!cancelOnChainTx && !cancelOnChainConfirmed)}
+                            className="text-stone-700 hover:text-red-400/70 text-xs transition-colors disabled:opacity-50"
+                          >
+                            {cancelOnChainPending ? "Confirm in wallet…" : cancelOnChainTx && !cancelOnChainConfirmed ? "Cancelling…" : "Cancel all auto orders"}
+                          </button>
+                        )}
+                        {order.status === "pending" && !order.exec && (
+                          <button onClick={() => handleCancelOrder(order.id)} className="text-stone-700 hover:text-red-400/70 text-xs transition-colors">
+                            Cancel order
+                          </button>
+                        )}
+                        {order.status === "triggered" && !isArchived && (
+                          <button onClick={() => handleArchive(order.id)} className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
+                            Dismiss
+                          </button>
+                        )}
+                        {isArchived && (
+                          <button onClick={() => handleUnarchive(order.id)} className="text-stone-700 hover:text-stone-500 text-xs transition-colors">
+                            Restore
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
