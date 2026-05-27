@@ -1,17 +1,18 @@
 {
-  "name": "intent-swap-monitor",
+  "name": "intent-swap-server",
   "version": "1.0.0",
-  "description": "Price monitor for intent-swap conditional orders",
-  "main": "index.js",
+  "description": "Conditional-order intake + price-trigger watcher for Intent Swap. Receives orders from the Next.js API proxy, polls token prices (DeFiLlama), and fires email / WeChat / Web Push + optional on-chain Vault execution when conditions cross.",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.13",
+    "axios": "^1.6.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
     "lowdb": "^1.0.0",
-    "viem": "^2.13.0",
-    "dotenv": "^16.4.5"
+    "node-fetch": "^2.7.0",
+    "viem": "^2.51.0",
+    "web-push": "^3.6.7"
   }
 }
