@@ -259,6 +259,12 @@ export default function ConditionalOrderPage() {
       setStep("error");
       return;
     }
+    // Notify-only with no delivery channel = the trigger fires into the void.
+    if (execMode === "notify" && !email && pushState !== "ready" && pushState !== "subscribed") {
+      if (!confirm("No email and no browser notifications — you won't be told when this triggers. Create it anyway?")) {
+        return;
+      }
+    }
     setStep("submitting");
     setError("");
 
@@ -585,7 +591,18 @@ export default function ConditionalOrderPage() {
 
             {/* 通知方式 */}
             <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2.5">
-              <p className="text-stone-500 text-[10px] tracking-widest uppercase">Notify me when triggered <span className="text-stone-700 normal-case tracking-normal font-normal">(optional)</span></p>
+              <p className="text-stone-500 text-[10px] tracking-widest uppercase">
+                Notify me when triggered{" "}
+                <span className={`normal-case tracking-normal font-normal ${execMode === "notify" ? "text-gold-400/70" : "text-stone-700"}`}>
+                  {execMode === "notify" ? "· email recommended" : "(optional)"}
+                </span>
+              </p>
+
+              {execMode === "notify" && (
+                <p className="text-stone-600 text-[11px] leading-relaxed">
+                  In notify mode this is your only heads-up that the price hit — add an email so you don&apos;t miss it.
+                </p>
+              )}
 
               {/* 浏览器推送 — 国内 FCM 被墙,隐藏并提示用邮件 */}
               {hidePush ? (
@@ -629,13 +646,17 @@ export default function ConditionalOrderPage() {
                 </button>
               )}
 
-              {/* 邮件 */}
+              {/* 邮件 — notify 模式下高亮为主通道 */}
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={hidePush ? "your@email.com — 接收触发通知" : "or enter email address"}
-                className="w-full bg-stone-900/60 border border-stone-700/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none focus:border-stone-500 transition-colors"
+                placeholder={execMode === "notify" || hidePush ? "your@email.com — get notified when triggered" : "or enter email address"}
+                className={`w-full bg-stone-900/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none transition-colors border ${
+                  execMode === "notify" && !email
+                    ? "border-gold-500/40 focus:border-gold-500/70"
+                    : "border-stone-700/60 focus:border-stone-500"
+                }`}
               />
             </div>
 
