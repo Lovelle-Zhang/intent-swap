@@ -14,6 +14,7 @@ const _fs = require("fs");
 const _path = require("path");
 const KEEPER_PRIVATE_KEY = process.env.KEEPER_PRIVATE_KEY || "";
 const ARB_RPC = process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc";
+const LINEA_RPC = process.env.LINEA_RPC_URL || "https://rpc.linea.build";
 
 let VAULT_ABI = null;
 try {
@@ -24,19 +25,28 @@ try {
   console.warn(`[BOOT] no vault ABI — on-chain execution disabled (${e.message})`);
 }
 
-const VAULT_ADDRESSES = { 42161: "0x3e89119234c0635e861cce71efa274f1defd6818" };
+const VAULT_ADDRESSES = {
+  42161: "0x3e89119234c0635e861cce71efa274f1defd6818", // Arbitrum (Uniswap V3)
+  59144: "0x568b8946697ac7e2c6bb1f1be9e5946e9c800097", // Linea (iZiSwap)
+};
 let _viemClients = null;
 async function getViemClients() {
   if (_viemClients) return _viemClients;
   if (!KEEPER_PRIVATE_KEY || !VAULT_ABI) return null;
   const { createWalletClient, createPublicClient, http } = await import("viem");
   const { privateKeyToAccount } = await import("viem/accounts");
-  const { arbitrum } = await import("viem/chains");
+  const { arbitrum, linea } = await import("viem/chains");
   const pk = KEEPER_PRIVATE_KEY.startsWith("0x") ? KEEPER_PRIVATE_KEY : "0x" + KEEPER_PRIVATE_KEY;
   const account = privateKeyToAccount(pk);
   _viemClients = {
-    walletClients: { 42161: createWalletClient({ account, chain: arbitrum, transport: http(ARB_RPC) }) },
-    publicClients: { 42161: createPublicClient({ chain: arbitrum, transport: http(ARB_RPC) }) },
+    walletClients: {
+      42161: createWalletClient({ account, chain: arbitrum, transport: http(ARB_RPC) }),
+      59144: createWalletClient({ account, chain: linea, transport: http(LINEA_RPC) }),
+    },
+    publicClients: {
+      42161: createPublicClient({ chain: arbitrum, transport: http(ARB_RPC) }),
+      59144: createPublicClient({ chain: linea, transport: http(LINEA_RPC) }),
+    },
   };
   console.log(`[EXEC] keeper configured: ${account.address}`);
   return _viemClients;
@@ -45,8 +55,8 @@ async function getViemClients() {
 async function executeOnChain(order) {
   const exec = order.exec;
   if (!exec) return { skipped: "not-executable" };
-  if (exec.chainId !== 42161) return { skipped: `chain ${exec.chainId} not supported yet` };
   const vaultAddr = VAULT_ADDRESSES[exec.chainId];
+  if (!vaultAddr) return { skipped: `chain ${exec.chainId} not supported yet` };
   if (!vaultAddr || vaultAddr.toLowerCase() !== String(exec.vaultAddress).toLowerCase()) {
     return { skipped: "vault address mismatch" };
   }

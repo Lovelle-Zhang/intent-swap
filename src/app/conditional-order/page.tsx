@@ -12,8 +12,11 @@ import { CHAIN_TOKENS, DEFAULT_CHAIN_ID, getChainTokens, resolveTokenAddress, ge
 import { fetchTokenPrice } from "@/lib/prices";
 import { VAULT_ADDRESSES, VAULT_ABI, buildOrderTypedData, isVaultDeployed, type VaultOrder } from "@/lib/vault";
 
-// MVP: 自动执行只支持 Arbitrum（Mainnet vault owner 未轮换、Linea 缺 Izumi 适配）
-const EXEC_CHAIN_ID = 42161;
+// Chains with a deployed vault + keeper the monitor can execute on:
+// Arbitrum (Uniswap V3) + Linea (iZiSwap). Mainnet excluded — its vault
+// owner isn't the consolidated keeper wallet yet.
+const EXEC_CHAINS = [42161, 59144];
+const EXEC_DEFAULT = 42161;
 
 const ERC20_ALLOWANCE_ABI = [
   { name: "allowance", type: "function", stateMutability: "view",
@@ -98,23 +101,29 @@ export default function ConditionalOrderPage() {
   const [condPrice, setCondPrice] = useState("");
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
-  // ─── Auto-execute (Arbitrum only MVP) ─────────────────────────────────
+  // ─── Auto-execute (Arbitrum + Linea) ──────────────────────────────────
   const [execMode, setExecMode] = useState<ExecMode>("auto");
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
-  const onExecChain = chainId === EXEC_CHAIN_ID;
+  // Exec chain = whichever supported chain the wallet is on; fall back to
+  // Arbitrum for address/quote lookups when the wallet is elsewhere.
+  const onExecChain = EXEC_CHAINS.includes(chainId);
+  const execChainId = onExecChain ? chainId : EXEC_DEFAULT;
+  const isLinea = execChainId === 59144;
 
   // Token addresses on the exec chain
-  const execTokens = getChainTokens(EXEC_CHAIN_ID).tokens;
-  const fromAddr = intent ? resolveTokenAddress(intent.fromToken, EXEC_CHAIN_ID) : undefined;
-  const toAddr = intent ? resolveTokenAddress(intent.toToken, EXEC_CHAIN_ID) : undefined;
+  const execTokens = getChainTokens(execChainId).tokens;
+  const fromAddr = intent ? resolveTokenAddress(intent.fromToken, execChainId) : undefined;
+  const toAddr = intent ? resolveTokenAddress(intent.toToken, execChainId) : undefined;
   const isFromETH = intent?.fromToken === "ETH";
+  // Linea vault (iZiSwap) is ERC20-input only — native ETH can't be the input.
+  const lineaNativeEthBlocked = isLinea && isFromETH;
   // Vault uses address(0) as the ETH key; ERC20 path uses the WETH address.
   const depositTokenKey = isFromETH ? ("0x0000000000000000000000000000000000000000" as Hex) : (fromAddr as Hex | undefined);
 
-  const vaultAddr = VAULT_ADDRESSES[EXEC_CHAIN_ID];
-  const vaultReady = isVaultDeployed(EXEC_CHAIN_ID);
+  const vaultAddr = VAULT_ADDRESSES[execChainId];
+  const vaultReady = isVaultDeployed(execChainId);
 
   // Required input amount in raw units
   const amountInRaw = useMemo(() => {
@@ -129,7 +138,7 @@ export default function ConditionalOrderPage() {
     abi: VAULT_ABI,
     functionName: "getUserDeposit",
     args: address && depositTokenKey ? [address, depositTokenKey] : undefined,
-    chainId: EXEC_CHAIN_ID,
+    chainId: execChainId,
     query: { enabled: !!address && !!depositTokenKey && vaultReady && execMode === "auto" },
   });
 
@@ -139,7 +148,7 @@ export default function ConditionalOrderPage() {
     abi: VAULT_ABI,
     functionName: "nonces",
     args: address ? [address] : undefined,
-    chainId: EXEC_CHAIN_ID,
+    chainId: execChainId,
     query: { enabled: !!address && vaultReady && execMode === "auto" },
   });
 
@@ -149,7 +158,7 @@ export default function ConditionalOrderPage() {
     abi: ERC20_ALLOWANCE_ABI,
     functionName: "allowance",
     args: address ? [address, vaultAddr] : undefined,
-    chainId: EXEC_CHAIN_ID,
+    chainId: execChainId,
     query: { enabled: !!address && !!fromAddr && !isFromETH && execMode === "auto" },
   });
 
@@ -182,7 +191,7 @@ export default function ConditionalOrderPage() {
       abi: ERC20_ALLOWANCE_ABI,
       functionName: "approve",
       args: [vaultAddr, depositShortfall * 10n], // approve 10x to avoid frequent re-approval
-      chainId: EXEC_CHAIN_ID,
+      chainId: execChainId,
     });
   };
 
@@ -190,10 +199,10 @@ export default function ConditionalOrderPage() {
     if (depositShortfall === 0n) return;
     if (isFromETH) {
       writeDeposit({ address: vaultAddr, abi: VAULT_ABI, functionName: "depositETH",
-        args: [], value: depositShortfall, chainId: EXEC_CHAIN_ID });
+        args: [], value: depositShortfall, chainId: execChainId });
     } else if (fromAddr) {
       writeDeposit({ address: vaultAddr, abi: VAULT_ABI, functionName: "deposit",
-        args: [fromAddr, depositShortfall], chainId: EXEC_CHAIN_ID });
+        args: [fromAddr, depositShortfall], chainId: execChainId });
     }
   };
 
@@ -250,10 +259,11 @@ export default function ConditionalOrderPage() {
       // Auto-execute path: build signed Order
       if (execMode === "auto") {
         if (!isConnected || !address) throw new Error("Connect wallet to enable auto-execute");
-        if (!onExecChain) throw new Error("Switch to Arbitrum to enable auto-execute");
+        if (!onExecChain) throw new Error("Switch to Arbitrum or Linea to enable auto-execute");
+        if (lineaNativeEthBlocked) throw new Error("Linea auto-execute needs an ERC20 input (use WETH, not native ETH)");
         if (!vaultReady) throw new Error("Vault not deployed on this chain");
         if (!intent.amount) throw new Error("Amount is required for auto-execute");
-        if (!fromAddr || !toAddr) throw new Error("Token not supported on Arbitrum");
+        if (!fromAddr || !toAddr) throw new Error("Token not supported on this chain");
         if (balanceBig < amountInRaw) throw new Error("Deposit more tokens to the vault first");
         if (vaultNonce == null) throw new Error("Could not read vault nonce");
 
@@ -293,7 +303,7 @@ export default function ConditionalOrderPage() {
           deadline,
         };
 
-        const typedData = buildOrderTypedData(order, EXEC_CHAIN_ID, vaultAddr);
+        const typedData = buildOrderTypedData(order, execChainId, vaultAddr);
         const signature = await signTypedDataAsync({
           domain: typedData.domain,
           types: typedData.types,
@@ -303,7 +313,7 @@ export default function ConditionalOrderPage() {
 
         // Attach exec fields. Stringify BigInts.
         payload.exec = {
-          chainId: EXEC_CHAIN_ID,
+          chainId: execChainId,
           user: address,
           tokenIn: order.tokenIn,
           tokenOut: order.tokenOut,
@@ -672,17 +682,19 @@ export default function ConditionalOrderPage() {
                     </div>
                   ) : !onExecChain ? (
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-stone-600 text-[11px]">Auto-execute lives on Arbitrum.</p>
-                      <button type="button" onClick={() => switchChain({ chainId: EXEC_CHAIN_ID })} disabled={isSwitching} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0 disabled:opacity-50">
+                      <p className="text-stone-600 text-[11px]">Auto-execute runs on Arbitrum or Linea.</p>
+                      <button type="button" onClick={() => switchChain({ chainId: EXEC_DEFAULT })} disabled={isSwitching} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0 disabled:opacity-50">
                         {isSwitching ? "Switching…" : "Switch to Arbitrum"}
                       </button>
                     </div>
+                  ) : lineaNativeEthBlocked ? (
+                    <p className="text-amber-400/70 text-[11px]">On Linea, auto-execute needs an ERC20 input — use <span className="text-stone-300">WETH</span> instead of native ETH (or switch to Arbitrum).</p>
                   ) : !vaultReady ? (
                     <p className="text-amber-400/70 text-[11px]">Vault not deployed on this chain yet.</p>
                   ) : !intent.amount ? (
                     <p className="text-amber-400/70 text-[11px]">Order needs a specific amount (e.g. &quot;swap 100 USDC&quot;) for auto-execute.</p>
                   ) : !fromAddr || !toAddr ? (
-                    <p className="text-amber-400/70 text-[11px]">Token pair not supported on Arbitrum yet.</p>
+                    <p className="text-amber-400/70 text-[11px]">Token pair not supported on {isLinea ? "Linea" : "Arbitrum"} yet.</p>
                   ) : (
                     <>
                       <div className="flex items-center justify-between text-[11px]">
@@ -735,7 +747,7 @@ export default function ConditionalOrderPage() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!condPrice || (execMode === "auto" && (!isConnected || !onExecChain || !vaultReady || !intent.amount || needsDeposit))}
+                disabled={!condPrice || (execMode === "auto" && (!isConnected || !onExecChain || lineaNativeEthBlocked || !vaultReady || !intent.amount || needsDeposit))}
                 className="w-full py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-30 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
               >
                 {execMode === "auto" ? "Sign & Create Order" : "Create Order"}

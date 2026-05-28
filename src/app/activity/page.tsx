@@ -10,7 +10,8 @@ import { getArchivedIds, archive, unarchive } from "@/lib/archivedOrders";
 import { TOKEN_ICONS, CHAIN_NAMES, getChainTokens, getTokenDecimals } from "@/config/tokens";
 import { VAULT_ADDRESSES, VAULT_ABI, isVaultDeployed } from "@/lib/vault";
 
-const VAULT_CHAIN_ID = 42161; // MVP: Arbitrum only
+const EXEC_CHAINS = [42161, 59144]; // chains with a deployed vault (Arbitrum, Linea)
+const CHAIN_SHORT: Record<number, string> = { 42161: "Arbitrum", 59144: "Linea" };
 const ETH_KEY = "0x0000000000000000000000000000000000000000" as Hex;
 const WATCHED_TOKENS = ["ETH", "USDC", "USDT", "DAI", "WBTC", "ARB"] as const;
 
@@ -63,19 +64,19 @@ function normalizeOrders(raw: Array<Partial<ConditionalOrder> & { triggered?: bo
 
 // ─── Vault deposit row (one per token) ───────────────────────────────────
 
-function VaultTokenRow({ symbol }: { symbol: string }) {
+function VaultTokenRow({ symbol, vaultChainId }: { symbol: string; vaultChainId: number }) {
   const { address } = useAccount();
-  const chainTokens = getChainTokens(VAULT_CHAIN_ID).tokens;
+  const chainTokens = getChainTokens(vaultChainId).tokens;
   // The vault uses address(0) as the ETH key, but for ERC20s we use the token's contract address.
   const key: Hex = symbol === "ETH" ? ETH_KEY : (chainTokens[symbol] as Hex);
-  const vaultAddr = VAULT_ADDRESSES[VAULT_CHAIN_ID];
+  const vaultAddr = VAULT_ADDRESSES[vaultChainId];
 
   const { data: balance, refetch } = useReadContract({
     address: vaultAddr,
     abi: VAULT_ABI,
     functionName: "getUserDeposit",
     args: address && key ? [address as Hex, key] : undefined,
-    chainId: VAULT_CHAIN_ID,
+    chainId: vaultChainId,
     query: { enabled: !!address && !!key },
   });
 
@@ -96,7 +97,7 @@ function VaultTokenRow({ symbol }: { symbol: string }) {
       abi: VAULT_ABI,
       functionName: "withdraw",
       args: [key, bal],
-      chainId: VAULT_CHAIN_ID,
+      chainId: vaultChainId,
     });
   };
 
@@ -123,18 +124,18 @@ function VaultPanel() {
   const chainId = useChainId();
 
   if (!isConnected) return null;
-  if (chainId !== VAULT_CHAIN_ID) return null; // MVP: only Arbitrum
-  if (!isVaultDeployed(VAULT_CHAIN_ID)) return null;
+  if (!EXEC_CHAINS.includes(chainId)) return null; // only on chains with a vault
+  if (!isVaultDeployed(chainId)) return null;
 
   return (
     <div className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4 mb-5">
       <div className="flex items-center justify-between mb-2">
         <span className="text-stone-500 text-[10px] tracking-widest uppercase">Vault deposits</span>
-        <span className="text-stone-700 text-[10px]">Arbitrum</span>
+        <span className="text-stone-700 text-[10px]">{CHAIN_SHORT[chainId] ?? "Vault"}</span>
       </div>
       <div className="divide-y divide-stone-800/40">
         {WATCHED_TOKENS.map((sym) => (
-          <VaultTokenRow key={sym} symbol={sym} />
+          <VaultTokenRow key={sym} symbol={sym} vaultChainId={chainId} />
         ))}
       </div>
     </div>
@@ -161,6 +162,7 @@ function ActivityContent() {
   const [showArchived, setShowArchived] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const searchParams = useSearchParams();
+  const connectedChainId = useChainId();
 
   // Apply ?filter= from URL on mount (so /history → /activity?filter=swaps still does what users expect)
   useEffect(() => {
@@ -232,13 +234,16 @@ function ActivityContent() {
   const { writeContract: writeCancelOnChain, data: cancelOnChainTx, isPending: cancelOnChainPending } = useWriteContract();
   const { isSuccess: cancelOnChainConfirmed } = useWaitForTransactionReceipt({ hash: cancelOnChainTx });
   const handleCancelAllAuto = async () => {
-    if (!isVaultDeployed(VAULT_CHAIN_ID)) return;
+    if (!EXEC_CHAINS.includes(connectedChainId) || !isVaultDeployed(connectedChainId)) {
+      alert("Switch to the chain your order is on (Arbitrum or Linea) to cancel it.");
+      return;
+    }
     writeCancelOnChain({
-      address: VAULT_ADDRESSES[VAULT_CHAIN_ID],
+      address: VAULT_ADDRESSES[connectedChainId],
       abi: VAULT_ABI,
       functionName: "cancelOrders",
       args: [],
-      chainId: VAULT_CHAIN_ID,
+      chainId: connectedChainId,
     });
   };
   // After the on-chain cancel confirms, also remove all auto-execute orders from the backend DB
