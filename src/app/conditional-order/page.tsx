@@ -84,6 +84,19 @@ const CONDITION_TOKENS = [
 type Step = "form" | "submitting" | "done" | "error";
 type ExecMode = "notify" | "auto";
 
+// Heuristic: browser Web Push relies on Google FCM (Chrome/Edge) which is
+// GFW-blocked in mainland China, so push silently never arrives there. Detect
+// likely-CN by timezone + language and hide the push option in that case.
+function isLikelyChina(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    if (/Shanghai|Urumqi|Chongqing|Harbin/i.test(tz)) return true;
+    if ((navigator.language || "").toLowerCase().startsWith("zh-cn")) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
 export default function ConditionalOrderPage() {
   const router = useRouter();
   const subStatus = useSubscription();
@@ -100,6 +113,11 @@ export default function ConditionalOrderPage() {
   const [condOp, setCondOp] = useState<"above" | "below">("below");
   const [condPrice, setCondPrice] = useState("");
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+
+  // Web Push is unreliable in mainland China (FCM blocked). Detect client-side
+  // after mount to avoid a hydration mismatch.
+  const [hidePush, setHidePush] = useState(false);
+  useEffect(() => { setHidePush(isLikelyChina()); }, []);
 
   // ─── Auto-execute (Arbitrum + Linea) ──────────────────────────────────
   const [execMode, setExecMode] = useState<ExecMode>("auto");
@@ -569,45 +587,54 @@ export default function ConditionalOrderPage() {
             <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2.5">
               <p className="text-stone-500 text-[10px] tracking-widest uppercase">Notify me when triggered <span className="text-stone-700 normal-case tracking-normal font-normal">(optional)</span></p>
 
-              {/* 浏览器推送 */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (pushState === "idle") preparePush();
-                }}
-                disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-xs transition-colors ${
-                  pushState === "subscribed"
-                    ? "bg-gold-500/10 border-gold-500/30 text-gold-300"
-                    : pushState === "ready"
-                    ? "bg-stone-800/60 border-stone-600/50 text-stone-200"
-                    : pushState === "denied"
-                    ? "bg-stone-900/40 border-stone-800/40 text-stone-600 cursor-not-allowed"
-                    : pushState === "requesting"
-                    ? "bg-stone-900/40 border-stone-800/40 text-stone-500 cursor-wait"
-                    : "bg-stone-900/60 border-stone-700/60 text-stone-300 hover:border-stone-600 hover:text-stone-200"
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <span className="text-base">{pushState === "subscribed" || pushState === "ready" ? "🔔" : "🔕"}</span>
-                  <span>
-                    {pushState === "subscribed" && "Browser notifications on"}
-                    {pushState === "ready" && "Ready — activates on order creation"}
-                    {pushState === "denied" && "Notifications blocked in browser settings"}
-                    {pushState === "requesting" && "Requesting permission..."}
-                    {pushState === "unsupported" && "Push not supported in this browser"}
-                    {pushState === "idle" && "Enable browser notifications"}
+              {/* 浏览器推送 — 国内 FCM 被墙,隐藏并提示用邮件 */}
+              {hidePush ? (
+                <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl border border-stone-800/50 bg-stone-900/40">
+                  <span className="text-base shrink-0">📧</span>
+                  <p className="text-stone-500 text-[11px] leading-relaxed">
+                    浏览器推送在国内网络收不到(依赖被墙的 Google 服务)。请填邮箱接收触发通知——邮件走 <span className="text-stone-300">intent-swap.app</span> 不受影响。
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pushState === "idle") preparePush();
+                  }}
+                  disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-xs transition-colors ${
+                    pushState === "subscribed"
+                      ? "bg-gold-500/10 border-gold-500/30 text-gold-300"
+                      : pushState === "ready"
+                      ? "bg-stone-800/60 border-stone-600/50 text-stone-200"
+                      : pushState === "denied"
+                      ? "bg-stone-900/40 border-stone-800/40 text-stone-600 cursor-not-allowed"
+                      : pushState === "requesting"
+                      ? "bg-stone-900/40 border-stone-800/40 text-stone-500 cursor-wait"
+                      : "bg-stone-900/60 border-stone-700/60 text-stone-300 hover:border-stone-600 hover:text-stone-200"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-base">{pushState === "subscribed" || pushState === "ready" ? "🔔" : "🔕"}</span>
+                    <span>
+                      {pushState === "subscribed" && "Browser notifications on"}
+                      {pushState === "ready" && "Ready — activates on order creation"}
+                      {pushState === "denied" && "Notifications blocked in browser settings"}
+                      {pushState === "requesting" && "Requesting permission..."}
+                      {pushState === "unsupported" && "Push not supported in this browser"}
+                      {pushState === "idle" && "Enable browser notifications"}
+                    </span>
                   </span>
-                </span>
-                {pushState === "idle" && <span className="text-stone-600 text-sm">→</span>}
-              </button>
+                  {pushState === "idle" && <span className="text-stone-600 text-sm">→</span>}
+                </button>
+              )}
 
               {/* 邮件 */}
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="or enter email address"
+                placeholder={hidePush ? "your@email.com — 接收触发通知" : "or enter email address"}
                 className="w-full bg-stone-900/60 border border-stone-700/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none focus:border-stone-500 transition-colors"
               />
             </div>
