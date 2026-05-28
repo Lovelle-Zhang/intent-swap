@@ -29,13 +29,16 @@ if (!fs.existsSync(ARTIFACT_PATH)) {
 }
 const ARTIFACT = JSON.parse(fs.readFileSync(ARTIFACT_PATH, "utf8"));
 
-// Uniswap V3 SwapRouter — 同地址部署在 Ethereum + Arbitrum + Linea
-const SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+// Uniswap V3 SwapRouter — same address on Ethereum + Arbitrum
+const UNIV3_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+// iZiSwap (Izumi) Swap router on Linea
+const IZUMI_ROUTER_LINEA = "0x032b241De86a8660f1Ae0691a4760B426EA246d7";
 
+// dexType: 0 = Uniswap V3, 1 = iZiSwap/Izumi
 const CHAINS = {
-  mainnet: { chain: mainnet, rpc: "https://rpc.ankr.com/eth", explorer: "https://etherscan.io" },
-  arbitrum: { chain: arbitrum, rpc: "https://arb1.arbitrum.io/rpc", explorer: "https://arbiscan.io" },
-  linea: { chain: linea, rpc: "https://rpc.linea.build", explorer: "https://lineascan.build" },
+  mainnet:  { chain: mainnet,  rpc: "https://rpc.ankr.com/eth",      explorer: "https://etherscan.io",   router: UNIV3_ROUTER,        dexType: 0 },
+  arbitrum: { chain: arbitrum, rpc: "https://arb1.arbitrum.io/rpc",  explorer: "https://arbiscan.io",    router: UNIV3_ROUTER,        dexType: 0 },
+  linea:    { chain: linea,    rpc: "https://rpc.linea.build",       explorer: "https://lineascan.build", router: IZUMI_ROUTER_LINEA, dexType: 1 },
 };
 
 async function deploy() {
@@ -60,7 +63,7 @@ async function deploy() {
   console.log(`Deploying ConditionalSwapVault to ${network}...`);
   console.log(`  Deployer: ${account.address}`);
   console.log(`  Keeper:   ${keeperAddress}`);
-  console.log(`  Router:   ${SWAP_ROUTER}`);
+  console.log(`  Router:   ${config.router} (dexType ${config.dexType === 1 ? "1 = iZiSwap" : "0 = Uniswap V3"})`);
   console.log(`  Compiler: ${ARTIFACT.compiler}`);
 
   // 部署前先查余额，避免空钱包白白等
@@ -74,7 +77,7 @@ async function deploy() {
   const hash = await walletClient.deployContract({
     abi: ARTIFACT.abi,
     bytecode: ARTIFACT.bytecode,
-    args: [SWAP_ROUTER, keeperAddress],
+    args: [config.router, keeperAddress, config.dexType],
   });
 
   console.log(`  Tx: ${hash}`);

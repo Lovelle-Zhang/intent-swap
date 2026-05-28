@@ -48,6 +48,20 @@ interface ISwapRouter {
     function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
 }
 
+// iZiSwap (Izumi) periphery Swap router — used on Linea where there's no Uniswap V3.
+// Path is encoded identically to Uniswap V3 (token,uint24 fee,token,…).
+interface IiZiSwap {
+    struct SwapAmountParams {
+        bytes path;
+        address recipient;
+        uint128 amount;
+        uint256 minAcquired;
+        uint256 deadline;
+    }
+    function swapAmount(SwapAmountParams calldata params)
+        external payable returns (uint256 cost, uint256 acquire);
+}
+
 contract ConditionalSwapVault {
     // ─── EIP-712 ───────────────────────────────────────────────────────
 
@@ -61,6 +75,8 @@ contract ConditionalSwapVault {
     // ─── Storage ───────────────────────────────────────────────────────
 
     address public immutable swapRouter;
+    // 0 = Uniswap V3 (Ethereum / Arbitrum), 1 = iZiSwap/Izumi (Linea)
+    uint8 public immutable dexType;
     address public owner;
     address public keeper;
 
@@ -104,8 +120,10 @@ contract ConditionalSwapVault {
 
     // ─── Constructor ───────────────────────────────────────────────────
 
-    constructor(address _swapRouter, address _keeper) {
+    constructor(address _swapRouter, address _keeper, uint8 _dexType) {
+        require(_dexType <= 1, "Bad dexType");
         swapRouter = _swapRouter;
+        dexType = _dexType;
         owner = msg.sender;
         keeper = _keeper;
 
@@ -204,6 +222,13 @@ contract ConditionalSwapVault {
     }
 
     function _executeSwap(Order calldata order) internal returns (uint256 amountOut) {
+        if (dexType == 1) {
+            return _executeSwapIzumi(order);
+        }
+        return _executeSwapUniV3(order);
+    }
+
+    function _executeSwapUniV3(Order calldata order) internal returns (uint256 amountOut) {
         bool isETH = order.tokenIn == address(0);
         uint256 value = isETH ? order.amountIn : 0;
 
@@ -237,6 +262,28 @@ contract ConditionalSwapVault {
                 })
             );
         }
+    }
+
+    // iZiSwap path/fee layout matches Uniswap V3, so order.path is reused as-is.
+    // MVP: ERC20 input only — native ETH on Izumi would need wrap/unwrap/refund
+    // plumbing we intentionally skip. swapAmount handles single- and multi-hop
+    // uniformly, so isMultiHop is ignored here.
+    function _executeSwapIzumi(Order calldata order) internal returns (uint256 amountOut) {
+        require(order.tokenIn != address(0), "Izumi: ERC20 only");
+        require(order.amountIn <= type(uint128).max, "amountIn overflow");
+
+        IERC20(order.tokenIn).approve(swapRouter, order.amountIn);
+
+        (, uint256 acquire) = IiZiSwap(swapRouter).swapAmount(
+            IiZiSwap.SwapAmountParams({
+                path: order.path,
+                recipient: order.user,
+                amount: uint128(order.amountIn),
+                minAcquired: order.amountOutMinimum,
+                deadline: order.deadline
+            })
+        );
+        amountOut = acquire;
     }
 
     // ─── View helpers ──────────────────────────────────────────────────
