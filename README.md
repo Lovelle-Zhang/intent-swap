@@ -4,7 +4,7 @@
 
 A natural-language DEX interface. Type what you want — *"Swap 0.1 ETH to USDC"*, *"When ETH drops to $2200, buy 0.1 ETH with USDC"* — and the app parses your intent, finds the best route, and executes the trade.
 
-**Live**: [intent-swap-phi.vercel.app](https://intent-swap-phi.vercel.app/)
+**Live**: [intent-swap.app](https://intent-swap.app/)
 
 ## Features
 

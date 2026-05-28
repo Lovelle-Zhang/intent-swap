@@ -183,8 +183,8 @@ function emailHtml({ executed, fromToken, toToken, amount, token, currentPrice, 
     ? `<span style="display:inline-block;padding:2px 8px;font-size:11px;background:#dcfce7;color:#166534;border-radius:4px;">Executed on-chain</span>`
     : `<span style="display:inline-block;padding:2px 8px;font-size:11px;background:#fef3c7;color:#92400e;border-radius:4px;">Action required</span>`;
   const cta = executed
-    ? `<a href="https://intent-swap-phi.vercel.app/activity?filter=orders" style="display:inline-block;background:#f59e0b;color:#1c1917;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;font-size:13px;">View your activity →</a>`
-    : `<a href="${executeDeepUrl || "https://intent-swap-phi.vercel.app"}" style="display:inline-block;background:#f59e0b;color:#1c1917;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;font-size:13px;">Execute swap →</a>`;
+    ? `<a href="https://intent-swap.app/activity?filter=orders" style="display:inline-block;background:#f59e0b;color:#1c1917;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;font-size:13px;">View your activity →</a>`
+    : `<a href="${executeDeepUrl || "https://intent-swap.app"}" style="display:inline-block;background:#f59e0b;color:#1c1917;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:500;font-size:13px;">Execute swap →</a>`;
   const title = executed
     ? `Swap executed: ${fromToken} → ${toToken}`
     : `${token} price ${operator === "below" ? "dropped" : "rose"} past your target`;
@@ -219,7 +219,7 @@ function wechatMarkdown({ executed, fromToken, toToken, amount, token, currentPr
     `| 目标 | ${operator} $${targetPrice.toLocaleString()} |`,
     `| 状态 | 已上链 ✓ |`,
     ``,
-    `[查看我的订单 →](https://intent-swap-phi.vercel.app/activity?filter=orders)`,
+    `[查看我的订单 →](https://intent-swap.app/activity?filter=orders)`,
     ``,
     `链上凭证：[查看交易 ↗](${txUrl})`,
     ``,
@@ -234,7 +234,7 @@ function wechatMarkdown({ executed, fromToken, toToken, amount, token, currentPr
     `| 你的目标 | ${operator} $${targetPrice.toLocaleString()} |`,
     `| 数量 | ${amount} ${fromToken} |`,
     ``,
-    `[立即执行 →](${executeDeepUrl || "https://intent-swap-phi.vercel.app"})`,
+    `[立即执行 →](${executeDeepUrl || "https://intent-swap.app"})`,
     ``,
     `Order: \`${orderId}\``,
   ];
@@ -355,7 +355,7 @@ async function sendAlert(order, currentPrice) {
   // ── Notifications (chain-aware, each channel isolated) ──
   const chainIdForUrl = order?.exec?.chainId || chainId || 1;
   const txUrl = txExplorerUrl(txHash, chainIdForUrl);
-  const executeDeepUrl = `https://intent-swap-phi.vercel.app/execute?from=${encodeURIComponent(fromToken)}&to=${encodeURIComponent(toToken)}&amount=${encodeURIComponent(amount)}&orderId=${encodeURIComponent(id)}`;
+  const executeDeepUrl = `https://intent-swap.app/execute?from=${encodeURIComponent(fromToken)}&to=${encodeURIComponent(toToken)}&amount=${encodeURIComponent(amount)}&orderId=${encodeURIComponent(id)}`;
   const notifData = {
     executed: autoExecuted,
     fromToken, toToken, amount,
@@ -368,7 +368,7 @@ async function sendAlert(order, currentPrice) {
     : `[Intent Swap] ${token} price alert · execute now`;
   const wxBody = wechatMarkdown(notifData);
   const emailHtmlStr = emailHtml(notifData);
-  const emailTextFallback = `${autoExecuted ? "Swap executed" : "Price alert"}: ${fromToken} → ${toToken} (${token} now ${currentPrice.toFixed(2)}, target ${operator} ${targetPrice.toLocaleString()}). View: ${txUrl || "https://intent-swap-phi.vercel.app"}`;
+  const emailTextFallback = `${autoExecuted ? "Swap executed" : "Price alert"}: ${fromToken} → ${toToken} (${token} now ${currentPrice.toFixed(2)}, target ${operator} ${targetPrice.toLocaleString()}). View: ${txUrl || "https://intent-swap.app"}`;
 
   // Mark before sending so we know what was attempted even if process crashes
   db.get("orders").find({ id }).assign({
