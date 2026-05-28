@@ -9,7 +9,7 @@ import { encodePacked, keccak256, encodeAbiParameters, parseAbiParameters, type 
 export const VAULT_ADDRESSES: Record<number, Hex> = {
   1:     "0x52a8fe40324621d310ede9bfd20396b82dfec0ee", // Ethereum Mainnet
   42161: "0x3e89119234c0635e861cce71efa274f1defd6818", // Arbitrum
-  59144: "0x0000000000000000000000000000000000000000", // TODO: deploy to linea (needs Izumi adapter)
+  59144: "0x568b8946697ac7e2c6bb1f1be9e5946e9c800097", // Linea (iZiSwap, ERC20-only)
 };
 
 export const VAULT_ABI = [

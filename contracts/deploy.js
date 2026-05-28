@@ -49,12 +49,13 @@ async function deploy() {
   const config = CHAINS[network];
   if (!config) throw new Error(`Unknown network: ${network}`);
 
-  const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+  let privateKey = process.env.DEPLOYER_PRIVATE_KEY;
   const keeperAddress = process.env.KEEPER_ADDRESS;
   if (!privateKey || !keeperAddress) {
     console.error("Missing DEPLOYER_PRIVATE_KEY or KEEPER_ADDRESS in .env.local");
     process.exit(1);
   }
+  if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey; // normalize
 
   const account = privateKeyToAccount(privateKey);
   const walletClient = createWalletClient({ account, chain: config.chain, transport: http(config.rpc) });
