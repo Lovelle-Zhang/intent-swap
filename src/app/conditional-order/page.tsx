@@ -589,77 +589,6 @@ export default function ConditionalOrderPage() {
               )}
             </div>
 
-            {/* 通知方式 */}
-            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2.5">
-              <p className="text-stone-500 text-[10px] tracking-widest uppercase">
-                Notify me when triggered{" "}
-                <span className={`normal-case tracking-normal font-normal ${execMode === "notify" ? "text-gold-400/70" : "text-stone-700"}`}>
-                  {execMode === "notify" ? "· email recommended" : "(optional)"}
-                </span>
-              </p>
-
-              {execMode === "notify" && (
-                <p className="text-stone-600 text-[11px] leading-relaxed">
-                  In notify mode this is your only heads-up that the price hit — add an email so you don&apos;t miss it.
-                </p>
-              )}
-
-              {/* 浏览器推送 — 国内 FCM 被墙,隐藏并提示用邮件 */}
-              {hidePush ? (
-                <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl border border-stone-800/50 bg-stone-900/40">
-                  <span className="text-base shrink-0">📧</span>
-                  <p className="text-stone-500 text-[11px] leading-relaxed">
-                    浏览器推送在国内网络收不到(依赖被墙的 Google 服务)。请填邮箱接收触发通知——邮件走 <span className="text-stone-300">intent-swap.app</span> 不受影响。
-                  </p>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (pushState === "idle") preparePush();
-                  }}
-                  disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-xs transition-colors ${
-                    pushState === "subscribed"
-                      ? "bg-gold-500/10 border-gold-500/30 text-gold-300"
-                      : pushState === "ready"
-                      ? "bg-stone-800/60 border-stone-600/50 text-stone-200"
-                      : pushState === "denied"
-                      ? "bg-stone-900/40 border-stone-800/40 text-stone-600 cursor-not-allowed"
-                      : pushState === "requesting"
-                      ? "bg-stone-900/40 border-stone-800/40 text-stone-500 cursor-wait"
-                      : "bg-stone-900/60 border-stone-700/60 text-stone-300 hover:border-stone-600 hover:text-stone-200"
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span className="text-base">{pushState === "subscribed" || pushState === "ready" ? "🔔" : "🔕"}</span>
-                    <span>
-                      {pushState === "subscribed" && "Browser notifications on"}
-                      {pushState === "ready" && "Ready — activates on order creation"}
-                      {pushState === "denied" && "Notifications blocked in browser settings"}
-                      {pushState === "requesting" && "Requesting permission..."}
-                      {pushState === "unsupported" && "Push not supported in this browser"}
-                      {pushState === "idle" && "Enable browser notifications"}
-                    </span>
-                  </span>
-                  {pushState === "idle" && <span className="text-stone-600 text-sm">→</span>}
-                </button>
-              )}
-
-              {/* 邮件 — notify 模式下高亮为主通道 */}
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={execMode === "notify" || hidePush ? "your@email.com — get notified when triggered" : "or enter email address"}
-                className={`w-full bg-stone-900/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none transition-colors border ${
-                  execMode === "notify" && !email
-                    ? "border-gold-500/40 focus:border-gold-500/70"
-                    : "border-stone-700/60 focus:border-stone-500"
-                }`}
-              />
-            </div>
-
             {/* Execution mode */}
             <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-3">
               <p className="text-stone-500 text-[10px] tracking-widest uppercase">When condition hits</p>
@@ -785,6 +714,77 @@ export default function ConditionalOrderPage() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* 通知方式 */}
+            <div className="bg-stone-900/40 border border-stone-800/60 rounded-xl px-5 py-4 space-y-2.5">
+              <p className="text-stone-500 text-[10px] tracking-widest uppercase">
+                Notify me when triggered{" "}
+                <span className={`normal-case tracking-normal font-normal ${execMode === "notify" ? "text-gold-400/70" : "text-stone-700"}`}>
+                  {execMode === "notify" ? "· email recommended" : "(optional)"}
+                </span>
+              </p>
+
+              {execMode === "notify" && (
+                <p className="text-stone-600 text-[11px] leading-relaxed">
+                  In notify mode this is your only heads-up that the price hit — add an email so you don&apos;t miss it.
+                </p>
+              )}
+
+              {/* 浏览器推送 — 国内 FCM 被墙,隐藏并提示用邮件 */}
+              {hidePush ? (
+                <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl border border-stone-800/50 bg-stone-900/40">
+                  <span className="text-base shrink-0">📧</span>
+                  <p className="text-stone-500 text-[11px] leading-relaxed">
+                    浏览器推送在国内网络收不到(依赖被墙的 Google 服务)。请填邮箱接收触发通知——邮件走 <span className="text-stone-300">intent-swap.app</span> 不受影响。
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pushState === "idle") preparePush();
+                  }}
+                  disabled={pushState === "requesting" || pushState === "ready" || pushState === "subscribed" || pushState === "unsupported"}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-xs transition-colors ${
+                    pushState === "subscribed"
+                      ? "bg-gold-500/10 border-gold-500/30 text-gold-300"
+                      : pushState === "ready"
+                      ? "bg-stone-800/60 border-stone-600/50 text-stone-200"
+                      : pushState === "denied"
+                      ? "bg-stone-900/40 border-stone-800/40 text-stone-600 cursor-not-allowed"
+                      : pushState === "requesting"
+                      ? "bg-stone-900/40 border-stone-800/40 text-stone-500 cursor-wait"
+                      : "bg-stone-900/60 border-stone-700/60 text-stone-300 hover:border-stone-600 hover:text-stone-200"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-base">{pushState === "subscribed" || pushState === "ready" ? "🔔" : "🔕"}</span>
+                    <span>
+                      {pushState === "subscribed" && "Browser notifications on"}
+                      {pushState === "ready" && "Ready — activates on order creation"}
+                      {pushState === "denied" && "Notifications blocked in browser settings"}
+                      {pushState === "requesting" && "Requesting permission..."}
+                      {pushState === "unsupported" && "Push not supported in this browser"}
+                      {pushState === "idle" && "Enable browser notifications"}
+                    </span>
+                  </span>
+                  {pushState === "idle" && <span className="text-stone-600 text-sm">→</span>}
+                </button>
+              )}
+
+              {/* 邮件 — notify 模式下高亮为主通道 */}
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={execMode === "notify" || hidePush ? "your@email.com — get notified when triggered" : "or enter email address"}
+                className={`w-full bg-stone-900/60 rounded-xl px-4 py-3 text-stone-200 placeholder-stone-700 text-xs focus:outline-none transition-colors border ${
+                  execMode === "notify" && !email
+                    ? "border-gold-500/40 focus:border-gold-500/70"
+                    : "border-stone-700/60 focus:border-stone-500"
+                }`}
+              />
             </div>
 
             {step === "submitting" ? (
