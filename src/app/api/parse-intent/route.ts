@@ -104,7 +104,7 @@ Return ONLY valid JSON with this exact schema:
     "operator": "above" | "below",
     "targetPrice": number
   },
-  "summary": string           // one-line human-readable summary in the same language as input
+  "summary": string           // one-line human-readable summary, ALWAYS in English
 }
 
 Rules:
@@ -112,7 +112,7 @@ Rules:
 - If amount is "half", "一半", "50%": amountType="percentage", amount=50
 - IMPORTANT: When amountType="max", always set amount=null, never set amount=100
 - If a price condition is mentioned (when/if ETH drops below $X): intentType="conditional"
-- For Chinese input, write summary in Chinese
+- Always write the summary in English, even when the user's input is in Chinese or another language (the UI is English-only)
 - Default slippagePref to "normal" unless explicitly mentioned
 - If tokens are ambiguous, default fromToken="ETH", toToken="USDC"
 - If user asks advisory questions ("which is better", "what should I buy"), you may reference current prices to suggest a reasonable swap, but make it clear in the summary that this is not financial advice`;

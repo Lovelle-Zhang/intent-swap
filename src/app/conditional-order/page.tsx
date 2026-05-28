@@ -736,7 +736,7 @@ export default function ConditionalOrderPage() {
                 <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl border border-stone-800/50 bg-stone-900/40">
                   <span className="text-base shrink-0">📧</span>
                   <p className="text-stone-500 text-[11px] leading-relaxed">
-                    浏览器推送在国内网络收不到(依赖被墙的 Google 服务)。请填邮箱接收触发通知——邮件走 <span className="text-stone-300">intent-swap.app</span> 不受影响。
+                    Browser push is unreliable on your network (it depends on Google services). Add an email below instead — delivery runs through <span className="text-stone-300">intent-swap.app</span> and isn&apos;t affected.
                   </p>
                 </div>
               ) : (
