@@ -62,6 +62,20 @@ Set in `/root/intent-swap-server/.env` (auto-loaded by dotenv).
 
 Also see pm2's per-process env (set via `ecosystem.config.js` if present). To inspect: `pm2 env <id>`.
 
+## Notification channels — reliability & why
+
+A triggered order fan-outs to three channels in `Promise.allSettled` (one failing doesn't block the others). Their real-world reliability differs a lot:
+
+| Channel | Per-user? | Reliable? | Notes |
+|---|---|---|---|
+| **Email (Resend)** | ✅ yes | ✅ everywhere | The only globally-dependable per-user channel. Runs over HTTPS to Resend, unaffected by the GFW (unlike the old Gmail SMTP, which was blocked from the China host). **Treat email as the primary channel.** |
+| **Web Push (VAPID)** | ✅ yes | ⚠️ partial | Works on overseas desktop/Android. **Broken in mainland China** (Chrome/Edge push routes through Google FCM, which is GFW-blocked) and **iOS only if the site is installed as a PWA** (Safari tabs can't receive it). The frontend hides the "Enable browser notifications" button for likely-CN users (timezone/`zh-CN` heuristic) and steers them to email. |
+| **WeChat (Server Chan)** | ❌ **owner-only** | ✅ for the owner | `SCT_KEY` is a single Server Chan token bound to the project owner's WeChat — every alert goes to that one person, **not** to the end user who placed the order. It's effectively an ops/monitoring alert, not a user notification channel. Per-user WeChat would require a separate binding (Server Chan per user, or a WeChat Official Account) that doesn't exist yet. |
+
+**Operational implication:** if a user reports "I didn't get notified," check email delivery first (Resend dashboard / logs). Push silence is expected for CN users. WeChat reaching the owner is normal and unrelated to per-user delivery.
+
+If `GET /vapid-public-key` ever returns an empty `publicKey`, the `VAPID_PUBLIC`/`VAPID_PRIVATE` env vars got dropped on the host — Web Push is silently disabled until they're restored.
+
 ## Deploying changes
 
 ### Updating server.js (or any monitor file)
