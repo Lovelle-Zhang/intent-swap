@@ -62,7 +62,7 @@ DEPLOYMENT.md    Deployment guide
 
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for Vercel setup, monitor service deployment, and Nginx config.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for Vercel setup, [monitor/OPERATIONS.md](./monitor/OPERATIONS.md) for the trigger service, and [contracts/SECURITY.md](./contracts/SECURITY.md) for deployed vault addresses, verification, and the security review.
 
 ## License
 
