@@ -133,12 +133,17 @@ function requireKey(req, res, next) {
 }
 
 // DB
-const adapter = new FileSync("orders.json");
+// DATA_DIR allows mounting a persistent volume on hosts with ephemeral FS
+// (Railway: set DATA_DIR=/data and attach a volume at /data). Defaults to
+// the working directory so local dev + the Aliyun server keep working.
+const DATA_DIR = process.env.DATA_DIR || ".";
+try { _fs.mkdirSync(DATA_DIR, { recursive: true }); } catch {}
+const adapter = new FileSync(_path.join(DATA_DIR, "orders.json"));
 const db = low(adapter);
 db.defaults({ orders: [], pushSubscriptions: [], subscriptions: [] }).write();
 
 // 订阅 DB（独立文件，避免和 orders.json 混）
-const subAdapter = new FileSync("subscriptions.json");
+const subAdapter = new FileSync(_path.join(DATA_DIR, "subscriptions.json"));
 const subDb = low(subAdapter);
 subDb.defaults({ subscriptions: [], usedTxHashes: [] }).write();
 
@@ -570,5 +575,7 @@ app.get("/subscriptions/check", (req, res) => {
   res.json({ active, expiresAt: sub.expiresAt });
 });
 
-const PORT = 3002;
+// Railway / Render / etc. inject PORT; fall back to 3002 for the legacy
+// Aliyun deploy where nginx upstreams to a fixed port.
+const PORT = Number(process.env.PORT) || 3002;
 app.listen(PORT, () => console.log(`[${new Date().toISOString()}] intent-swap-server running on port ${PORT}`));
