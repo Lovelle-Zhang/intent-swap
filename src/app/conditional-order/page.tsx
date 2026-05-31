@@ -8,6 +8,7 @@ import { useAccount, useChainId, useSwitchChain, useReadContract, useWriteContra
 import { parseUnits, formatUnits, encodePacked, type Hex } from "viem";
 import type { ParsedIntent } from "@/app/preview/page";
 import { useWebPush } from "@/hooks/useWebPush";
+import { WalletConnectHelp } from "@/components/WalletConnectHelp";
 import { CHAIN_TOKENS, DEFAULT_CHAIN_ID, getChainTokens, resolveTokenAddress, getTokenDecimals } from "@/config/tokens";
 import { fetchTokenPrice } from "@/lib/prices";
 import { VAULT_ADDRESSES, VAULT_ABI, buildOrderTypedData, isVaultDeployed, type VaultOrder } from "@/lib/vault";
@@ -647,15 +648,18 @@ export default function ConditionalOrderPage() {
               {execMode === "auto" && (
                 <div className="space-y-2.5">
                   {!isConnected ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-stone-600 text-[11px]">Wallet required to pre-fund the vault.</p>
-                      <ConnectButton.Custom>
-                        {({ openConnectModal }) => (
-                          <button type="button" onClick={openConnectModal} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0">
-                            Connect
-                          </button>
-                        )}
-                      </ConnectButton.Custom>
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-stone-600 text-[11px]">Wallet required to pre-fund the vault.</p>
+                        <ConnectButton.Custom>
+                          {({ openConnectModal }) => (
+                            <button type="button" onClick={openConnectModal} className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-stone-200 text-[11px] transition-colors shrink-0">
+                              Connect
+                            </button>
+                          )}
+                        </ConnectButton.Custom>
+                      </div>
+                      <WalletConnectHelp />
                     </div>
                   ) : !onExecChain ? (
                     <div className="flex items-center justify-between gap-2">

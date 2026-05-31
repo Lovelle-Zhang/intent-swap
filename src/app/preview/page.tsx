@@ -6,6 +6,7 @@ import { useAccount, useBalance, useChainId, useSwitchChain } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { SwapPreviewCard } from "@/components/SwapPreviewCard";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WalletConnectHelp } from "@/components/WalletConnectHelp";
 import { resolveTokenAddress } from "@/config/tokens";
 import { fetchEthPrice } from "@/lib/prices";
 
@@ -333,6 +334,12 @@ export default function PreviewPage() {
             </button>
           )}
         </div>
+
+        {!isConnected && (
+          <div className="px-1">
+            <WalletConnectHelp />
+          </div>
+        )}
 
         <p className="text-center text-stone-700 text-xs">
           {isConditional
