@@ -42,17 +42,49 @@ function extractSlippage(text: string): "low" | "normal" | "high" {
   return "normal";
 }
 
+// Best-effort condition extractor for the LLM-fallback path. The LLM is the
+// primary parser; this only fires when the LLM is unavailable (no key, rate
+// limit, timeout). Without it, every "buy ETH if ETH drops to $X" gets
+// mis-classified as a plain swap.
+function extractCondition(text: string): { token: string; operator: "above" | "below"; targetPrice: number } | null {
+  // Match: (if|when|once) ... <verb/operator> ... $<number>[kKmM]
+  const re = /(?:if|when|once)[\s\S]{0,40}?\$?\s*([\d][\d,.]*)\s*([kKmM])?/i;
+  const m = text.match(re);
+  if (!m) return null;
+  let num = parseFloat(m[1].replace(/,/g, ""));
+  if (!isFinite(num)) return null;
+  if (m[2]?.toLowerCase() === "k") num *= 1e3;
+  if (m[2]?.toLowerCase() === "m") num *= 1e6;
+
+  // Token the condition watches (try to find a known symbol near the condition)
+  const normalized = normalizeText(text);
+  const token = TOKENS.find((t) => new RegExp(`\\b${t}\\b`).test(normalized)) ?? null;
+  if (!token) return null;
+
+  // Operator: down-language → below, up-language → above. Default below
+  // (most common "buy the dip" intent), but "above|rises|>|reaches" wins.
+  const lc = text.toLowerCase();
+  let operator: "above" | "below" = "below";
+  if (/(rises?|raise|above|over|exceeds?|breaks?|hits?|>(?!=)|>=)/.test(lc)) operator = "above";
+  if (/(drops?|falls?|sinks?|below|under|<(?!=)|<=|跌|降)/.test(lc)) operator = "below";
+
+  return { token, operator, targetPrice: num };
+}
+
 function ruleParse(intent: string) {
   const fromToken = extractToken(intent);
   const toToken = extractToken(intent, fromToken);
   const { amount, amountType } = extractAmount(intent);
   const slippagePref = extractSlippage(intent);
+  const condition = extractCondition(intent);
   const amountStr = amount === null ? "some" : amountType === "percentage" ? `${amount}%` : amountType === "max" ? "all" : `${amount}`;
   return {
-    intentType: "swap",
+    intentType: condition ? "conditional" : "swap",
     fromToken, toToken, amount, amountType, slippagePref,
-    condition: null,
-    summary: `Swap ${amountStr} ${fromToken} → ${toToken} with ${slippagePref} slippage`,
+    condition,
+    summary: condition
+      ? `Swap ${amountStr} ${fromToken} → ${toToken} when ${condition.token} ${condition.operator} $${condition.targetPrice.toLocaleString()}`
+      : `Swap ${amountStr} ${fromToken} → ${toToken} with ${slippagePref} slippage`,
     parsedBy: "rules",
   };
 }

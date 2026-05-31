@@ -301,8 +301,18 @@ export default function PreviewPage() {
             ← Revise
           </button>
 
-          {!isConnected ? (
-            // 未连接：显示连接按钮
+          {/* Conditional orders: let the user configure the trigger without
+              connecting first — the wallet is only needed on the next page
+              when actually depositing. Instant swaps still require a wallet
+              upfront (the next step IS the on-chain swap). */}
+          {isConditional ? (
+            <button
+              onClick={handleConfirm}
+              className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-colors"
+            >
+              Set trigger →
+            </button>
+          ) : !isConnected ? (
             <div className="flex-1">
               <ConnectButton.Custom>
                 {({ openConnectModal }) => (
@@ -316,7 +326,6 @@ export default function PreviewPage() {
               </ConnectButton.Custom>
             </div>
           ) : isWrongChain ? (
-            // 链不对：禁用 Confirm
             <button
               disabled
               className="flex-1 py-3 bg-gold-500/40 cursor-not-allowed text-stone-950/60 font-medium rounded-xl text-sm"
@@ -324,13 +333,12 @@ export default function PreviewPage() {
               Wrong network
             </button>
           ) : (
-            // 链正确：正常 Confirm
             <button
               onClick={handleConfirm}
               disabled={insufficientBalance}
               className="flex-1 py-3 bg-gold-500 hover:bg-gold-400 disabled:opacity-40 disabled:cursor-not-allowed text-stone-950 font-medium rounded-xl text-sm transition-colors"
             >
-              {insufficientBalance ? "Insufficient balance" : isConditional ? "Set trigger →" : "Confirm & Swap"}
+              {insufficientBalance ? "Insufficient balance" : "Confirm & Swap"}
             </button>
           )}
         </div>

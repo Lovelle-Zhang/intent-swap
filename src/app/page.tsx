@@ -179,16 +179,48 @@ export default function Home() {
 
           {/* Token 搜索 — 可折叠 */}
           <TokenSearchCollapsible chainId={chainId} onSelect={handleTokenSelect} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
+          {/* How it works — 3-step explainer for first-time visitors */}
+          <div className="mt-12 md:mt-16">
+            <div className="text-center mb-6 md:mb-8">
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">How it works</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {[
+                { n: "01", t: "Say what you want", d: "In plain English. \"Buy 0.1 ETH if ETH drops to $2200.\"" },
+                { n: "02", t: "Pre-fund a non-custodial Vault", d: "Your tokens stay on-chain under your address. You can withdraw any time." },
+                { n: "03", t: "Walk away", d: "When your price hits, the swap runs on-chain automatically. Output lands in your wallet." },
+              ].map((s) => (
+                <div key={s.n} className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4">
+                  <div className="text-gold-500/50 text-[10px] tracking-widest font-mono mb-2">{s.n}</div>
+                  <div className="text-stone-200 text-sm font-medium mb-1.5">{s.t}</div>
+                  <p className="text-stone-500 text-xs leading-relaxed">{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Trust strip — chain badges + verified contracts */}
+          <div className="mt-8 md:mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px]">
+            <span className="text-stone-600 tracking-wide">Live on</span>
+            <a href="https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Ethereum ↗</a>
+            <a href="https://arbiscan.io/address/0x3e89119234c0635e861cce71efa274f1defd6818" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Arbitrum ↗</a>
+            <a href="https://lineascan.build/address/0x568b8946697ac7e2c6bb1f1be9e5946e9c800097" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Linea ↗</a>
+            <span className="text-stone-700">·</span>
+            <a href="https://github.com/Lovelle-Zhang/intent-swap/blob/main/contracts/SECURITY.md" target="_blank" rel="noopener noreferrer" className="text-emerald-500/70 hover:text-emerald-400 transition-colors">
+              ✓ Contracts verified · non-custodial
+            </a>
+          </div>
+
           {/* 底部特性 */}
-          <div className="mt-8 md:mt-10 hidden md:flex items-center justify-center gap-6">
+          <div className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             {[
               { label: "Set & forget" },
               { label: "·" },
               { label: "Push + email alerts" },
               { label: "·" },
-              { label: "Non-custodial" },
+              { label: "Free during beta" },
             ].map((f, i) => (
-              <span key={i} className="text-stone-600 text-[11px] tracking-wider font-light">
+              <span key={i} className="text-stone-700 text-[10px] tracking-wider font-light">
                 {f.label}
               </span>
             ))}
