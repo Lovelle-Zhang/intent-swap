@@ -5,16 +5,11 @@ import { useAccount, useBalance, useDisconnect } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useLogout, usePrivy } from "@privy-io/react-auth";
-import { LoginModal } from "./LoginModal";
 
 export function WalletButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { logout } = useLogout();
-  const { authenticated: privyAuth } = usePrivy();
   const [open, setOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const { data: balance } = useBalance({
@@ -35,25 +30,18 @@ export function WalletButton() {
   // 用 ConnectButton.Custom 获取 openChainModal / openConnectModal
   return (
     <ConnectButton.Custom>
-      {({ chain, openChainModal, mounted }) => {
+      {({ chain, openChainModal, openConnectModal, mounted }) => {
         if (!mounted) return null;
 
         if (!isConnected) {
           return (
-            <>
-              <button
-                onClick={() => setLoginOpen(true)}
-                className="px-3 h-7 rounded-full border border-stone-700 hover:border-stone-500 flex items-center gap-1.5 transition-colors"
-                title="Sign in"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-stone-500" />
-                <span className="text-stone-400 text-[11px] tracking-wide">Sign in</span>
-              </button>
-              <LoginModal
-                open={loginOpen}
-                onClose={() => setLoginOpen(false)}
-              />
-            </>
+            <button
+              onClick={openConnectModal}
+              className="w-7 h-7 rounded-full border border-stone-700 hover:border-stone-500 flex items-center justify-center transition-colors"
+              title="Connect wallet"
+            >
+              <span className="w-2 h-2 rounded-full border border-stone-600" />
+            </button>
           );
         }
 
@@ -127,11 +115,7 @@ export function WalletButton() {
                   {/* 断开连接 */}
                   <div className="pt-2 mt-1 border-t border-stone-800">
                     <button
-                      onClick={() => {
-                        disconnect();
-                        if (privyAuth) logout();
-                        setOpen(false);
-                      }}
+                      onClick={() => { disconnect(); setOpen(false); }}
                       className="w-full text-left px-4 py-2 text-stone-600 hover:text-stone-400 hover:bg-stone-800/30 text-xs transition-colors"
                     >
                       Disconnect

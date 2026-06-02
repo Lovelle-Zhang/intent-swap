@@ -14,9 +14,7 @@ import {
   walletConnectWallet,
   baseAccount,
 } from "@rainbow-me/rainbowkit/wallets";
-import { createConfig } from "wagmi";
-import { WagmiProvider } from "@privy-io/wagmi";
-import { PrivyProvider } from "@privy-io/react-auth";
+import { createConfig, WagmiProvider } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { http, fallback } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -128,68 +126,24 @@ function MobileChainSyncFix() {
   return null;
 }
 
-const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
-
-// When NEXT_PUBLIC_PRIVY_APP_ID isn't set (local dev / branch preview without
-// the env), skip Privy entirely so the rest of the stack keeps building.
-function MaybePrivy({ children }: { children: React.ReactNode }) {
-  if (!privyAppId) return <>{children}</>;
-  return (
-    <PrivyProvider
-      appId={privyAppId}
-      config={{
-        defaultChain: mainnet,
-        supportedChains: [mainnet, linea, arbitrum],
-        loginMethods: ["email", "google", "wallet"],
-        embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
-        appearance: {
-          theme: "dark",
-          accentColor: "#f59e0b",
-          showWalletLoginFirst: false,
-          // External wallets surfaced when the user opts for "Connect a wallet"
-          // in our LoginModal. Ordered for the China user base (OKX + Bitget
-          // have the strongest install rates), with detected_ethereum_wallets
-          // as a catch-all so any extension we haven't named explicitly
-          // (Rabby, Phantom EVM, Brave, etc.) still shows up.
-          walletList: [
-            "detected_ethereum_wallets",
-            "metamask",
-            "okx_wallet",
-            "bitget_wallet",
-            "base_account",
-            "coinbase_wallet",
-            "rainbow",
-            "binance",
-            "wallet_connect",
-          ],
-        },
-      }}
-    >
-      {children}
-    </PrivyProvider>
-  );
-}
-
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <MaybePrivy>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
-          <RainbowKitProvider
-            initialChain={mainnet}
-            locale="en-US"
-            theme={darkTheme({
-              accentColor: "#f59e0b",
-              accentColorForeground: "#0c0a09",
-              borderRadius: "medium",
-              fontStack: "system",
-            })}
-          >
-            <MobileChainSyncFix />
-            {children}
-          </RainbowKitProvider>
-        </WagmiProvider>
+        <RainbowKitProvider
+          initialChain={mainnet}
+          locale="en-US"
+          theme={darkTheme({
+            accentColor: "#f59e0b",
+            accentColorForeground: "#0c0a09",
+            borderRadius: "medium",
+            fontStack: "system",
+          })}
+        >
+          <MobileChainSyncFix />
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
-    </MaybePrivy>
+    </WagmiProvider>
   );
 }
