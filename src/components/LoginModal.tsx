@@ -1,7 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/react-auth";
+import { useLoginWithEmail, useLoginWithOAuth, useConnectWallet } from "@privy-io/react-auth";
+
+// Wallets surfaced in the custom picker. Order matters: most-likely-to-be-
+// installed in our user base first. preSelectedWalletId values come from
+// Privy's WalletListEntry union — passing one here tells Privy to skip its
+// own picker and pop the wallet's native approval popup directly.
+const WALLET_OPTIONS: { id: string; name: string; hint?: string; icon: string }[] = [
+  { id: "metamask",      name: "MetaMask",     icon: "🦊" },
+  { id: "okx_wallet",    name: "OKX Wallet",   icon: "⬛" },
+  { id: "bitget_wallet", name: "Bitget",       icon: "▶" },
+  { id: "base_account",  name: "Base Account", hint: "No install · passkey", icon: "🔵" },
+  { id: "coinbase_wallet", name: "Coinbase Wallet", icon: "🅒" },
+  { id: "rainbow",       name: "Rainbow",      icon: "🌈" },
+  { id: "binance",       name: "Binance Wallet", icon: "🟡" },
+  { id: "wallet_connect", name: "WalletConnect", hint: "Scan QR · last resort", icon: "🔗" },
+];
 
 /**
  * Custom login modal in the intent-swap aesthetic (stone + amber, quiet,
@@ -18,13 +33,11 @@ import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/react-auth";
 export function LoginModal({
   open,
   onClose,
-  onOpenWalletModal,
 }: {
   open: boolean;
   onClose: () => void;
-  onOpenWalletModal: () => void;
 }) {
-  const [step, setStep] = useState<"choose" | "code">("choose");
+  const [step, setStep] = useState<"choose" | "wallets" | "code">("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -53,6 +66,11 @@ export function LoginModal({
   const { initOAuth } = useLoginWithOAuth({
     onComplete: handleSuccess,
     onError: handleError,
+  });
+
+  const { connectWallet } = useConnectWallet({
+    onSuccess: () => { setBusy(false); onClose(); },
+    onError: (err) => handleError(err),
   });
 
   // Reset state on close
@@ -114,6 +132,17 @@ export function LoginModal({
     }
   };
 
+  const handlePickWallet = (walletId: string) => {
+    setError("");
+    setBusy(true);
+    try {
+      connectWallet({ preSelectedWalletId: walletId });
+      // onSuccess handler will fire after wallet approves
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fade-in"
@@ -137,7 +166,50 @@ export function LoginModal({
         </button>
 
         <div className="px-7 pt-9 pb-7">
-          {step === "choose" ? (
+          {step === "wallets" ? (
+            <>
+              <div className="text-center mb-6">
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <div className="w-5 h-5 rounded border border-gold-500/30 flex items-center justify-center">
+                    <span className="text-gold-500/80 text-xs">⬡</span>
+                  </div>
+                  <span className="text-stone-500 text-[10px] tracking-[0.25em] uppercase">Intent Swap</span>
+                </div>
+                <h2 className="text-stone-100 text-lg font-light tracking-tight">Choose a wallet</h2>
+                <p className="text-stone-500 text-xs mt-1.5">Connects directly · No QR needed</p>
+              </div>
+
+              <div className="space-y-2">
+                {WALLET_OPTIONS.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => handlePickWallet(w.id)}
+                    disabled={busy}
+                    className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-stone-200 text-sm transition-colors flex items-center gap-3 px-3.5 disabled:opacity-50"
+                  >
+                    <span className="w-7 h-7 rounded-md bg-stone-800/80 border border-stone-700 flex items-center justify-center text-sm">
+                      {w.icon}
+                    </span>
+                    <div className="flex-1 text-left">
+                      <div>{w.name}</div>
+                      {w.hint && <p className="text-stone-600 text-[10px] mt-0.5">{w.hint}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => { setStep("choose"); setError(""); }}
+                className="w-full mt-5 py-2 text-stone-600 hover:text-stone-400 text-xs tracking-wide transition-colors"
+              >
+                ← Back
+              </button>
+
+              {error && (
+                <p className="mt-3 text-red-400/70 text-xs text-center">{error}</p>
+              )}
+            </>
+          ) : step === "choose" ? (
             <>
               {/* Header */}
               <div className="text-center mb-7">
@@ -155,7 +227,7 @@ export function LoginModal({
                 {/* Existing wallet — equal-weight, first because most current
                     visitors are crypto-native and expect this path */}
                 <button
-                  onClick={() => { onClose(); onOpenWalletModal(); }}
+                  onClick={() => setStep("wallets")}
                   className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-stone-200 text-sm transition-colors flex items-center gap-3 px-4"
                 >
                   <span className="w-7 h-7 rounded-md bg-stone-800/80 border border-stone-700 flex items-center justify-center text-base">👛</span>
