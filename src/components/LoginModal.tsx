@@ -1,21 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useLoginWithEmail, useLoginWithOAuth, useConnectWallet } from "@privy-io/react-auth";
+import { useLoginWithEmail, useLoginWithOAuth } from "@privy-io/react-auth";
+import { useConnect } from "wagmi";
+import type { Connector } from "wagmi";
 
-// Wallets surfaced in the custom picker. Order matters: most-likely-to-be-
-// installed in our user base first. preSelectedWalletId values come from
-// Privy's WalletListEntry union — passing one here tells Privy to skip its
-// own picker and pop the wallet's native approval popup directly.
-const WALLET_OPTIONS: { id: string; name: string; hint?: string; icon: string }[] = [
-  { id: "metamask",      name: "MetaMask",     icon: "🦊" },
-  { id: "okx_wallet",    name: "OKX Wallet",   icon: "⬛" },
-  { id: "bitget_wallet", name: "Bitget",       icon: "▶" },
-  { id: "base_account",  name: "Base Account", hint: "No install · passkey", icon: "🔵" },
-  { id: "coinbase_wallet", name: "Coinbase Wallet", icon: "🅒" },
-  { id: "rainbow",       name: "Rainbow",      icon: "🌈" },
-  { id: "binance",       name: "Binance Wallet", icon: "🟡" },
-  { id: "wallet_connect", name: "WalletConnect", hint: "Scan QR · last resort", icon: "🔗" },
+// Match wagmi connectors by name/id to surface in our custom picker. We
+// keep the list curated for our user base (CN-friendly + Base Account for
+// zero-install). Order = display order. Any connector wagmi knows about
+// but we don't pattern-match here gets dropped into the last "Other
+// detected" group automatically.
+const WALLET_MATCHERS: { name: string; hint?: string; icon: string; match: (c: Connector) => boolean }[] = [
+  { name: "MetaMask",     icon: "🦊", match: (c) => /metamask/i.test(c.name) || c.id === "io.metamask" },
+  { name: "OKX Wallet",   icon: "⬛", match: (c) => /okx/i.test(c.name) },
+  { name: "Bitget",       icon: "▶",  match: (c) => /bitget/i.test(c.name) },
+  { name: "Base Account", hint: "No install · passkey", icon: "🔵", match: (c) => /base.*account|coinbase.*smart/i.test(c.name) },
+  { name: "Coinbase Wallet", icon: "🅒", match: (c) => /coinbase/i.test(c.name) && !/smart/i.test(c.name) },
+  { name: "Rainbow",      icon: "🌈", match: (c) => /rainbow/i.test(c.name) },
+  { name: "Binance Wallet", icon: "🟡", match: (c) => /binance/i.test(c.name) },
+  { name: "WalletConnect", hint: "Scan QR · last resort", icon: "🔗", match: (c) => /walletconnect/i.test(c.name) },
 ];
 
 /**
@@ -68,10 +71,25 @@ export function LoginModal({
     onError: handleError,
   });
 
-  const { connectWallet } = useConnectWallet({
-    onSuccess: () => { setBusy(false); onClose(); },
-    onError: (err) => handleError(err),
+  // Direct wagmi connect — bypasses any Privy UI entirely. Each click
+  // calls wagmi's connect() on the matching connector, which triggers the
+  // wallet's own browser popup (MetaMask / OKX / etc.) with no
+  // intermediate Privy-styled "connecting…" screen.
+  const { connectors, connectAsync } = useConnect();
+
+  // Build the display list: known wallets first (in the order from
+  // WALLET_MATCHERS), then any extra detected connectors (EIP-6963
+  // injected providers Privy surfaces that we didn't enumerate).
+  const seenIds = new Set<string>();
+  const knownWallets = WALLET_MATCHERS.flatMap((m) => {
+    const found = connectors.find((c) => m.match(c));
+    if (!found || seenIds.has(found.uid)) return [];
+    seenIds.add(found.uid);
+    return [{ ...m, connector: found }];
   });
+  const otherWallets = connectors
+    .filter((c) => !seenIds.has(c.uid))
+    .map((c) => ({ name: c.name, hint: "Detected in browser", icon: "🧩", connector: c }));
 
   // Reset state on close
   useEffect(() => {
@@ -132,12 +150,12 @@ export function LoginModal({
     }
   };
 
-  const handlePickWallet = (walletId: string) => {
+  const handlePickWallet = async (connector: Connector) => {
     setError("");
     setBusy(true);
     try {
-      connectWallet({ preSelectedWalletId: walletId });
-      // onSuccess handler will fire after wallet approves
+      await connectAsync({ connector });
+      handleSuccess();
     } catch (err) {
       handleError(err);
     }
@@ -179,11 +197,11 @@ export function LoginModal({
                 <p className="text-stone-500 text-xs mt-1.5">Connects directly · No QR needed</p>
               </div>
 
-              <div className="space-y-2">
-                {WALLET_OPTIONS.map((w) => (
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {[...knownWallets, ...otherWallets].map((w) => (
                   <button
-                    key={w.id}
-                    onClick={() => handlePickWallet(w.id)}
+                    key={w.connector.uid}
+                    onClick={() => handlePickWallet(w.connector)}
                     disabled={busy}
                     className="w-full py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-stone-200 text-sm transition-colors flex items-center gap-3 px-3.5 disabled:opacity-50"
                   >
@@ -196,6 +214,11 @@ export function LoginModal({
                     </div>
                   </button>
                 ))}
+                {knownWallets.length === 0 && otherWallets.length === 0 && (
+                  <p className="text-stone-500 text-xs text-center py-4">
+                    No wallet detected. Install MetaMask / OKX / Bitget to continue.
+                  </p>
+                )}
               </div>
 
               <button
