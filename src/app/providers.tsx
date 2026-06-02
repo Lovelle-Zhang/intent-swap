@@ -64,6 +64,13 @@ const connectors = connectorsForWallets(
   { appName: "Intent Swap", projectId },
 );
 
+// ssr=false: keep wagmi on its default localStorage-backed reconnection
+// path. With ssr=true wagmi expects cookieStorage + initialState wiring
+// (server reads cookies, client receives state from RSC) — none of which
+// we have set up. The visible symptom is the user reporting "I refresh
+// the page and the wallet is disconnected." Until we actually need SSR
+// of wallet state (we don't — every wallet-aware route is "use client"
+// and re-runs on the client anyway), leave SSR off.
 const config = createConfig({
   connectors,
   chains: [mainnet, linea, arbitrum],
@@ -76,7 +83,6 @@ const config = createConfig({
     [linea.id]: http("https://rpc.linea.build"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
   },
-  ssr: true,
 });
 
 const queryClient = new QueryClient({
