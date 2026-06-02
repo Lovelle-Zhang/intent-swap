@@ -5,7 +5,7 @@ import { useAccount, useBalance, useDisconnect } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useLogout, usePrivy } from "@privy-io/react-auth";
+import { useLogout, usePrivy, useConnectWallet } from "@privy-io/react-auth";
 import { LoginModal } from "./LoginModal";
 
 export function WalletButton() {
@@ -13,6 +13,7 @@ export function WalletButton() {
   const { disconnect } = useDisconnect();
   const { logout } = useLogout();
   const { authenticated: privyAuth } = usePrivy();
+  const { connectWallet } = useConnectWallet();
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +36,7 @@ export function WalletButton() {
   // 用 ConnectButton.Custom 获取 openChainModal / openConnectModal
   return (
     <ConnectButton.Custom>
-      {({ chain, openChainModal, openConnectModal, mounted }) => {
+      {({ chain, openChainModal, mounted }) => {
         if (!mounted) return null;
 
         if (!isConnected) {
@@ -52,7 +53,7 @@ export function WalletButton() {
               <LoginModal
                 open={loginOpen}
                 onClose={() => setLoginOpen(false)}
-                onOpenWalletModal={openConnectModal}
+                onOpenWalletModal={() => connectWallet()}
               />
             </>
           );

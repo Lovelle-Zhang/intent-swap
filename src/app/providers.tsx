@@ -146,6 +146,22 @@ function MaybePrivy({ children }: { children: React.ReactNode }) {
           theme: "dark",
           accentColor: "#f59e0b",
           showWalletLoginFirst: false,
+          // External wallets surfaced when the user opts for "Connect a wallet"
+          // in our LoginModal. Ordered for the China user base (OKX + Bitget
+          // have the strongest install rates), with detected_ethereum_wallets
+          // as a catch-all so any extension we haven't named explicitly
+          // (Rabby, Phantom EVM, Brave, etc.) still shows up.
+          walletList: [
+            "detected_ethereum_wallets",
+            "metamask",
+            "okx_wallet",
+            "bitget_wallet",
+            "base_account",
+            "coinbase_wallet",
+            "rainbow",
+            "binance",
+            "wallet_connect",
+          ],
         },
       }}
     >
