@@ -12,6 +12,7 @@ import {
   rainbowWallet,
   injectedWallet,
   walletConnectWallet,
+  baseAccount,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, WagmiProvider } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
@@ -34,6 +35,14 @@ type EthereumRequest = (args: { method: string; params?: unknown[] }) => Promise
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo";
 const connectors = connectorsForWallets(
   [
+    {
+      groupName: "No install needed",
+      // baseAccount = Coinbase Smart Wallet: passkey-based (Touch ID / Face ID
+      // / Windows Hello), wallet generated in-browser on first use. Zero
+      // download, no seed phrase to write down. Single fastest onboarding
+      // path for users who have never used a wallet before.
+      wallets: [baseAccount],
+    },
     {
       groupName: "Recommended",
       wallets: [metaMaskWallet, okxWallet, bitgetWallet, injectedWallet],
