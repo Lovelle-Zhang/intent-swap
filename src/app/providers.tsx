@@ -1,7 +1,19 @@
 "use client";
 
-import { RainbowKitProvider, getDefaultConfig, darkTheme } from "@rainbow-me/rainbowkit";
-import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider, connectorsForWallets, darkTheme } from "@rainbow-me/rainbowkit";
+import {
+  metaMaskWallet,
+  okxWallet,
+  bitgetWallet,
+  imTokenWallet,
+  tokenPocketWallet,
+  binanceWallet,
+  coinbaseWallet,
+  rainbowWallet,
+  injectedWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
+import { createConfig, WagmiProvider } from "wagmi";
 import { mainnet, arbitrum, linea } from "wagmi/chains";
 import { http, fallback } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,9 +21,40 @@ import { useEffect } from "react";
 
 type EthereumRequest = (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 
-const config = getDefaultConfig({
-  appName: "Intent Swap",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo",
+// Wallet list curated for China-friendly connectivity:
+// - The top group is wallets that inject window.ethereum directly OR have
+//   their own dedicated bridge that does NOT go through the WalletConnect
+//   relay (which is unreliable on mainland-China networks: FCM/Google
+//   relay nodes are intermittently blocked).
+// - WalletConnect is kept as the last-resort QR fallback for users who
+//   have none of the above installed.
+//
+// Order = display order in the modal. injectedWallet is a catch-all that
+// detects Phantom / Brave / Rabby / etc. and surfaces them automatically.
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo";
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: "Recommended",
+      wallets: [metaMaskWallet, okxWallet, bitgetWallet, injectedWallet],
+    },
+    {
+      groupName: "Other",
+      wallets: [
+        imTokenWallet,
+        tokenPocketWallet,
+        binanceWallet,
+        rainbowWallet,
+        coinbaseWallet,
+        walletConnectWallet,
+      ],
+    },
+  ],
+  { appName: "Intent Swap", projectId },
+);
+
+const config = createConfig({
+  connectors,
   chains: [mainnet, linea, arbitrum],
   transports: {
     [mainnet.id]: fallback([
@@ -22,6 +65,7 @@ const config = getDefaultConfig({
     [linea.id]: http("https://rpc.linea.build"),
     [arbitrum.id]: http("https://arb1.arbitrum.io/rpc"),
   },
+  ssr: true,
 });
 
 const queryClient = new QueryClient({
