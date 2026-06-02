@@ -35,7 +35,6 @@ This document covers the production runtime for the conditional-order monitor se
 ## Production host
 
 - **Server**: Aliyun ECS, IP `8.133.170.62`, hostname `iZuf6i07mld5al8bd13qtyZ`
-- **Domain**: `api.o-sheepps.com` → 8.133.170.62 (A record)
 - **Node**: 16.20.2 via nvm at `/root/.nvm/versions/node/v16.20.2/bin/`
 - **Process manager**: pm2 (`/root/.nvm/versions/node/v16.20.2/bin/pm2`)
 - **Code**: `/root/intent-swap-server/server.js` (this file, kept in sync with this repo)
@@ -43,6 +42,47 @@ This document covers the production runtime for the conditional-order monitor se
 - **Logs**: `/root/.pm2/logs/intent-swap-server-{out,error}.log`
 
 Currently running under pm2 process name `intent-swap-server` (id 3). View status: `pm2 list`.
+
+### Ingress via Cloudflare Quick Tunnel
+
+Vercel cannot reach Aliyun directly: since ~2026-05-28 the Aliyun edge has been
+dropping inbound TCP from foreign IPs to `api.o-sheepps.com:443` (typical
+unicorn-block on un-备案 domains served from China-mainland ECS). The
+`ConnectTimeoutError: api.o-sheepps.com:443` in Vercel function logs is the
+symptom.
+
+Mitigation: `cloudflared` runs on the Aliyun host as a Cloudflare **Quick
+Tunnel** (managed by systemd unit `cloudflared-quick`, auto-restart on
+failure). It pushes an outbound QUIC connection to a CF edge (sjc08), and CF
+gives a public `https://*.trycloudflare.com` hostname that fronts the local
+`http://localhost:3002`. Vercel hits this CF-hosted URL, which works because
+the connection direction is reversed (Aliyun→CF outbound) and not subject to
+the inbound block.
+
+The CF Quick Tunnel URL **rotates** when `cloudflared` restarts (server reboot,
+deliberate restart, or cloudflared upgrade). In that case Vercel's
+`MONITOR_URL` env points at the stale URL and every `/api/orders` POST
+returns 502. Recovery is a single command from a workstation with the
+intent-swap repo and Vercel CLI logged in:
+
+```bash
+./tools/refresh-monitor-tunnel.sh
+```
+
+That script SSHes to Aliyun, reads the current URL from `journalctl -u
+cloudflared-quick`, rewrites Vercel `MONITOR_URL` via the Vercel REST API,
+triggers a redeploy, and smoke-tests an end-to-end POST. Takes ~90s.
+
+**Long-term**: replace Quick Tunnel with a named tunnel bound to
+`monitor.intent-swap.app`. Requires moving the intent-swap.app zone to
+Cloudflare DNS (NS swap at Porkbun). Deferred until we need it — the
+current rotation cost is tolerable for beta.
+
+Systemd unit:
+```bash
+ssh root@8.133.170.62 'systemctl status cloudflared-quick --no-pager'
+ssh root@8.133.170.62 'journalctl -u cloudflared-quick --no-pager | tail -30'
+```
 
 ## Environment variables
 
