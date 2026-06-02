@@ -5,18 +5,17 @@ import { useAccount, useBalance, useDisconnect } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useLogin, useLogout, usePrivy } from "@privy-io/react-auth";
+import { useLogout, usePrivy } from "@privy-io/react-auth";
+import { LoginModal } from "./LoginModal";
 
 export function WalletButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { login } = useLogin();
   const { logout } = useLogout();
-  const { authenticated: privyAuth, ready: privyReady } = usePrivy();
+  const { authenticated: privyAuth } = usePrivy();
   const [open, setOpen] = useState(false);
-  const [connectOpen, setConnectOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const connectRef = useRef<HTMLDivElement>(null);
 
   const { data: balance } = useBalance({
     address,
@@ -33,15 +32,6 @@ export function WalletButton() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  useEffect(() => {
-    if (!connectOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (connectRef.current && !connectRef.current.contains(e.target as Node)) setConnectOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [connectOpen]);
-
   // 用 ConnectButton.Custom 获取 openChainModal / openConnectModal
   return (
     <ConnectButton.Custom>
@@ -50,46 +40,21 @@ export function WalletButton() {
 
         if (!isConnected) {
           return (
-            <div className="relative" ref={connectRef}>
+            <>
               <button
-                onClick={() => setConnectOpen((v) => !v)}
+                onClick={() => setLoginOpen(true)}
                 className="px-3 h-7 rounded-full border border-stone-700 hover:border-stone-500 flex items-center gap-1.5 transition-colors"
-                title="Connect"
+                title="Sign in"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-stone-500" />
-                <span className="text-stone-400 text-[11px] tracking-wide">Connect</span>
+                <span className="text-stone-400 text-[11px] tracking-wide">Sign in</span>
               </button>
-              {connectOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl w-60 py-2"
-                  style={{ zIndex: 9999 }}
-                >
-                  {privyReady && (
-                    <button
-                      onClick={() => { setConnectOpen(false); login(); }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-stone-800/60 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 text-stone-200 text-sm">
-                        <span>✉️</span>
-                        <span>Sign in with Email</span>
-                      </div>
-                      <p className="text-stone-600 text-[10px] mt-0.5 ml-6">No wallet needed · 30 seconds</p>
-                    </button>
-                  )}
-                  <div className="h-px bg-stone-800 mx-3 my-1" />
-                  <button
-                    onClick={() => { setConnectOpen(false); openConnectModal(); }}
-                    className="w-full text-left px-4 py-2.5 hover:bg-stone-800/60 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 text-stone-200 text-sm">
-                      <span>👛</span>
-                      <span>Connect existing wallet</span>
-                    </div>
-                    <p className="text-stone-600 text-[10px] mt-0.5 ml-6">MetaMask · OKX · Bitget · others</p>
-                  </button>
-                </div>
-              )}
-            </div>
+              <LoginModal
+                open={loginOpen}
+                onClose={() => setLoginOpen(false)}
+                onOpenWalletModal={openConnectModal}
+              />
+            </>
           );
         }
 
