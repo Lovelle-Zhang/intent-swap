@@ -1,0 +1,37 @@
+name: Monitor health check
+
+on:
+  schedule:
+    # Every hour at :05 (off the hour to spread across Vercel function cold-start traffic)
+    - cron: "5 * * * *"
+  workflow_dispatch:
+    # Lets you trigger from the GitHub Actions UI for ad-hoc checks
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping /api/cron/health-check
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET not set in repo secrets — add it from your Vercel env"
+            exit 1
+          fi
+          HTTP_CODE=$(curl -sS -m 25 -o /tmp/out.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://intent-swap.app/api/cron/health-check)
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/out.json || true
+          echo
+          # The endpoint itself always returns 200 (it sends an alert email on
+          # upstream failure rather than propagating the failure). If the
+          # endpoint returns non-200, that's a Vercel-side problem we should
+          # also know about, so fail the workflow.
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::health-check endpoint returned $HTTP_CODE"
+            exit 1
+          fi

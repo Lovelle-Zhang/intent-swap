@@ -4,10 +4,5 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "//crons": "Driven by .github/workflows/health-check.yml — Vercel Hobby plan only allows daily crons, GitHub Actions has no per-day cap"
 }
