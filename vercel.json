@@ -3,11 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "installCommand": "npm install"
 }
