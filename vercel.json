@@ -3,6 +3,5 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "//crons": "Driven by .github/workflows/health-check.yml — Vercel Hobby plan only allows daily crons, GitHub Actions has no per-day cap"
+  "installCommand": "npm install"
 }
