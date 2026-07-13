@@ -1,12 +1,14 @@
 # ADR-0006: Independent Append-Only Audit, Balanced Ledger, and Versioned Receipt Corrections
 
-**Status:** PROPOSED
+**Status:** ACCEPTED
 **Date:** 2026-07-13
+**Accepted date:** 2026-07-13
+**Decision authority:** Human product and architecture approval
 **Owner:** ZenFix Architecture, Data, and Security
 
 ## 1. Status
 
-This decision is **PROPOSED**. It does not authorize Slice 4 implementation or accept any live accounting claim. Human acceptance is required before Slice 4 implements Ledger completion. Receipt details defined here are an architectural contract for later Slice 7 work, not permission to implement Receipt/Webhook/Export in Slice 4.
+This decision is **ACCEPTED** by human product and architecture approval. It clears the ADR-0006 Architecture prerequisite for Slice 4 Ledger implementation. Receipt details defined here remain an architectural contract for later Slice 7 work, not permission to implement Receipt/Webhook/Export in Slice 4.
 
 ## 2. Context
 
@@ -89,7 +91,7 @@ For every journal/asset:
 - all accounts and evidence belong to the same Project and environment; and
 - the same verified proof or external reference cannot post twice.
 
-The Slice 4 Sandbox journal uses two Project-scoped, environment-qualified simulated account roles: debit `sandbox_payment_expense` and credit `sandbox_controlled_funds`. Account IDs must remain in the Sandbox namespace. These entries describe the deterministic Sandbox scenario only; they do not claim bank, wallet, token, custody, bridge, or settlement balances.
+The Slice 4 Sandbox journal uses only Project-scoped, environment-qualified simulated account roles selected from `sandbox_funding_source`, `sandbox_merchant_payable`, `sandbox_fee_account`, and `sandbox_clearing`, including only the roles required by the exact balanced journal. Account IDs must remain in the Sandbox namespace. These entries describe the deterministic Sandbox scenario only; they do not claim bank, wallet, token, custody, bridge, or settlement balances.
 
 ### 6.3 Receipt authority
 
@@ -211,7 +213,7 @@ Slice 4 persists Domain Outbox events but does not implement HTTP webhook delive
 
 Slice 4 produces balanced journals only in Project-scoped Sandbox account and evidence namespaces. Journal, Receipt-style validation projection, Audit, and Outbox data retain `environment=sandbox`, `realFundsMoved=false`, and explicit `SANDBOX / NO REAL FUNDS` meaning.
 
-`sandbox_payment_expense` and `sandbox_controlled_funds` are simulated accounting roles. A balanced Sandbox journal proves only that the control loop recorded internally consistent simulation evidence after Sandbox Payment and verified task Proof. It does not prove a swap, bridge, bank movement, token movement, payment settlement, funds availability, or production accounting correctness.
+`sandbox_funding_source`, `sandbox_merchant_payable`, `sandbox_fee_account`, and `sandbox_clearing` are simulated accounting roles. A balanced Sandbox journal proves only that the control loop recorded internally consistent simulation evidence after Sandbox Payment and verified task Proof. It does not prove a swap, bridge, bank movement, token movement, payment settlement, funds availability, or production accounting correctness.
 
 Slice 4 does not create canonical Receipts. Its `ValidationReceiptProjection` remains a read-only research projection with `canonicalReceiptAvailable=false`; the Receipt contract here is reserved for Slice 7.
 
@@ -220,6 +222,8 @@ Local JSON provides one-store atomic replacement, same-process multi-instance co
 ## 13. Live-money limitations
 
 This ADR does not accept a live chart of accounts, settlement rail, finality model, custody model, accounting policy, tax treatment, reconciliation SLA, or signature scheme. A balanced Sandbox journal is not evidence of live double-entry settlement.
+
+Acceptance of this ADR does not establish Hosted readiness, Production readiness, Live Money readiness, or real settlement. Each remains blocked by its independent Architecture and operational Gates.
 
 Hosted/Postgres must enforce immutable rows, Project-scoped foreign keys/uniqueness, transaction isolation, least-privilege insert/read roles, backup/recovery, and durable CAS under later hosted-persistence decisions. Any real rail requires ADR-0011 and the Live Money Gate, including rail-specific finality, reconciliation, compensation, incident response, and independent security/accounting review.
 
@@ -235,6 +239,7 @@ Future implementation tests must map every public behavior above:
 - concurrent and retried Ledger completion yields one journal, one consumed reservation, one terminal transition, one AuditEvent, and one OutboxEvent;
 - fault injection at Journal, Entry, reservation, PayRun CAS, idempotency, Audit, Outbox, and commit boundaries leaves no partial write and keeps `ledger_recording`;
 - exact Allowed and Funding mismatch fixtures finish with balanced isolated Sandbox journals; pending Review, reject, and Blocked have no journal;
+- Sandbox journals use only the accepted simulated account roles and never imply real funds or settlement;
 - no Sandbox record or projection claims real settlement or real funds;
 - Receipt version 1 derives only from committed PayRun/Ledger sources and historical read returns stored content;
 - canonical Receipt serialization/hash stability, tamper detection, schema/version distinction, Sandbox watermark, and secret redaction;

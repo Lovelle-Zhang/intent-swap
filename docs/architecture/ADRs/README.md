@@ -8,8 +8,8 @@ Architecture decisions in this directory are immutable records. Superseded decis
 | [0002](./0002-payrun-lifecycle-only-execution-path.md) | Make the PayRun lifecycle the only payment execution path | Accepted |
 | [0003](./0003-sandbox-first-execution.md) | Keep funding and payment execution sandbox-first | Accepted |
 | [0004](./0004-project-scope-cas-and-outbox.md) | Require project scope, CAS, unit of work, and webhook outbox | Accepted |
-| [0005](./0005-budget-reservation-approval-binding-and-separation-of-duties.md) | Use transactional budget reservation, immutable Approval binding, and separation of duties | PROPOSED |
-| [0006](./0006-append-only-audit-balanced-ledger-and-receipt-corrections.md) | Keep Audit, balanced Ledger, and versioned Receipt corrections independent and append-only | PROPOSED |
+| [0005](./0005-budget-reservation-approval-binding-and-separation-of-duties.md) | Use transactional budget reservation, immutable Approval binding, and separation of duties | ACCEPTED |
+| [0006](./0006-append-only-audit-balanced-ledger-and-receipt-corrections.md) | Keep Audit, balanced Ledger, and versioned Receipt corrections independent and append-only | ACCEPTED |
 
 ## Required decision register
 

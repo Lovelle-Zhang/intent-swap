@@ -1,12 +1,14 @@
 # ADR-0005: Transactional Budget Reservation, Approval Binding, and Separation of Duties
 
-**Status:** PROPOSED
+**Status:** ACCEPTED
 **Date:** 2026-07-13
+**Accepted date:** 2026-07-13
+**Decision authority:** Human product and architecture approval
 **Owner:** ZenFix Architecture, Domain, and Security
 
 ## 1. Status
 
-This decision is **PROPOSED**. It does not authorize Slice 4 implementation, make the pull request Ready, or alter an Accepted Architecture decision. Human acceptance is required before Slice 4 implements Review/Funding behavior or Slice 5 relies on its Approval execution guarantees.
+This decision is **ACCEPTED** by human product and architecture approval. It clears the ADR-0005 Architecture prerequisite for Slice 4 Review/Funding implementation and the Slice 5 execution Gate. It does not itself implement either slice or alter the separate Hosted Sandbox and Live Money Gates.
 
 ## 2. Context
 
@@ -81,9 +83,11 @@ Only `active` reservations count with committed Ledger usage during Policy budge
 The Approval request binds the exact fields already required by the Domain Model and state machine:
 
 - Project and PayRun;
-- intent digest;
-- Policy ID, version, checksum, and evaluation digest;
-- Merchant/payee, amount, settlement target, rail, and funding plan scope;
+- Agent and immutable intent digest;
+- Merchant/payee and purpose;
+- maximum authorized amount ceiling;
+- asset, chain/settlement target, rail, and funding plan scope;
+- Policy ID, version, checksum, evaluation snapshot, and evaluation digest;
 - covered review reason codes; and
 - expiry.
 
@@ -98,8 +102,11 @@ The application derives all actors from authenticated context and records actor 
 - The requester/Agent may propose spend but cannot approve its own Approval request.
 - The approver must be a distinct authenticated human subject eligible under the immutable Project/Policy snapshot used by the decision.
 - A worker/service executor may claim prepared attempts but cannot create a human ApprovalDecision.
+- The authenticated approver identity is committed in the ApprovalDecision and corresponding AuditEvent.
 - Actor IDs in a body, query, route, or custom header are untrusted and cannot override server context.
 - Eligibility failure, missing identity, or identity ambiguity fails closed without changing Approval, reservation, or PayRun state.
+
+A PayRun that does not require human review and is deterministically allowed by Policy has no human ApprovalDecision. That path is Policy authorization, not human self-approval, and Audit/Receipt/explanation language must not describe it as approved by its requester or by the system itself.
 
 This is the minimum control for Sandbox and future Hosted modes. Additional two-person authorization for enabling live execution and rail-specific custody remains governed by later ADRs and is not implied here.
 
@@ -111,7 +118,8 @@ This ADR adds no PayRun state or transition.
 - `approved` records the human decision but still has no reservation or FundingPreparation.
 - `approved → policy_evaluating` performs the mandatory recheck.
 - `policy_allowed → funding_preparing` creates the active reservation and FundingPreparation request atomically.
-- Before any possible external effect, a legal `expired`, `cancelled`, or authoritative no-effect `failed` completion releases the reservation in the same Unit of Work.
+- When an active reservation exists, a legal intent expiry, cancellation, or authoritative no-effect execution failure changes it to `released` with an explicit stable reason and evidence in the same Unit of Work.
+- Approval rejection occurs before reservation creation under the canonical lifecycle and therefore creates no synthetic `released` record. If a future legal flow ever has an active reservation when a rejection is applied, that reservation must become `released` with an explicit rejection reason in the same Unit of Work.
 - After a funding or payment submission becomes possible or ambiguous, the reservation remains active through reconciliation; it is not released merely because a timeout or kill switch occurred.
 - `ledger_recording → completed` atomically commits the balanced Ledger journal and marks the reservation consumed.
 
@@ -130,11 +138,12 @@ The Unit of Work context must expose the reservation repository. Local JSON may 
 5. Ledger usage plus active reservations is the authoritative budget input; Policy JSON does not contain mutable usage counters.
 6. One logical PayRun/scope generation has at most one reservation, including under retries and concurrent adapter calls.
 7. A reservation amount, budget key, or bound digest cannot change in place.
-8. A reservation is released only with authoritative no-effect/safe-release evidence and a legal PayRun transition.
+8. A reservation is released only with authoritative no-effect/safe-release evidence, a legal PayRun transition, and an explicit stable reason covering expiry, rejection when a reservation exists, cancellation, or authoritative no-effect failure.
 9. A submitted or ambiguous external attempt cannot cause reservation release until reconciliation establishes the safe or consumed outcome.
 10. A completed PayRun has a consumed reservation and balanced Ledger journal; terminal safe no-effect paths have no active reservation.
 11. Requester and approver are distinct authenticated subjects; executor/service subjects cannot approve.
-12. CAS, validation, Audit, Outbox, or reservation failure produces no partial state or external effect.
+12. A Policy-auto-allowed PayRun has no human ApprovalDecision and cannot be represented as human self-approval.
+13. CAS, validation, Audit, Outbox, or reservation failure produces no partial state or external effect.
 
 ## 8. Transaction / Unit of Work boundary
 
@@ -203,6 +212,7 @@ Future implementation tests must map every public behavior above:
 - exact Allowed, pending Review, approve/recheck, reject, Blocked, and Funding mismatch traces;
 - pending/denied/blocked paths create no reservation or Funding artifact;
 - immutable Approval digest fields and `createdAtPayRunVersion` metadata behavior;
+- exact binding of Project, Agent, Merchant, purpose, amount ceiling, asset, chain, rail, Policy snapshot/digest, and expiry;
 - changed bound field, new reason, expired Approval, hard block, changed Policy/Merchant/quote/budget/kill switch;
 - requester self-approval, service-actor approval, body-supplied reviewer, missing capability, and cross-Project identity rejection;
 - two concurrent Approval decisions produce one terminal decision;
@@ -210,6 +220,7 @@ Future implementation tests must map every public behavior above:
 - duplicate identical reservation command returns one reservation; mismatched reuse conflicts;
 - stale expected PayRun, Approval, reservation, Project, or budget version creates no partial writes;
 - safe release on legal pre-effect expiry/cancellation/failure and no release during unknown/ambiguous execution;
+- explicit release reasons, pre-reservation rejection creating no synthetic reservation, and Policy-auto-allowed paths never being labeled human self-approval;
 - reservation remains active through Payment/Proof and is consumed exactly with balanced Ledger completion;
 - fault injection at reservation, FundingPreparation, PayRun CAS, idempotency, Audit, Outbox, and commit boundaries rolls back all writes;
 - restart persistence and Project isolation in the Local JSON adapter; and
