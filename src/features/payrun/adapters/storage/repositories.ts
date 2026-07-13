@@ -1,6 +1,7 @@
 import type {
   ApprovalRepository,
   AuditEventRepository,
+  BudgetReservationRepository,
   DomainOutboxRepository,
   FundingPreparationRepository,
   IdempotencyRepository,
@@ -16,6 +17,7 @@ import { appendAuditEvent, appendDomainOutboxEvent } from "../../domain/invarian
 import {
   approvalSchema,
   auditEventSchema,
+  budgetReservationSchema,
   domainOutboxEventSchema,
   fundingPreparationSchema,
   idempotencyRecordSchema,
@@ -28,6 +30,7 @@ import type {
   AggregateRoot,
   Approval,
   AuditEvent,
+  BudgetReservation,
   CompareAndSetResult,
   DomainOutboxEvent,
   FundingPreparation,
@@ -200,6 +203,43 @@ export function createRepositorySet(options: RepositoryFactoryOptions): Reposito
         schema: approvalSchema,
         stateOf: (record) => record.status,
       }),
+  };
+
+  const budgetReservations: BudgetReservationRepository = {
+    get: (projectId, id) => getById<BudgetReservation>("budgetReservations", projectId, id),
+    listActive(projectId, budgetKeys) {
+      const requested = new Set(budgetKeys);
+      return guardedRead((envelope) => canonicalClone(
+        envelope.payload.budgetReservations.filter(
+          (record) => record.projectId === projectId && record.status === "active" &&
+            record.budgetKeys.some((key) => requested.has(key)),
+        ),
+      ));
+    },
+    async insert(projectId, record) {
+      assertProject(projectId, record.projectId);
+      const parsed = budgetReservationSchema.parse(record);
+      await guardedMutation((payload) => {
+        if (payload.budgetReservations.some((candidate) =>
+          candidate.projectId === projectId &&
+          (candidate.id === parsed.id ||
+            (candidate.payRunId === parsed.payRunId && candidate.scopeGeneration === parsed.scopeGeneration)),
+        )) {
+          throw new DuplicateRecordError("budgetReservations");
+        }
+        payload.budgetReservations.push(parsed);
+      });
+    },
+    compareAndSet: (projectId, id, expectedVersion, expectedStatus, next) => compareAggregate({
+      projectId,
+      aggregateId: id,
+      expectedVersion,
+      expectedState: expectedStatus,
+      next,
+      collection: "budgetReservations",
+      schema: budgetReservationSchema,
+      stateOf: (record) => record.status,
+    }),
   };
 
   const fundingPreparations: FundingPreparationRepository = {
@@ -455,6 +495,7 @@ export function createRepositorySet(options: RepositoryFactoryOptions): Reposito
   return {
     payRuns,
     approvals,
+    budgetReservations,
     fundingPreparations,
     paymentExecutions,
     ledger,

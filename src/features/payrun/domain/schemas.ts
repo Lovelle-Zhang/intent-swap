@@ -11,11 +11,13 @@ import {
 } from "./invariants";
 import {
   EVIDENCE_KINDS,
+  BUDGET_RESERVATION_STATUS_VALUES,
   PAY_RUN_STATUS_VALUES,
   type Agent,
   type Approval,
   type ApprovalDecision,
   type ApprovalRequest,
+  type BudgetReservation,
   type ArtifactProof,
   type AuditEvent,
   type CanonicalExecutionProof,
@@ -719,16 +721,22 @@ function parseApprovalRequest(value: unknown, path: string): ApprovalRequest {
     "policyDecisionId",
     "policyId",
     "policyVersion",
+    "policyChecksum",
     "policyEvaluationDigest",
+    "agentId",
     "merchantId",
+    "purpose",
     "amount",
+    "amountCeiling",
     "settlementTarget",
     "rail",
     "fundingScopeDigest",
     "coveredReasonCodes",
     "approvalScopeDigest",
     "generation",
+    "requester",
   ]);
+  const requester = object(record.requester, `${path}.requester`, ["actorId", "actorType"]);
   return {
     id: string(record.id, `${path}.id`),
     projectId: string(record.projectId, `${path}.projectId`),
@@ -745,18 +753,28 @@ function parseApprovalRequest(value: unknown, path: string): ApprovalRequest {
     policyDecisionId: string(record.policyDecisionId, `${path}.policyDecisionId`),
     policyId: string(record.policyId, `${path}.policyId`),
     policyVersion: integer(record.policyVersion, `${path}.policyVersion`, 1),
+    policyChecksum: string(record.policyChecksum, `${path}.policyChecksum`),
     policyEvaluationDigest: string(
       record.policyEvaluationDigest,
       `${path}.policyEvaluationDigest`,
     ),
+    agentId: string(record.agentId, `${path}.agentId`),
     merchantId: string(record.merchantId, `${path}.merchantId`),
+    purpose: string(record.purpose, `${path}.purpose`),
     amount: parseMoney(record.amount, `${path}.amount`),
+    amountCeiling: parseMoney(record.amountCeiling, `${path}.amountCeiling`),
     settlementTarget: parseLogicalTarget(record.settlementTarget, `${path}.settlementTarget`),
     rail: string(record.rail, `${path}.rail`),
     fundingScopeDigest: string(record.fundingScopeDigest, `${path}.fundingScopeDigest`),
     coveredReasonCodes: array(record.coveredReasonCodes, `${path}.coveredReasonCodes`, string),
     approvalScopeDigest: string(record.approvalScopeDigest, `${path}.approvalScopeDigest`),
     generation: integer(record.generation, `${path}.generation`, 1),
+    requester: {
+      actorId: string(requester.actorId, `${path}.requester.actorId`),
+      actorType: enumeration(requester.actorType, `${path}.requester.actorType`, [
+        "agent", "user", "system", "worker",
+      ] as const),
+    },
   };
 }
 
@@ -768,10 +786,12 @@ function parseApprovalDecision(value: unknown, path: string): ApprovalDecision {
     "payRunId",
     "outcome",
     "reviewerId",
+    "approver",
     "decidedAt",
     "reasonCode",
     "approvalScopeDigest",
   ]);
+  const approver = object(record.approver, `${path}.approver`, ["actorId", "actorType"]);
   return {
     id: string(record.id, `${path}.id`),
     projectId: string(record.projectId, `${path}.projectId`),
@@ -779,6 +799,12 @@ function parseApprovalDecision(value: unknown, path: string): ApprovalDecision {
     payRunId: string(record.payRunId, `${path}.payRunId`),
     outcome: enumeration(record.outcome, `${path}.outcome`, ["approved", "denied"] as const),
     reviewerId: string(record.reviewerId, `${path}.reviewerId`),
+    approver: {
+      actorId: string(approver.actorId, `${path}.approver.actorId`),
+      actorType: enumeration(approver.actorType, `${path}.approver.actorType`, [
+        "agent", "user", "system", "worker",
+      ] as const),
+    },
     decidedAt: timestamp(record.decidedAt, `${path}.decidedAt`),
     reasonCode: string(record.reasonCode, `${path}.reasonCode`),
     approvalScopeDigest: string(record.approvalScopeDigest, `${path}.approvalScopeDigest`),
@@ -810,6 +836,59 @@ function parseApproval(value: unknown, path: string): Approval {
     request: parseApprovalRequest(record.request, `${path}.request`),
     ...(decision ? { decision } : {}),
   };
+}
+
+function parseBudgetReservation(value: unknown, path: string): BudgetReservation {
+  const record = object(value, path, [
+    "id", "projectId", "version", "payRunId", "agentId", "merchantId", "rail",
+    "scopeGeneration", "policyDecisionId", "policyId", "policyVersion", "policyChecksum",
+    "policyEvaluationDigest", "intentDigest", "approvalScopeDigest", "approvalDecisionId",
+    "fundingScopeDigest", "budgetKeys", "reservedAmount", "environment", "expiresAt",
+    "status", "terminalReasonCode", "terminalEvidence", "createdAt", "updatedAt",
+  ]);
+  const status = enumeration(record.status, `${path}.status`, BUDGET_RESERVATION_STATUS_VALUES);
+  const terminalEvidence = record.terminalEvidence === null
+    ? null
+    : status === "consumed"
+      ? (() => {
+          const evidence = object(record.terminalEvidence, `${path}.terminalEvidence`, ["ledgerJournalId"]);
+          return { ledgerJournalId: string(evidence.ledgerJournalId, `${path}.terminalEvidence.ledgerJournalId`) };
+        })()
+      : parseEvidence(record.terminalEvidence, `${path}.terminalEvidence`);
+  const result: BudgetReservation = {
+    ...parseAggregateMeta(record, path),
+    payRunId: string(record.payRunId, `${path}.payRunId`),
+    agentId: string(record.agentId, `${path}.agentId`),
+    merchantId: string(record.merchantId, `${path}.merchantId`),
+    rail: string(record.rail, `${path}.rail`),
+    scopeGeneration: integer(record.scopeGeneration, `${path}.scopeGeneration`, 1),
+    policyDecisionId: string(record.policyDecisionId, `${path}.policyDecisionId`),
+    policyId: string(record.policyId, `${path}.policyId`),
+    policyVersion: integer(record.policyVersion, `${path}.policyVersion`, 1),
+    policyChecksum: string(record.policyChecksum, `${path}.policyChecksum`),
+    policyEvaluationDigest: string(record.policyEvaluationDigest, `${path}.policyEvaluationDigest`),
+    intentDigest: string(record.intentDigest, `${path}.intentDigest`),
+    approvalScopeDigest: record.approvalScopeDigest === null ? null : string(record.approvalScopeDigest, `${path}.approvalScopeDigest`),
+    approvalDecisionId: record.approvalDecisionId === null ? null : string(record.approvalDecisionId, `${path}.approvalDecisionId`),
+    fundingScopeDigest: string(record.fundingScopeDigest, `${path}.fundingScopeDigest`),
+    budgetKeys: array(record.budgetKeys, `${path}.budgetKeys`, string),
+    reservedAmount: parseMoney(record.reservedAmount, `${path}.reservedAmount`),
+    environment: enumeration(record.environment, `${path}.environment`, ["sandbox", "live_guarded"] as const),
+    expiresAt: timestamp(record.expiresAt, `${path}.expiresAt`),
+    status,
+    terminalReasonCode: record.terminalReasonCode === null ? null : string(record.terminalReasonCode, `${path}.terminalReasonCode`),
+    terminalEvidence,
+  };
+  if (new Set(result.budgetKeys).size !== result.budgetKeys.length) {
+    throw validationError(`${path}.budgetKeys`, "budget keys must be unique", result.budgetKeys);
+  }
+  if (status === "active" && (result.terminalReasonCode !== null || result.terminalEvidence !== null)) {
+    throw validationError(path, "active reservation cannot contain terminal evidence", value);
+  }
+  if (status !== "active" && (!result.terminalReasonCode || !result.terminalEvidence)) {
+    throw validationError(path, "terminal reservation requires reason and evidence", value);
+  }
+  return result;
 }
 
 function parseEvidence(value: unknown, path: string): EvidenceReference {
@@ -971,6 +1050,7 @@ function parseFundingPreparation(
     "projectId",
     "version",
     "payRunId",
+    "budgetReservationId",
     "intentDigest",
     "policyDecisionId",
     "approvedScopeDigest",
@@ -997,6 +1077,7 @@ function parseFundingPreparation(
   return {
     ...parseAggregateMeta(record, path),
     payRunId: string(record.payRunId, `${path}.payRunId`),
+    budgetReservationId: string(record.budgetReservationId, `${path}.budgetReservationId`),
     intentDigest: string(record.intentDigest, `${path}.intentDigest`),
     policyDecisionId: string(record.policyDecisionId, `${path}.policyDecisionId`),
     approvedScopeDigest: string(record.approvedScopeDigest, `${path}.approvedScopeDigest`),
@@ -1286,6 +1367,7 @@ function parseLedgerEntry(value: unknown, path: string): LedgerEntry {
     "projectId",
     "journalId",
     "accountId",
+    "accountRole",
     "debitAtomic",
     "creditAtomic",
     "evidenceHash",
@@ -1301,6 +1383,7 @@ function parseLedgerEntry(value: unknown, path: string): LedgerEntry {
     projectId: string(record.projectId, `${path}.projectId`),
     journalId: string(record.journalId, `${path}.journalId`),
     accountId: string(record.accountId, `${path}.accountId`),
+    accountRole: string(record.accountRole, `${path}.accountRole`),
     debitAtomic: record.debitAtomic,
     creditAtomic: record.creditAtomic,
     evidenceHash: string(record.evidenceHash, `${path}.evidenceHash`),
@@ -1772,6 +1855,7 @@ export const moneySchema = defineSchema(parseMoney);
 export const payIntentSchema = defineSchema(parsePayIntent);
 export const policyDecisionSchema = defineSchema(parsePolicyDecision);
 export const approvalSchema = defineSchema(parseApproval);
+export const budgetReservationSchema = defineSchema(parseBudgetReservation);
 export const evidenceReferenceSchema = defineSchema(parseEvidence);
 export const fundingProofSchema = defineSchema(parseFundingProof);
 export const paymentProofSchema = defineSchema(parsePaymentProof);

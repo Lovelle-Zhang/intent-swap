@@ -181,8 +181,12 @@ function validateApprovalContext(input: PolicyEvaluationRequest): Approval | und
     approval.request.intentDigest !== input.intent.digest ||
     approval.request.policyId !== input.policySnapshot.policyId ||
     approval.request.policyVersion !== input.policySnapshot.policyVersion ||
+    approval.request.policyChecksum !== input.policySnapshot.policyChecksum ||
+    approval.request.agentId !== input.agent.id ||
     approval.request.merchantId !== input.merchant.id ||
+    approval.request.purpose !== input.intent.purpose ||
     !sameMoney(approval.request.amount, input.intent.quotedAmount) ||
+    !sameMoney(approval.request.amountCeiling, input.intent.maximumAmount) ||
     !sameTarget(approval.request.settlementTarget, input.settlementTarget) ||
     approval.request.rail !== input.rail ||
     approval.request.fundingScopeDigest !== input.fundingScopeDigest

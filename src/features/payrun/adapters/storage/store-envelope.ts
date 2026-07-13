@@ -15,6 +15,7 @@ import {
 import {
   approvalSchema,
   auditEventSchema,
+  budgetReservationSchema,
   domainOutboxEventSchema,
   fundingPreparationSchema,
   idempotencyRecordSchema,
@@ -26,6 +27,7 @@ import {
 import type {
   Approval,
   AuditEvent,
+  BudgetReservation,
   DomainOutboxEvent,
   FundingPreparation,
   IdempotencyRecord,
@@ -35,7 +37,8 @@ import type {
   PayRun,
 } from "../../domain/types";
 
-export const LOCAL_JSON_STORE_SCHEMA_VERSION = 1 as const;
+export const LOCAL_JSON_STORE_SCHEMA_VERSION = 2 as const;
+export const LEGACY_LOCAL_JSON_STORE_SCHEMA_VERSION = 1 as const;
 
 const ENVELOPE_KEYS = [
   "schemaVersion",
@@ -48,6 +51,7 @@ const ENVELOPE_KEYS = [
 const PAYLOAD_KEYS = [
   "payRuns",
   "approvals",
+  "budgetReservations",
   "fundingPreparations",
   "paymentExecutions",
   "ledgerJournals",
@@ -62,6 +66,7 @@ const SHA_256_HEX = /^[0-9a-f]{64}$/;
 export interface LocalJsonStorePayload {
   readonly payRuns: readonly PayRun[];
   readonly approvals: readonly Approval[];
+  readonly budgetReservations: readonly BudgetReservation[];
   readonly fundingPreparations: readonly FundingPreparation[];
   readonly paymentExecutions: readonly PaymentExecution[];
   readonly ledgerJournals: readonly LedgerJournal[];
@@ -253,6 +258,7 @@ function validateCollectionIndexes(payload: LocalJsonStorePayload): void {
   for (const [collection, records] of [
     ["payRuns", payload.payRuns],
     ["approvals", payload.approvals],
+    ["budgetReservations", payload.budgetReservations],
     ["fundingPreparations", payload.fundingPreparations],
     ["paymentExecutions", payload.paymentExecutions],
     ["ledgerJournals", payload.ledgerJournals],
@@ -264,6 +270,11 @@ function validateCollectionIndexes(payload: LocalJsonStorePayload): void {
     assertUnique(collection, records, byId as (record: never) => string);
   }
 
+  assertUnique(
+    "budgetReservations scope generation",
+    payload.budgetReservations,
+    (record: BudgetReservation) => `${record.projectId}\u0000${record.payRunId}\u0000${record.scopeGeneration}`,
+  );
   assertUnique(
     "auditEvents aggregate sequence",
     payload.auditEvents,
@@ -331,6 +342,11 @@ export function validateStorePayload(value: unknown): LocalJsonStorePayload {
   const payload: LocalJsonStorePayload = {
     payRuns: parseCollection(value.payRuns, "payRuns", payRunSchema),
     approvals: parseCollection(value.approvals, "approvals", approvalSchema),
+    budgetReservations: parseCollection(
+      value.budgetReservations,
+      "budgetReservations",
+      budgetReservationSchema,
+    ),
     fundingPreparations: parseCollection(
       value.fundingPreparations,
       "fundingPreparations",
@@ -384,6 +400,7 @@ export function buildEmptyStoreEnvelope(writtenAt: string): LocalJsonStoreEnvelo
     {
       payRuns: [],
       approvals: [],
+      budgetReservations: [],
       fundingPreparations: [],
       paymentExecutions: [],
       ledgerJournals: [],
@@ -449,6 +466,51 @@ export function parseStoreEnvelope(text: string): LocalJsonStoreEnvelope {
     ...content,
     payload: validateStorePayload(parsed.payload),
     envelopeChecksum: parsed.envelopeChecksum,
+  });
+}
+
+export function parseLegacyStoreEnvelope(text: string): LocalJsonStoreEnvelopeContent {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new StoreCorruptionError("malformed_json", "Local JSON store contains malformed JSON", { cause: error });
+  }
+  if (!isRecord(parsed)) throw corruption("invalid_envelope", "Local JSON store envelope must be an object");
+  assertExactKeys(parsed, ENVELOPE_KEYS, "envelope", "invalid_envelope");
+  if (parsed.schemaVersion !== LEGACY_LOCAL_JSON_STORE_SCHEMA_VERSION) {
+    if (typeof parsed.schemaVersion !== "number") throw corruption("invalid_envelope", "schemaVersion must be a number");
+    throw new UnsupportedStoreSchemaVersionError(parsed.schemaVersion);
+  }
+  assertValidGeneration(parsed.storeGeneration);
+  assertValidWrittenAt(parsed.writtenAt);
+  if (typeof parsed.envelopeChecksum !== "string" || !SHA_256_HEX.test(parsed.envelopeChecksum)) {
+    throw corruption("invalid_envelope", "envelopeChecksum must be lowercase SHA-256 hexadecimal");
+  }
+  const legacyContent = {
+    schemaVersion: LEGACY_LOCAL_JSON_STORE_SCHEMA_VERSION,
+    storeGeneration: parsed.storeGeneration,
+    writtenAt: parsed.writtenAt,
+    payload: parsed.payload,
+  };
+  let expectedChecksum: string;
+  try {
+    expectedChecksum = sha256Canonical(legacyContent);
+  } catch (error) {
+    throw corruption("invalid_envelope", "Envelope content is not canonical JSON", error);
+  }
+  if (!checksumsEqual(expectedChecksum, parsed.envelopeChecksum)) {
+    throw new StoreCorruptionError("checksum_mismatch", "Local JSON store checksum does not match");
+  }
+  if (!isRecord(parsed.payload)) throw corruption("runtime_schema_invalid", "payload must be an object");
+  const legacyKeys = PAYLOAD_KEYS.filter((key) => key !== "budgetReservations");
+  assertExactKeys(parsed.payload, legacyKeys, "payload", "runtime_schema_invalid");
+  const payload = validateStorePayload({ ...parsed.payload, budgetReservations: [] });
+  return canonicalClone({
+    schemaVersion: LOCAL_JSON_STORE_SCHEMA_VERSION,
+    storeGeneration: parsed.storeGeneration,
+    writtenAt: parsed.writtenAt,
+    payload,
   });
 }
 

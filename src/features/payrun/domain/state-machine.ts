@@ -311,6 +311,7 @@ function assertFundingInstructionImmutable(
   if (
     current &&
     (next.intentDigest !== current.intentDigest ||
+      next.budgetReservationId !== current.budgetReservationId ||
       next.policyDecisionId !== current.policyDecisionId ||
       next.approvedScopeDigest !== current.approvedScopeDigest ||
       next.idempotencyKey !== current.idempotencyKey ||
@@ -414,12 +415,18 @@ function applyTransitionData(
           approval.request.intentDigest !== previousRequest.intentDigest ||
           approval.request.policyId !== previousRequest.policyId ||
           approval.request.policyVersion !== previousRequest.policyVersion ||
+          approval.request.policyChecksum !== previousRequest.policyChecksum ||
           approval.request.policyEvaluationDigest !== previousRequest.policyEvaluationDigest ||
+          approval.request.agentId !== previousRequest.agentId ||
           approval.request.merchantId !== previousRequest.merchantId ||
+          approval.request.purpose !== previousRequest.purpose ||
           approval.request.amount.amountAtomic !== previousRequest.amount.amountAtomic ||
+          approval.request.amountCeiling.amountAtomic !== previousRequest.amountCeiling.amountAtomic ||
           approval.request.rail !== previousRequest.rail ||
           approval.request.fundingScopeDigest !== previousRequest.fundingScopeDigest ||
           approval.request.approvalScopeDigest !== previousRequest.approvalScopeDigest ||
+          approval.request.requester.actorId !== previousRequest.requester.actorId ||
+          approval.request.requester.actorType !== previousRequest.requester.actorType ||
           approval.request.coveredReasonCodes.length !== previousRequest.coveredReasonCodes.length ||
           approval.request.coveredReasonCodes.some(
             (reason, index) => reason !== previousRequest.coveredReasonCodes[index],
@@ -596,6 +603,13 @@ export function recordApprovalDecision(
   }
   if (!command.decision.reviewerId) {
     throw new InvariantViolationError("Authenticated reviewer identity is required");
+  }
+  if (
+    command.decision.approver.actorType !== "user" ||
+    command.decision.approver.actorId !== command.decision.reviewerId ||
+    command.decision.approver.actorId === current.request.requester.actorId
+  ) {
+    throw new InvariantViolationError("Approval requires a distinct authenticated human approver");
   }
 
   return deepFreeze({

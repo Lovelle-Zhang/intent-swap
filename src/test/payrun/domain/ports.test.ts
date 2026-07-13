@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type {
   ApprovalRepository,
   AuditEventRepository,
+  BudgetReservationRepository,
   DomainOutboxRepository,
   FundingPreparationRepository,
   IdempotencyRepository,
@@ -16,6 +17,7 @@ import type {
 import type {
   AggregateRoot,
   Approval,
+  BudgetReservation,
   FundingPreparation,
   LedgerJournal,
   PayRun,
@@ -29,6 +31,7 @@ import {
   PROJECT_ID,
   buildApproval,
   buildAuditEvent,
+  buildBudgetReservation,
   buildFundingPreparation,
   buildIdempotencyRecord,
   buildLedgerJournal,
@@ -48,6 +51,9 @@ describe("project-scoped application ports", () => {
     expectTypeOf<Parameters<ApprovalRepository["compareAndSet"]>>().toEqualTypeOf<
       [string, string, number, Approval["status"], Approval]
     >();
+    expectTypeOf<Parameters<BudgetReservationRepository["compareAndSet"]>>().toEqualTypeOf<
+      [string, string, number, BudgetReservation["status"], BudgetReservation]
+    >();
     expectTypeOf<Parameters<FundingPreparationRepository["compareAndSet"]>>().toEqualTypeOf<
       [string, string, number, FundingPreparation["status"], FundingPreparation]
     >();
@@ -57,6 +63,7 @@ describe("project-scoped application ports", () => {
     expectTypeOf<FundingPreparation>().toMatchTypeOf<AggregateRoot>();
     expectTypeOf<PaymentExecution>().toMatchTypeOf<AggregateRoot>();
     expectTypeOf<Approval>().toMatchTypeOf<AggregateRoot>();
+    expectTypeOf<BudgetReservation>().toMatchTypeOf<AggregateRoot>();
     expectTypeOf<LedgerJournal>().toMatchTypeOf<AggregateRoot>();
   });
 
@@ -140,6 +147,15 @@ describe("project-scoped application ports", () => {
         value: next,
       }),
     };
+    const budgetReservationRepository: BudgetReservationRepository = {
+      get: async () => null,
+      listActive: async () => [],
+      insert: async () => undefined,
+      compareAndSet: async (_projectId, _id, _version, _status, next) => ({
+        kind: "updated",
+        value: next,
+      }),
+    };
     const paymentExecutionRepository: PaymentExecutionRepository = {
       get: async () => null,
       insert: async () => undefined,
@@ -173,6 +189,7 @@ describe("project-scoped application ports", () => {
     const context = {
       payRuns: payRunRepository,
       approvals: approvalRepository,
+      budgetReservations: budgetReservationRepository,
       fundingPreparations: fundingPreparationRepository,
       paymentExecutions: paymentExecutionRepository,
       ledger: ledgerRepository,
@@ -193,6 +210,7 @@ describe("project-scoped application ports", () => {
       await repositories.domainOutbox.append(PROJECT_ID, buildOutboxEvent());
       await repositories.ledger.append(PROJECT_ID, buildLedgerJournal());
       await repositories.approvals.insert(PROJECT_ID, buildApproval());
+      await repositories.budgetReservations.insert(PROJECT_ID, buildBudgetReservation());
       await repositories.fundingPreparations.insert(PROJECT_ID, buildFundingPreparation());
       await repositories.paymentExecutions.insert(PROJECT_ID, buildPaymentExecution());
       return "committed" as const;

@@ -11,6 +11,7 @@ import {
   buildEmptyStoreEnvelope,
   createStoreEnvelope,
   nextStoreGeneration,
+  parseLegacyStoreEnvelope,
   parseStoreEnvelope,
   validateStorePayload,
   type LocalJsonStoreEnvelope,
@@ -26,6 +27,7 @@ import {
 export interface MutableLocalJsonStorePayload {
   payRuns: LocalJsonStorePayload["payRuns"] extends readonly (infer T)[] ? T[] : never;
   approvals: LocalJsonStorePayload["approvals"] extends readonly (infer T)[] ? T[] : never;
+  budgetReservations: LocalJsonStorePayload["budgetReservations"] extends readonly (infer T)[] ? T[] : never;
   fundingPreparations: LocalJsonStorePayload["fundingPreparations"] extends readonly (infer T)[] ? T[] : never;
   paymentExecutions: LocalJsonStorePayload["paymentExecutions"] extends readonly (infer T)[] ? T[] : never;
   ledgerJournals: LocalJsonStorePayload["ledgerJournals"] extends readonly (infer T)[] ? T[] : never;
@@ -157,7 +159,21 @@ export class SharedStoreCoordinator {
 
   private async initializeOrValidate(): Promise<void> {
     try {
-      await this.readEnvelope();
+      const text = await this.readStoreText();
+      try {
+        parseStoreEnvelope(text);
+      } catch (error) {
+        if (!(error instanceof Error) || !("schemaVersion" in error) || error.schemaVersion !== 1) {
+          throw error;
+        }
+        const legacy = parseLegacyStoreEnvelope(text);
+        await this.lease.assertOwned();
+        await this.writeEnvelope(createStoreEnvelope(
+          legacy.payload,
+          nextStoreGeneration(legacy.storeGeneration),
+          this.options.now(),
+        ));
+      }
     } catch (error) {
       if (!hasCode(error, "ENOENT")) throw error;
       await this.lease.assertOwned();
@@ -166,8 +182,12 @@ export class SharedStoreCoordinator {
   }
 
   private async readEnvelope(): Promise<LocalJsonStoreEnvelope> {
+    return parseStoreEnvelope(await this.readStoreText());
+  }
+
+  private async readStoreText(): Promise<string> {
     const readStore = this.options.dependencies?.readStore ?? ((path: string) => readFile(path, "utf8"));
-    return parseStoreEnvelope(await readStore(this.canonicalStorePath));
+    return readStore(this.canonicalStorePath);
   }
 
   private async writeEnvelope(envelope: LocalJsonStoreEnvelope): Promise<void> {
