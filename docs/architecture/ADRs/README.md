@@ -8,6 +8,8 @@ Architecture decisions in this directory are immutable records. Superseded decis
 | [0002](./0002-payrun-lifecycle-only-execution-path.md) | Make the PayRun lifecycle the only payment execution path | Accepted |
 | [0003](./0003-sandbox-first-execution.md) | Keep funding and payment execution sandbox-first | Accepted |
 | [0004](./0004-project-scope-cas-and-outbox.md) | Require project scope, CAS, unit of work, and webhook outbox | Accepted |
+| [0005](./0005-budget-reservation-approval-binding-and-separation-of-duties.md) | Use transactional budget reservation, immutable Approval binding, and separation of duties | PROPOSED |
+| [0006](./0006-append-only-audit-balanced-ledger-and-receipt-corrections.md) | Keep Audit, balanced Ledger, and versioned Receipt corrections independent and append-only | PROPOSED |
 
 ## Required decision register
 
@@ -15,8 +17,8 @@ These decisions receive their own ADR before the named capability is implemented
 
 | Planned ADR | Required before |
 | --- | --- |
-| 0005 — budget reservation, Approval binding, and separation of duties | Before Slice 4 Review/Funding implementation and Slice 5 execution Gate |
-| 0006 — append-only audit, balanced Ledger, and Receipt corrections | Before Slice 4 Ledger implementation; Receipt details finalized before Slice 7 Gate |
+| [0005](./0005-budget-reservation-approval-binding-and-separation-of-duties.md) — budget reservation, Approval binding, and separation of duties | Before Slice 4 Review/Funding implementation and Slice 5 execution Gate |
+| [0006](./0006-append-only-audit-balanced-ledger-and-receipt-corrections.md) — append-only audit, balanced Ledger, and Receipt corrections | Before Slice 4 Ledger implementation; Receipt details finalized before Slice 7 Gate |
 | 0007 — webhook SSRF controls, secret rotation, retry/DLQ, and replay | HTTP webhook delivery |
 | 0008 — API-key hashing and future signer/rail credential custody | `/api/v1` and any guarded signer |
 | 0009 — multi-level kill switch and incident authority | Hosted Sandbox and live-money review |
