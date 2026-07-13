@@ -32,7 +32,7 @@ function withValidChecksum(value: Record<string, unknown>): Record<string, unkno
 }
 
 describe("local JSON store envelope", () => {
-  it("builds the exact empty schema-v1 generation-0 envelope", () => {
+  it("builds the exact empty schema-v2 generation-0 envelope", () => {
     const envelope = buildEmptyStoreEnvelope(STORE_WRITTEN_AT);
     const content = {
       schemaVersion: LOCAL_JSON_STORE_SCHEMA_VERSION,
@@ -77,10 +77,10 @@ describe("local JSON store envelope", () => {
   });
 
   it("rejects unsupported schema versions before checksum validation", () => {
-    const envelope = { ...buildStoreEnvelopeFixture(), schemaVersion: 2 };
+    const envelope = { ...buildStoreEnvelopeFixture(), schemaVersion: 3 };
 
     expect(() => parseStoreEnvelope(JSON.stringify(envelope))).toThrowError(
-      expect.objectContaining({ code: "unsupported_store_schema_version", schemaVersion: 2 }),
+      expect.objectContaining({ code: "unsupported_store_schema_version", schemaVersion: 3 }),
     );
     expect(() => parseStoreEnvelope(JSON.stringify(envelope))).toThrowError(
       UnsupportedStoreSchemaVersionError,

@@ -1,6 +1,7 @@
 import type {
   Approval,
   AuditEvent,
+  BudgetReservation,
   CompareAndSetResult,
   DomainOutboxEvent,
   ExecutionProof,
@@ -46,6 +47,19 @@ export interface ApprovalRepository {
     expectedStatus: Approval["status"],
     next: Approval,
   ): Promise<CompareAndSetResult<Approval>>;
+}
+
+export interface BudgetReservationRepository {
+  get(projectId: string, reservationId: string): Promise<BudgetReservation | null>;
+  listActive(projectId: string, budgetKeys: readonly string[]): Promise<readonly BudgetReservation[]>;
+  insert(projectId: string, reservation: BudgetReservation): Promise<void>;
+  compareAndSet(
+    projectId: string,
+    reservationId: string,
+    expectedVersion: number,
+    expectedStatus: BudgetReservation["status"],
+    next: BudgetReservation,
+  ): Promise<CompareAndSetResult<BudgetReservation>>;
 }
 
 export interface FundingPreparationRepository {
@@ -119,6 +133,7 @@ export interface IdempotencyRepository {
 export interface PayRunUnitOfWorkContext {
   readonly payRuns: PayRunRepository;
   readonly approvals: ApprovalRepository;
+  readonly budgetReservations: BudgetReservationRepository;
   readonly fundingPreparations: FundingPreparationRepository;
   readonly paymentExecutions: PaymentExecutionRepository;
   readonly ledger: LedgerRepository;

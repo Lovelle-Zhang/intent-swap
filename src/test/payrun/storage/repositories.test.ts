@@ -85,7 +85,7 @@ describe("Local JSON storage lifecycle", () => {
     expect(storage.canonicalStorePath).toBe(join(await realpath(join(storePath, "..")), "payrun-store.json"));
     await expect(storage.getStoreGeneration()).resolves.toBe(0);
     expect(envelope.storeGeneration).toBe(0);
-    expect(Object.values(envelope.payload)).toEqual(Array(9).fill([]));
+    expect(Object.values(envelope.payload)).toEqual(Array(10).fill([]));
     expect(envelope.envelopeChecksum).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -184,6 +184,7 @@ describe("Local JSON storage lifecycle", () => {
     expect(storage).toMatchObject({
       payRuns: expect.any(Object),
       approvals: expect.any(Object),
+      budgetReservations: expect.any(Object),
       fundingPreparations: expect.any(Object),
       paymentExecutions: expect.any(Object),
       ledger: expect.any(Object),

@@ -1,6 +1,7 @@
 import type {
   ApprovalRepository,
   AuditEventRepository,
+  BudgetReservationRepository,
   DomainOutboxRepository,
   FundingPreparationRepository,
   IdempotencyRepository,
@@ -35,6 +36,7 @@ export interface LocalJsonPayRunStorage {
   readonly canonicalStorePath: string;
   readonly payRuns: PayRunRepository;
   readonly approvals: ApprovalRepository;
+  readonly budgetReservations: BudgetReservationRepository;
   readonly fundingPreparations: FundingPreparationRepository;
   readonly paymentExecutions: PaymentExecutionRepository;
   readonly ledger: LedgerRepository;

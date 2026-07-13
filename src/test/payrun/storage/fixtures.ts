@@ -2,6 +2,7 @@ import { sha256Canonical } from "@/features/payrun/adapters/storage/canonical-js
 import type {
   Approval,
   AuditEvent,
+  BudgetReservation,
   DomainOutboxEvent,
   FundingPreparation,
   IdempotencyRecord,
@@ -27,6 +28,7 @@ export const STORE_WRITTEN_AT = "2026-07-13T08:00:00.000Z";
 export interface StorePayloadFixture {
   readonly payRuns: readonly PayRun[];
   readonly approvals: readonly Approval[];
+  readonly budgetReservations: readonly BudgetReservation[];
   readonly fundingPreparations: readonly FundingPreparation[];
   readonly paymentExecutions: readonly PaymentExecution[];
   readonly ledgerJournals: readonly LedgerJournal[];
@@ -40,6 +42,7 @@ export function buildEmptyStorePayloadFixture(): StorePayloadFixture {
   return {
     payRuns: [],
     approvals: [],
+    budgetReservations: [],
     fundingPreparations: [],
     paymentExecutions: [],
     ledgerJournals: [],
@@ -76,6 +79,7 @@ export function buildPopulatedStorePayloadFixture(): StorePayloadFixture {
   return {
     payRuns: [payRun],
     approvals: [buildApproval()],
+    budgetReservations: [],
     fundingPreparations: [buildFundingPreparation()],
     paymentExecutions: [buildPaymentExecution()],
     ledgerJournals: [buildLedgerJournal()],
@@ -107,7 +111,7 @@ export function buildStoreEnvelopeFixture(
   writtenAt = STORE_WRITTEN_AT,
 ) {
   const content = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     storeGeneration,
     writtenAt,
     payload,

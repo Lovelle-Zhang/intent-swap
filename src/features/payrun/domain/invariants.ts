@@ -6,6 +6,7 @@ import {
   InvariantViolationError,
   ProjectScopeError,
 } from "./errors";
+import { SANDBOX_LEDGER_ACCOUNT_ROLES } from "./types";
 import type {
   Approval,
   AuditEvent,
@@ -258,6 +259,7 @@ function assertApproval(payRun: PayRun, approval: Approval): void {
     throw new InvariantViolationError("Approval request must bind the immutable intent digest");
   }
   assertMoney(approval.request.amount);
+  assertMoney(approval.request.amountCeiling);
   assertUtcIso(approval.request.createdAt, "approval.request.createdAt");
   assertUtcIso(approval.request.expiresAt, "approval.request.expiresAt");
   const reviewDecision = payRun.policyDecisions.find(
@@ -265,13 +267,17 @@ function assertApproval(payRun: PayRun, approval: Approval): void {
   );
   if (
     approval.request.payIntentId !== payRun.intent.id ||
+    approval.request.agentId !== payRun.intent.agentId ||
     approval.request.merchantId !== payRun.intent.merchant.merchantId ||
+    approval.request.purpose !== payRun.intent.purpose ||
     !sameMoney(approval.request.amount, payRun.intent.quotedAmount) ||
+    !sameMoney(approval.request.amountCeiling, payRun.intent.maximumAmount) ||
     !sameLogicalTarget(approval.request.settlementTarget, payRun.intent.settlementTarget) ||
     !reviewDecision ||
     reviewDecision.outcome !== "needs_review" ||
     reviewDecision.policyId !== approval.request.policyId ||
     reviewDecision.policyVersion !== approval.request.policyVersion ||
+    reviewDecision.policyChecksum !== approval.request.policyChecksum ||
     reviewDecision.inputSnapshotDigest !== approval.request.policyEvaluationDigest
   ) {
     throw new InvariantViolationError("ApprovalRequest does not bind the canonical review scope");
@@ -310,6 +316,13 @@ function assertApproval(payRun: PayRun, approval: Approval): void {
     approval.decision.approvalScopeDigest !== approval.request.approvalScopeDigest
   ) {
     throw new InvariantViolationError("Approval decision does not match its request and scope");
+  }
+  if (
+    approval.decision.reviewerId !== approval.decision.approver.actorId ||
+    approval.decision.approver.actorType !== "user" ||
+    approval.decision.approver.actorId === approval.request.requester.actorId
+  ) {
+    throw new InvariantViolationError("Approval requires a distinct authenticated human approver");
   }
 }
 
@@ -592,8 +605,14 @@ export function assertLedgerBalanced(journal: LedgerJournal | LedgerDraft): void
     if ("version" in journal && entry.journalId !== journal.id) {
       throw new InvariantViolationError("LedgerEntry must bind the committed Journal ID");
     }
-    if (journal.environment === "sandbox" && !entry.accountId.startsWith("sandbox:")) {
-      throw new InvariantViolationError("Sandbox Ledger must use isolated simulated accounts");
+    if (journal.environment === "sandbox") {
+      const expectedAccountId = `sandbox:${journal.projectId}:${entry.accountRole}`;
+      if (
+        !(SANDBOX_LEDGER_ACCOUNT_ROLES as readonly string[]).includes(entry.accountRole) ||
+        entry.accountId !== expectedAccountId
+      ) {
+        throw new InvariantViolationError("Sandbox Ledger must use the accepted project-scoped simulated account roles");
+      }
     }
   }
   const totals = entryTotals(journal.entries);

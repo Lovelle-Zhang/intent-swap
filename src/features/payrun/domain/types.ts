@@ -218,15 +218,20 @@ export interface ApprovalRequest extends ProjectScopedRecord {
   readonly policyDecisionId: string;
   readonly policyId: string;
   readonly policyVersion: number;
+  readonly policyChecksum: Digest;
   readonly policyEvaluationDigest: Digest;
+  readonly agentId: string;
   readonly merchantId: string;
+  readonly purpose: string;
   readonly amount: Money;
+  readonly amountCeiling: Money;
   readonly settlementTarget: LogicalSettlementTarget;
   readonly rail: string;
   readonly fundingScopeDigest: Digest;
   readonly coveredReasonCodes: readonly string[];
   readonly approvalScopeDigest: Digest;
   readonly generation: number;
+  readonly requester: DomainActor;
 }
 
 export interface ApprovalDecision extends ProjectScopedRecord {
@@ -234,6 +239,7 @@ export interface ApprovalDecision extends ProjectScopedRecord {
   readonly payRunId: string;
   readonly outcome: "approved" | "denied";
   readonly reviewerId: string;
+  readonly approver: DomainActor;
   readonly decidedAt: ISO8601;
   readonly reasonCode: string;
   readonly approvalScopeDigest: Digest;
@@ -244,6 +250,36 @@ export interface Approval extends AggregateRoot {
   readonly status: "pending" | "approved" | "denied" | "expired";
   readonly request: ApprovalRequest;
   readonly decision?: ApprovalDecision;
+}
+
+export const BUDGET_RESERVATION_STATUS_VALUES = ["active", "released", "consumed"] as const;
+export type BudgetReservationStatus = (typeof BUDGET_RESERVATION_STATUS_VALUES)[number];
+
+export interface BudgetReservation extends AggregateRoot {
+  readonly payRunId: string;
+  readonly agentId: string;
+  readonly merchantId: string;
+  readonly rail: string;
+  readonly scopeGeneration: number;
+  readonly policyDecisionId: string;
+  readonly policyId: string;
+  readonly policyVersion: number;
+  readonly policyChecksum: Digest;
+  readonly policyEvaluationDigest: Digest;
+  readonly intentDigest: Digest;
+  readonly approvalScopeDigest: Digest | null;
+  readonly approvalDecisionId: string | null;
+  readonly fundingScopeDigest: Digest;
+  readonly budgetKeys: readonly string[];
+  readonly reservedAmount: Money;
+  readonly environment: PayRunEnvironment;
+  readonly expiresAt: ISO8601;
+  readonly status: BudgetReservationStatus;
+  readonly terminalReasonCode: string | null;
+  readonly terminalEvidence:
+    | EvidenceReference
+    | { readonly ledgerJournalId: string }
+    | null;
 }
 
 export const EVIDENCE_KINDS = [
@@ -344,6 +380,7 @@ export interface FundingAttempt extends ProjectScopedRecord {
 
 export interface FundingPreparation extends AggregateRoot {
   readonly payRunId: string;
+  readonly budgetReservationId: string;
   readonly intentDigest: Digest;
   readonly policyDecisionId: string;
   readonly approvedScopeDigest: Digest;
@@ -457,9 +494,18 @@ export interface CanonicalExecutionProof extends ExecutionProof {
   readonly evidence: ExecutionEvidence;
 }
 
+export const SANDBOX_LEDGER_ACCOUNT_ROLES = [
+  "sandbox_funding_source",
+  "sandbox_merchant_payable",
+  "sandbox_fee_account",
+  "sandbox_clearing",
+] as const;
+export type SandboxLedgerAccountRole = (typeof SANDBOX_LEDGER_ACCOUNT_ROLES)[number];
+
 export interface LedgerEntry extends ProjectScopedRecord {
   readonly journalId: string;
   readonly accountId: string;
+  readonly accountRole: string;
   readonly debitAtomic: AtomicAmount;
   readonly creditAtomic: AtomicAmount;
   readonly evidenceHash: Digest;
