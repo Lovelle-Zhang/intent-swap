@@ -30,7 +30,7 @@ describe("/pilot-validation read-only surface", () => {
     });
     const session = await createPilotSessionReader({ repoRoot }).loadCurrentSession();
 
-    render(<PilotValidationView session={session} />);
+    const { container } = render(<PilotValidationView session={session} />);
 
     expect(screen.getAllByText("SANDBOX / NO REAL FUNDS").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Allowed")).toBeInTheDocument();
@@ -42,8 +42,20 @@ describe("/pilot-validation read-only surface", () => {
     expect(screen.getAllByText("Canonical receipt: unavailable")).toHaveLength(4);
     expect(screen.getAllByText(/Validation receipt projection: validation_receipt/)).toHaveLength(4);
     expect(screen.getByText("Source commit")).toBeInTheDocument();
-    expect(screen.getByText("93ecba37dcf5084360f33adde5e9a520d968bcb0")).toBeInTheDocument();
+    expect(screen.getByTitle("93ecba37dcf5084360f33adde5e9a520d968bcb0")).toHaveTextContent(
+      "93ecba37dc...68bcb0",
+    );
+    expect(screen.getByTitle(session.sessionId)).toHaveTextContent("20260714T0...3ecba3");
+    expect(screen.getAllByText("Policy evaluation")).toHaveLength(4);
+    expect(screen.getAllByText("Merchant trust")).toHaveLength(4);
+    expect(screen.getAllByText("Budget limit")).toHaveLength(4);
+    expect(screen.getAllByText("Agent capability")).toHaveLength(4);
+    expect(screen.getAllByText(/Full policy checks \(19\)/)).toHaveLength(4);
+    expect(screen.getAllByText("Technical details")).toHaveLength(4);
     expect(screen.getAllByText(/Audit sequence/).length).toBeGreaterThan(0);
+    for (const detail of container.querySelectorAll("details")) {
+      expect(detail).not.toHaveAttribute("open");
+    }
   }, 20_000);
 
   it("offers no mutation controls", async () => {
@@ -54,5 +66,8 @@ describe("/pilot-validation read-only surface", () => {
     expect(source).not.toMatch(/<form|<button|use server|Approve|Deny|Retry|Execute|Run Again/);
     expect(source).not.toContain("preparePilotSession");
     expect(source).not.toContain("createDeterministicSandboxControlLoop");
+    const view = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(join(process.cwd(), "src/app/pilot-validation/pilot-validation-view.tsx"), "utf8"));
+    expect(view).not.toMatch(/use client|useState|navigator\.clipboard|<button/);
   });
 });
