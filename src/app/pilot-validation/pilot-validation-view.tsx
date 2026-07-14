@@ -2,6 +2,7 @@ import type {
   PilotScenarioName,
   PilotSessionView,
 } from "@/features/payrun/pilot/session-contracts";
+import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 
 import {
   shortenIdentifier,
@@ -77,7 +78,7 @@ export function PilotValidationView({ session }: { readonly session: PilotSessio
                   <span>Why</span>
                   <strong>{reason}</strong>
                 </div>
-                <p>{scenario.explanation.amountAtomic} USDC · {scenario.explanation.merchant.payee}</p>
+                <p>{formatAtomicMoney(scenario.amount)} · {scenario.explanation.merchant.payee}</p>
               </section>
 
               <section className={styles.policy} aria-label="Policy evaluation">

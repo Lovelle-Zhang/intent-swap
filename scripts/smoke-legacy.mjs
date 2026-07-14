@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -198,6 +198,8 @@ async function main() {
         env: sanitizedEnvironment({ NODE_ENV: "test", ZENFIX_PILOT_REPO_ROOT: pilotRepoRoot }),
       },
     );
+    const pilotPointer = JSON.parse(await readFile(path.join(pilotRepoRoot, ".zenfix-data", "pilot-validation", "current.json"), "utf8"));
+    const pilotManifest = JSON.parse(await readFile(path.join(pilotRepoRoot, ".zenfix-data", "pilot-validation", "sessions", pilotPointer.sessionId, "pilot-session-manifest.json"), "utf8"));
     const monitorPort = await reserveLoopbackPort();
     const appPort = await reserveLoopbackPort();
     const monitorKey = "slice1-smoke-monitor-key";
@@ -273,6 +275,26 @@ async function main() {
     assert(pilotPageHtml.includes("SANDBOX / NO REAL FUNDS"), "Pilot Sandbox warning is missing");
     assert(pilotPageHtml.includes("Funding Mismatch"), "Pilot scenarios are incomplete");
     console.log("PASS pilot validation /pilot-validation (200, read-only Sandbox session)");
+
+    const commandCenter = await requireStatus(`${appBase}/command-center`, 200);
+    const commandCenterHtml = await commandCenter.text();
+    assert(commandCenterHtml.includes("Command Center"), "Command Center marker is missing");
+    assert(commandCenterHtml.includes("0.84 USDC"), "Controlled Spend projection is missing");
+    console.log("PASS command center /command-center (200, canonical Pilot Session)");
+
+    const payRuns = await requireStatus(`${appBase}/payruns`, 200);
+    const payRunsHtml = await payRuns.text();
+    assert(payRunsHtml.includes("Pay Run Ledger"), "PayRun Ledger marker is missing");
+    assert(payRunsHtml.includes("0.42 USDC") && payRunsHtml.includes("0.44 USDC") && payRunsHtml.includes("8 USDC"), "PayRun amounts are incomplete");
+    console.log("PASS PayRun ledger /payruns (200, four canonical records)");
+
+    for (const scenario of pilotManifest.scenarios) {
+      const detail = await requireStatus(`${appBase}/payruns/${encodeURIComponent(scenario.payRunId)}`, 200);
+      const detailHtml = await detail.text();
+      assert(detailHtml.includes(scenario.payRunId), `PayRun detail is missing ${scenario.name}`);
+    }
+    await requireStatus(`${appBase}/payruns/payrun_unknown`, 404);
+    console.log("PASS PayRun details (four records 200, unknown 404)");
 
     const apiHealth = await requireStatus(
       `${appBase}/api/cron/health-check`,
