@@ -27,6 +27,7 @@ export function PayRunDetailView({ session, scenario }: { readonly session: Pilo
     </header>
 
     <section className={styles.decisionHero} aria-label="Decision explanation">
+      <p className={styles.decisionLabel}>Decision and authoritative reason</p>
       <div><span>Decision</span><strong>{getPrimaryStatus(scenario)}</strong></div>
       <div><span>Authoritative reason</span><strong>{getDecisionSummary(scenario)}</strong><small>{whyTitle}</small></div>
       <div><span>Safe next action</span><strong>{scenario.explanation.nextAction === "human_review_required" ? "Eligible human review; no payment attempted" : scenario.explanation.nextAction === "stop" ? "No downstream action available" : "No action required"}</strong></div>

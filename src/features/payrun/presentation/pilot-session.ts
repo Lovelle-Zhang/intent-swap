@@ -72,6 +72,119 @@ export function getFocusedPilotScenario(session: PilotSessionView): PilotScenari
   return focused;
 }
 
+export interface CommandCenterAttention {
+  readonly scenario: PilotScenarioView;
+  readonly decision: PrimaryStatus;
+  readonly reason: string;
+  readonly stageLabel: "Policy" | "Approval" | "Ledger";
+  readonly stageState: "Stopped by Policy" | "Awaiting human review" | "Lifecycle completed";
+  readonly hasException: boolean;
+}
+
+export function getCommandCenterAttention(session: PilotSessionView): CommandCenterAttention {
+  const scenario = getFocusedPilotScenario(session);
+  if (scenario.actualFinalStatus === "pending_review") {
+    return {
+      scenario,
+      decision: "Needs Review",
+      reason: getDecisionSummary(scenario),
+      stageLabel: "Approval",
+      stageState: "Awaiting human review",
+      hasException: true,
+    };
+  }
+  if (scenario.actualFinalStatus === "blocked") {
+    return {
+      scenario,
+      decision: "Blocked",
+      reason: getDecisionSummary(scenario),
+      stageLabel: "Policy",
+      stageState: "Stopped by Policy",
+      hasException: true,
+    };
+  }
+  return {
+    scenario,
+    decision: getPrimaryStatus(scenario),
+    reason: getDecisionSummary(scenario),
+    stageLabel: "Ledger",
+    stageState: "Lifecycle completed",
+    hasException: false,
+  };
+}
+
+export type TrustEvidenceState = "Present" | "Not applicable" | "Missing";
+
+export interface TrustEvidenceItem {
+  readonly label: string;
+  readonly state: TrustEvidenceState;
+  readonly detail: string;
+}
+
+export function getTrustEvidenceSummary(
+  session: PilotSessionView,
+  scenario: PilotScenarioView,
+): readonly TrustEvidenceItem[] {
+  const completed = scenario.actualFinalStatus === "completed";
+  const policyPresent = scenario.policy.policyId.length > 0
+    && Number.isSafeInteger(scenario.policy.policyVersion)
+    && scenario.policy.policyVersion > 0;
+  const downstream = (
+    present: boolean,
+    presentDetail: string,
+    notApplicableDetail: string,
+  ): Pick<TrustEvidenceItem, "state" | "detail"> => completed
+    ? { state: present ? "Present" : "Missing", detail: present ? presentDetail : "Required evidence is missing." }
+    : { state: "Not applicable", detail: notApplicableDetail };
+  const approval: Pick<TrustEvidenceItem, "state" | "detail"> = scenario.approval
+    ? { state: "Present", detail: "A canonical approval request is awaiting human review." }
+    : scenario.actualFinalStatus === "pending_review"
+      ? { state: "Missing", detail: "The required approval request is missing." }
+      : { state: "Not applicable", detail: scenario.actualFinalStatus === "blocked"
+        ? "Policy stopped execution before approval."
+        : "Policy allowed execution without human approval." };
+
+  return [
+    {
+      label: "Policy authority",
+      state: policyPresent ? "Present" : "Missing",
+      detail: policyPresent
+        ? `${scenario.policy.policyId} · v${scenario.policy.policyVersion}`
+        : "Canonical Policy binding is missing.",
+    },
+    { label: "Approval applicability", ...approval },
+    {
+      label: "Payment evidence",
+      ...downstream(Boolean(scenario.payment), "Canonical sandbox payment evidence is present.", "No payment may occur at this decision state."),
+    },
+    {
+      label: "Artifact proof",
+      ...downstream(Boolean(scenario.proof), "Canonical sandbox artifact proof is present.", "No artifact proof may exist before payment."),
+    },
+    {
+      label: "Balanced ledger",
+      ...downstream(scenario.ledger?.balanced === true, "The sandbox journal is balanced.", "No ledger entry may exist before execution."),
+    },
+    {
+      label: "Audit completeness",
+      state: scenario.audit.length > 0 ? "Present" : "Missing",
+      detail: scenario.audit.length > 0
+        ? `${scenario.audit.length} append-only audit event${scenario.audit.length === 1 ? "" : "s"}.`
+        : "No audit lineage is available.",
+    },
+    {
+      label: "Session verification",
+      state: Number.isSafeInteger(session.storeGeneration)
+        && session.storeGeneration >= 0
+        && session.storeEnvelopeChecksum.length > 0
+        && session.manifestChecksum.length > 0
+        ? "Present"
+        : "Missing",
+      detail: "Manifest and checksummed store were verified by the read-only session reader.",
+    },
+  ];
+}
+
 export interface ObservedAgentSummary {
   readonly agentId: string;
   readonly agentName: string | null;
@@ -83,6 +196,8 @@ export interface ObservedAgentSummary {
   readonly controlledSpend: { readonly amountAtomic: string; readonly decimals: number; readonly asset: string };
   readonly latestActivityAt: string;
   readonly purposes: readonly string[];
+  readonly policyBindings: readonly string[];
+  readonly attentionState: "Needs Review" | "Blocked Activity" | "No current exception";
 }
 
 export function getObservedAgentFleet(session: PilotSessionView): readonly ObservedAgentSummary[] {
@@ -104,6 +219,12 @@ export function getObservedAgentFleet(session: PilotSessionView): readonly Obser
       controlledSpend: metrics.controlledSpend,
       latestActivityAt,
       purposes: [...new Set(scenarios.map((scenario) => scenario.purpose))].sort(),
+      policyBindings: [...new Set(scenarios.map((scenario) => `${scenario.policy.policyId} · v${scenario.policy.policyVersion}`))].sort(),
+      attentionState: scenarios.some((scenario) => scenario.actualFinalStatus === "pending_review")
+        ? "Needs Review"
+        : scenarios.some((scenario) => scenario.actualFinalStatus === "blocked")
+          ? "Blocked Activity"
+          : "No current exception",
     };
   });
 }

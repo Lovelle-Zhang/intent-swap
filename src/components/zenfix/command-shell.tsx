@@ -29,7 +29,7 @@ export function CommandShell({
         </nav>
         <div className={styles.sandboxStamp}>
           <span className={styles.liveDot} />
-          <div><strong>Sandbox session</strong><small>No real funds</small></div>
+          <div><strong>SANDBOX</strong><small>NO REAL FUNDS</small></div>
         </div>
       </aside>
       <section className={styles.workspace}>

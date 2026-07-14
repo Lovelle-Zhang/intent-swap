@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 import {
   filterPilotScenarios,
+  getCommandCenterAttention,
   getCommandCenterMetrics,
   getFocusedPilotScenario,
   getLifecycleStages,
@@ -10,6 +11,7 @@ import {
   getPilotMetrics,
   getPolicyHealth,
   getPrimaryStatus,
+  getTrustEvidenceSummary,
 } from "@/features/payrun/presentation/pilot-session";
 import type { PilotSessionView } from "@/features/payrun/pilot/session-contracts";
 
@@ -91,7 +93,17 @@ function sessionFixture(): PilotSessionView {
     payment: status === "completed" ? { status: "succeeded", reference: "payment_ref", synthetic: true, transactionHash: null } : null,
     proof: status === "completed" ? { status: "verified", reference: "proof_ref", synthetic: true, transactionHash: null } : null,
     ledger: status === "completed" ? { journalId: `ledger_${name}`, balanced: true as const } : null,
-    audit: [],
+    audit: [{
+      sequence: 1,
+      beforeVersion: 0,
+      afterVersion: 1,
+      actionCode: "payrun.created",
+      reasonCode: "intent.accepted",
+      actorType: "system" as const,
+      occurredAt: "2026-07-13T10:00:00.000Z",
+      fromStatus: null,
+      toStatus: "intent_received",
+    }],
   });
 
   return {
@@ -166,6 +178,48 @@ describe("Pilot Session presentation projections", () => {
     expect(getFocusedPilotScenario({ ...session, scenarios: completedOnly }).name).toBe("funding_mismatch");
   });
 
+  it("projects the focused decision queue with its authoritative stop or completion stage", () => {
+    expect(getCommandCenterAttention(session)).toMatchObject({
+      scenario: { name: "needs_review" },
+      decision: "Needs Review",
+      reason: "Human review is required before any downstream execution.",
+      stageLabel: "Approval",
+      stageState: "Awaiting human review",
+      hasException: true,
+    });
+
+    const completedOnly = {
+      ...session,
+      scenarios: session.scenarios
+        .filter((scenario) => scenario.actualFinalStatus === "completed")
+        .map((scenario, index) => ({ ...scenario, createdAt: `2026-07-13T10:0${index}:00.000Z` })),
+    };
+    expect(getCommandCenterAttention(completedOnly)).toMatchObject({
+      scenario: { name: "funding_mismatch" },
+      decision: "Completed",
+      stageLabel: "Ledger",
+      stageState: "Lifecycle completed",
+      hasException: false,
+    });
+  });
+
+  it("projects separate canonical trust evidence without a composite score", () => {
+    const review = session.scenarios.find((scenario) => scenario.name === "needs_review")!;
+    expect(getTrustEvidenceSummary(session, review).map(({ label, state }) => ({ label, state }))).toEqual([
+      { label: "Policy authority", state: "Present" },
+      { label: "Approval applicability", state: "Present" },
+      { label: "Payment evidence", state: "Not applicable" },
+      { label: "Artifact proof", state: "Not applicable" },
+      { label: "Balanced ledger", state: "Not applicable" },
+      { label: "Audit completeness", state: "Present" },
+      { label: "Session verification", state: "Present" },
+    ]);
+
+    const completed = session.scenarios.find((scenario) => scenario.name === "allowed")!;
+    const missingPayment = { ...completed, payment: null };
+    expect(getTrustEvidenceSummary(session, missingPayment).find((item) => item.label === "Payment evidence")?.state).toBe("Missing");
+  });
+
   it("aggregates an observed Agent fleet only from canonical PayRuns", () => {
     expect(getObservedAgentFleet(session)).toEqual([{
       agentId: "agent_sandbox_001",
@@ -178,6 +232,8 @@ describe("Pilot Session presentation projections", () => {
       controlledSpend: { amountAtomic: "840000", decimals: 6, asset: "USDC" },
       latestActivityAt: "2026-07-13T10:00:00.000Z",
       purposes: ["Purchase a verified API result"],
+      policyBindings: ["policy_sandbox_pilot_v1 · v1"],
+      attentionState: "Needs Review",
     }]);
   });
 
