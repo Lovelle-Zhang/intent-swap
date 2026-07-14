@@ -34,4 +34,10 @@ describe("PV-1 dependency and command boundary", () => {
     expect(smoke).toContain("ZENFIX_PILOT_REPO_ROOT");
     expect(smoke).toContain("prepare-pilot-validation.ts");
   });
+
+  it("uses the hosted-capable reader for the default Pilot Validation session", async () => {
+    const page = await readFile(join(root, "src/app/pilot-validation/page.tsx"), "utf8");
+    expect(page).toContain("loadCurrentPilotSession");
+    expect(page).toMatch(/typeof selected === "string"[\s\S]*reader\.loadSession\(selected\)[\s\S]*loadCurrentPilotSession\(\)/);
+  });
 });

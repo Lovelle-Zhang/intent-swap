@@ -8,6 +8,7 @@ import {
   PilotSessionNotFoundError,
   PilotStoreIntegrityError,
 } from "@/features/payrun/pilot/session-errors";
+import { loadCurrentPilotSession } from "@/features/payrun/presentation/pilot-loader.server";
 
 import { PilotValidationErrorView, PilotValidationView } from "./pilot-validation-view";
 
@@ -37,7 +38,7 @@ export default async function PilotValidationPage({
     const reader = createServerPilotSessionReader();
     const session = typeof selected === "string"
       ? await reader.loadSession(selected)
-      : await reader.loadCurrentSession();
+      : await loadCurrentPilotSession();
     return <PilotValidationView session={session} />;
   } catch (error) {
     return <PilotValidationErrorView message={safeMessage(error)} />;

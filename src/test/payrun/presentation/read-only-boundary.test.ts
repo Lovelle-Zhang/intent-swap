@@ -9,6 +9,7 @@ const surfaceFiles = [
   "src/app/payruns/page.tsx",
   "src/app/payruns/[id]/page.tsx",
   "src/features/payrun/presentation/pilot-loader.server.ts",
+  "src/features/payrun/pilot/hosted-session.ts",
 ];
 
 describe("ZenFix product surface read-only boundary", () => {
@@ -34,4 +35,3 @@ describe("ZenFix product surface read-only boundary", () => {
     expect(source).not.toMatch(/use client|useState|useEffect|navigator\./);
   });
 });
-
