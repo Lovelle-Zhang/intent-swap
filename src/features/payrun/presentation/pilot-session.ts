@@ -42,6 +42,72 @@ export function getPilotMetrics(session: PilotSessionView) {
   };
 }
 
+export function getCommandCenterMetrics(session: PilotSessionView) {
+  const metrics = getPilotMetrics(session);
+  return {
+    observedAgents: new Set(session.scenarios.map((scenario) => scenario.agent.id)).size,
+    sessionPayRuns: metrics.total,
+    completed: metrics.completed,
+    needsReview: metrics.needsReview,
+    blocked: metrics.blocked,
+    controlledSpend: metrics.controlledSpend,
+  };
+}
+
+const FOCUS_PRIORITY: Readonly<Record<string, number>> = {
+  pending_review: 0,
+  blocked: 1,
+  failed: 2,
+  completed: 3,
+};
+
+export function getFocusedPilotScenario(session: PilotSessionView): PilotScenarioView {
+  const focused = [...session.scenarios].sort((left, right) => {
+    const priority = (FOCUS_PRIORITY[left.actualFinalStatus] ?? 99) - (FOCUS_PRIORITY[right.actualFinalStatus] ?? 99);
+    if (priority !== 0) return priority;
+    const recency = Date.parse(right.createdAt) - Date.parse(left.createdAt);
+    return recency !== 0 ? recency : left.payRunId.localeCompare(right.payRunId);
+  })[0];
+  if (!focused) throw new Error("Command Center requires at least one canonical PayRun");
+  return focused;
+}
+
+export interface ObservedAgentSummary {
+  readonly agentId: string;
+  readonly agentName: string | null;
+  readonly ownerId: string | null;
+  readonly observedPayRuns: number;
+  readonly completed: number;
+  readonly needsReview: number;
+  readonly blocked: number;
+  readonly controlledSpend: { readonly amountAtomic: string; readonly decimals: number; readonly asset: string };
+  readonly latestActivityAt: string;
+  readonly purposes: readonly string[];
+}
+
+export function getObservedAgentFleet(session: PilotSessionView): readonly ObservedAgentSummary[] {
+  const agentIds = [...new Set(session.scenarios.map((scenario) => scenario.agent.id))].sort();
+  return agentIds.map((agentId) => {
+    const scenarios = session.scenarios.filter((scenario) => scenario.agent.id === agentId);
+    const metrics = getPilotMetrics({ ...session, scenarios });
+    const latestActivityAt = scenarios.reduce((latest, scenario) =>
+      Date.parse(scenario.createdAt) > Date.parse(latest) ? scenario.createdAt : latest,
+    scenarios[0]!.createdAt);
+    return {
+      agentId,
+      agentName: scenarios[0]!.agent.name,
+      ownerId: scenarios[0]!.agent.ownerId,
+      observedPayRuns: scenarios.length,
+      completed: metrics.completed,
+      needsReview: metrics.needsReview,
+      blocked: metrics.blocked,
+      controlledSpend: metrics.controlledSpend,
+      latestActivityAt,
+      purposes: [...new Set(scenarios.map((scenario) => scenario.purpose))].sort(),
+    };
+  });
+}
+
 export function getPolicyHealth(session: PilotSessionView) {
   const checks = session.scenarios.flatMap((scenario) => scenario.policy.checks);
   const evidence = checks.filter((check) => check.ruleClass === "evidence");
