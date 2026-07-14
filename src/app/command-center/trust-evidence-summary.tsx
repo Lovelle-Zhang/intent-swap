@@ -10,20 +10,20 @@ const STATE_SYMBOL: Readonly<Record<TrustEvidenceItem["state"], string>> = {
 
 export function TrustEvidenceSummary({ items }: { readonly items: readonly TrustEvidenceItem[] }) {
   return (
-    <section className={`${styles.panel} ${styles.trustPanel}`} aria-labelledby="trust-title">
-      <div className={styles.panelHeading}>
-        <div><p className={styles.eyebrow}>INDEPENDENT AUTHORITIES</p><h2 id="trust-title">Trust &amp; Evidence</h2></div>
-        <p>Independent, explicit evidence states from canonical records.</p>
+    <aside className={styles.authorityRail} aria-labelledby="authority-title">
+      <div className={styles.authorityHeading}>
+        <p className={styles.eyebrow}>INDEPENDENT RECORDS</p>
+        <h2 id="authority-title">Authority / Evidence</h2>
+        <span>Independent records</span>
       </div>
-      <div className={styles.trustGrid}>
+      <div className={styles.authorityList}>
         {items.map((item) => (
           <article data-evidence-state={item.state.toLowerCase().replace(" ", "-")} key={item.label}>
             <span aria-hidden="true">{STATE_SYMBOL[item.state]}</span>
-            <div><strong>{item.label}</strong><small>{item.state}</small></div>
-            <p>{item.detail}</p>
+            <div><small>{item.label}</small><strong>{item.state}</strong><p>{item.detail}</p></div>
           </article>
         ))}
       </div>
-    </section>
+    </aside>
   );
 }
