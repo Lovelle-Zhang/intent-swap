@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 import {
   filterPilotScenarios,
+  getCommandCenterMetrics,
+  getFocusedPilotScenario,
   getLifecycleStages,
+  getObservedAgentFleet,
   getPilotMetrics,
   getPolicyHealth,
   getPrimaryStatus,
@@ -138,6 +141,46 @@ describe("Pilot Session presentation projections", () => {
     });
   });
 
+  it("derives the six v2 KPI values without claiming runtime Agent activity or wall-clock Today", () => {
+    expect(getCommandCenterMetrics(session)).toEqual({
+      observedAgents: 1,
+      sessionPayRuns: 4,
+      completed: 2,
+      needsReview: 1,
+      blocked: 1,
+      controlledSpend: { amountAtomic: "840000", decimals: 6, asset: "USDC" },
+    });
+  });
+
+  it("focuses the newest pending review before blocked and completed PayRuns", () => {
+    const scenarios = session.scenarios.map((scenario, index) => ({
+      ...scenario,
+      createdAt: `2026-07-13T10:0${index}:00.000Z`,
+    }));
+    expect(getFocusedPilotScenario({ ...session, scenarios }).name).toBe("needs_review");
+
+    const withoutReview = scenarios.filter((scenario) => scenario.actualFinalStatus !== "pending_review");
+    expect(getFocusedPilotScenario({ ...session, scenarios: withoutReview }).name).toBe("blocked");
+
+    const completedOnly = scenarios.filter((scenario) => scenario.actualFinalStatus === "completed");
+    expect(getFocusedPilotScenario({ ...session, scenarios: completedOnly }).name).toBe("funding_mismatch");
+  });
+
+  it("aggregates an observed Agent fleet only from canonical PayRuns", () => {
+    expect(getObservedAgentFleet(session)).toEqual([{
+      agentId: "agent_sandbox_001",
+      agentName: null,
+      ownerId: null,
+      observedPayRuns: 4,
+      completed: 2,
+      needsReview: 1,
+      blocked: 1,
+      controlledSpend: { amountAtomic: "840000", decimals: 6, asset: "USDC" },
+      latestActivityAt: "2026-07-13T10:00:00.000Z",
+      purposes: ["Purchase a verified API result"],
+    }]);
+  });
+
   it("aggregates Policy outcomes and evidence checks without inventing a score", () => {
     expect(getPolicyHealth(session)).toEqual({
       passed: 8,
@@ -167,4 +210,3 @@ describe("Pilot Session presentation projections", () => {
     expect(filterPilotScenarios(session.scenarios, { status: "invalid" })).toEqual([]);
   });
 });
-
