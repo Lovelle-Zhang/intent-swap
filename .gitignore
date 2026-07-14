@@ -4,6 +4,7 @@ coverage
 .env.local
 
 .vercel
+.zenfix-data/
 
 # monitor runtime state
 monitor/orders.json

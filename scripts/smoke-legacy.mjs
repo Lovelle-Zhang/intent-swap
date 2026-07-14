@@ -18,6 +18,8 @@ const nextCli = path.join(
   "bin",
   "next",
 );
+const viteNodeCli = path.join(repositoryRoot, "node_modules", "vite-node", "vite-node.mjs");
+const pilotPreparationCommand = path.join(repositoryRoot, "scripts", "prepare-pilot-validation.ts");
 const children = [];
 let runtimeDirectory;
 let cleanupPromise;
@@ -74,6 +76,13 @@ function startChild(label, command, args, options) {
   const managed = { child, label, logs: () => output };
   children.push(managed);
   return managed;
+}
+
+async function runChild(label, command, args, options) {
+  const managed = startChild(label, command, args, options);
+  const completed = await waitForExit(managed.child, 30_000);
+  assert(completed, `${label} timed out.\n${managed.logs()}`);
+  assert(managed.child.exitCode === 0, `${label} failed.\n${managed.logs()}`);
 }
 
 async function waitForExit(child, timeoutMs) {
@@ -177,7 +186,18 @@ async function main() {
       path.join(tmpdir(), "zenfix-legacy-smoke-"),
     );
     const monitorData = path.join(runtimeDirectory, "monitor-data");
+    const pilotRepoRoot = path.join(runtimeDirectory, "pilot-repository");
     await mkdir(monitorData, { recursive: true });
+    await mkdir(pilotRepoRoot, { recursive: true });
+    await runChild(
+      "Pilot Session preparation",
+      process.execPath,
+      [viteNodeCli, pilotPreparationCommand],
+      {
+        cwd: repositoryRoot,
+        env: sanitizedEnvironment({ NODE_ENV: "test", ZENFIX_PILOT_REPO_ROOT: pilotRepoRoot }),
+      },
+    );
     const monitorPort = await reserveLoopbackPort();
     const appPort = await reserveLoopbackPort();
     const monitorKey = "slice1-smoke-monitor-key";
@@ -227,6 +247,7 @@ async function main() {
           INTERNAL_API_KEY: monitorKey,
           CRON_SECRET: cronSecret,
           RESEND_API_KEY: "",
+          ZENFIX_PILOT_REPO_ROOT: pilotRepoRoot,
         }),
       },
     );
@@ -245,6 +266,13 @@ async function main() {
       "Legacy swap page bundle marker is missing",
     );
     console.log("PASS legacy swap page /execute (200)");
+
+    const pilotPage = await requireStatus(`${appBase}/pilot-validation`, 200);
+    const pilotPageHtml = await pilotPage.text();
+    assert(pilotPageHtml.includes("Pilot Validation Surface"), "Pilot page marker is missing");
+    assert(pilotPageHtml.includes("SANDBOX / NO REAL FUNDS"), "Pilot Sandbox warning is missing");
+    assert(pilotPageHtml.includes("Funding Mismatch"), "Pilot scenarios are incomplete");
+    console.log("PASS pilot validation /pilot-validation (200, read-only Sandbox session)");
 
     const apiHealth = await requireStatus(
       `${appBase}/api/cron/health-check`,
