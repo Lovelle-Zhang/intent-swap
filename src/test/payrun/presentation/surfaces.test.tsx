@@ -37,34 +37,53 @@ afterAll(async () => {
 describe("/command-center", () => {
   it("renders an Agent-first operations canvas from the immutable canonical session", () => {
     const { container } = render(<CommandCenterView session={session} />);
+    const focusedReview = session.scenarios.find((scenario) => scenario.name === "needs_review")!;
 
     expect(screen.getByRole("heading", { name: "ZenFix Command Center" })).toBeInTheDocument();
     expect(screen.getByText("Agent Payment Intelligence & Governance")).toBeInTheDocument();
+    expect(screen.getAllByText("SANDBOX / NO REAL FUNDS").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("heading", { name: "Decision requires attention" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Payment Governance Canvas")).toBeInTheDocument();
+    expect(screen.getByText("Focused PayRun")).toBeInTheDocument();
+    expect(screen.getByText("Read-only canonical view")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting human review")).toBeInTheDocument();
+    expect(screen.getByText("Stopped at Approval")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Inspect focused PayRun" })).toHaveAttribute(
+      "href",
+      `/payruns/${focusedReview.payRunId}`,
+    );
+    expect(screen.getByRole("heading", { name: "Payment Governance Canvas" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Authority / Evidence" })).toBeInTheDocument();
+    expect(screen.getByText("Independent records")).toBeInTheDocument();
+    expect(screen.getByText("Policy authority")).toBeInTheDocument();
+    expect(screen.getByText("Approval applicability")).toBeInTheDocument();
+    expect(screen.getByText("Audit completeness")).toBeInTheDocument();
+    expect(screen.queryByText(/trust score/i)).not.toBeInTheDocument();
     expect(screen.getByText("Observed Agents")).toBeInTheDocument();
     expect(screen.getByText("Session Pay Runs")).toBeInTheDocument();
     expect(screen.queryByText("Active Agents")).not.toBeInTheDocument();
     expect(screen.queryByText("Pay Runs Today")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Agent Fleet" })).toBeInTheDocument();
+    expect(screen.getByText("Observed Agent")).toBeInTheDocument();
     expect(screen.getByText("Observed in current pilot session")).toBeInTheDocument();
-    expect(screen.getAllByText("Current immutable pilot session")).toHaveLength(6);
-    expect(screen.getAllByText("Sandbox only")).toHaveLength(6);
-    expect(screen.getAllByText("0.84 USDC").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Current immutable pilot session").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Additional agent profile fields are not available in current pilot data.")).not.toBeInTheDocument();
+    expect(screen.getAllByText("0.84 USDC").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("0.42 USDC").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("0.44 USDC")).toBeInTheDocument();
+    expect(screen.getAllByText("0.44 USDC").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("8 USDC")).toBeInTheDocument();
     expect(container).not.toHaveTextContent("420000 USDC");
     expect(container).not.toHaveTextContent("440000 USDC");
     expect(container).not.toHaveTextContent("8000000 USDC");
-    expect(screen.getAllByText("Not available in current pilot data").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText("Not available in current pilot data")).not.toBeInTheDocument();
     expect(screen.getAllByText("Allowed").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Needs Review").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Blocked").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Funding Mismatch").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("heading", { name: "Payment Control Flow" })).toBeInTheDocument();
     expect(
       screen.getAllByText("Human review is required before any downstream execution.").length,
     ).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("heading", { name: "Agent Activity Stream" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Activity Ledger" })).toBeInTheDocument();
+    expect(screen.getByText("Recent canonical economic actions")).toBeInTheDocument();
     expect(screen.getAllByText("No downstream evidence created").length).toBeGreaterThanOrEqual(2);
 
     const lifecycle = screen.getByLabelText("PayRun lifecycle");
@@ -85,6 +104,11 @@ describe("/command-center", () => {
     expect(screen.queryByText("Swap")).not.toBeInTheDocument();
     expect(screen.queryByText("Online")).not.toBeInTheDocument();
     expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
+
+    const headings = screen.getAllByRole("heading").map((heading) => heading.textContent);
+    expect(headings.indexOf("Decision requires attention")).toBeLessThan(headings.indexOf("Payment Governance Canvas"));
+    expect(headings.indexOf("Payment Governance Canvas")).toBeLessThan(headings.indexOf("Authority / Evidence"));
+    expect(headings.indexOf("Authority / Evidence")).toBeLessThan(headings.indexOf("Activity Ledger"));
   });
 });
 
@@ -115,16 +139,22 @@ describe("/payruns", () => {
 describe("/payruns/[id]", () => {
   it("renders all separated evidence for a completed PayRun", () => {
     const allowed = session.scenarios.find((scenario) => scenario.name === "allowed")!;
-    render(<PayRunDetailView session={session} scenario={allowed} />);
+    const { container } = render(<PayRunDetailView session={session} scenario={allowed} />);
 
     expect(screen.getByText("Why this PayRun completed")).toBeInTheDocument();
+    expect(screen.getByText("Decision and authoritative reason")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Execution and evidence path" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Authority / Evidence" })).toBeInTheDocument();
+    expect(screen.getByText("Canonical records")).toBeInTheDocument();
+    expect(screen.getByText("Continuous append-only lineage")).toBeInTheDocument();
     expect(screen.getByText("Funding preparation")).toBeInTheDocument();
     expect(screen.getByText("Payment execution")).toBeInTheDocument();
     expect(screen.getByText("Execution / Artifact proof")).toBeInTheDocument();
     expect(screen.getByText("Ledger summary")).toBeInTheDocument();
     expect(screen.getByText("Validation Receipt Projection")).toBeInTheDocument();
-    expect(screen.getByText("0.42 USDC")).toBeInTheDocument();
+    expect(screen.getAllByText("0.42 USDC").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Audit events/)).toBeInTheDocument();
+    expect(container.querySelector('[data-status="completed"] > span[aria-hidden="true"]')).toHaveTextContent("✓");
     const headings = screen.getAllByRole("heading").map((heading) => heading.textContent);
     expect(headings.indexOf("Agent Context")).toBeLessThan(headings.indexOf("Intent"));
     expect(headings.indexOf("Intent")).toBeLessThan(headings.indexOf("Policy Decision"));
@@ -137,7 +167,7 @@ describe("/payruns/[id]", () => {
 
   it("does not synthesize downstream records or a Receipt for Needs Review", () => {
     const review = session.scenarios.find((scenario) => scenario.name === "needs_review")!;
-    render(<PayRunDetailView session={session} scenario={review} />);
+    const { container } = render(<PayRunDetailView session={session} scenario={review} />);
 
     expect(screen.getByRole("heading", { name: "Approval" })).toBeInTheDocument();
     expect(screen.getAllByText("Human review is required before any downstream execution.").length).toBeGreaterThanOrEqual(1);
@@ -145,11 +175,12 @@ describe("/payruns/[id]", () => {
     expect(screen.queryByText("Execution / Artifact proof")).not.toBeInTheDocument();
     expect(screen.queryByText("Ledger summary")).not.toBeInTheDocument();
     expect(screen.queryByText("Validation Receipt Projection")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-status="needs-review"] > span[aria-hidden="true"]')).toHaveTextContent("!");
   });
 
   it("shows only Policy and supporting lineage for Blocked", () => {
     const blocked = session.scenarios.find((scenario) => scenario.name === "blocked")!;
-    render(<PayRunDetailView session={session} scenario={blocked} />);
+    const { container } = render(<PayRunDetailView session={session} scenario={blocked} />);
 
     expect(screen.getByText("Policy Decision")).toBeInTheDocument();
     expect(screen.getByText("merchant.unknown")).toBeInTheDocument();
@@ -159,6 +190,7 @@ describe("/payruns/[id]", () => {
     expect(screen.queryByText("Payment execution")).not.toBeInTheDocument();
     expect(screen.queryByText("Execution / Artifact proof")).not.toBeInTheDocument();
     expect(screen.queryByText("Ledger summary")).not.toBeInTheDocument();
+    expect(container.querySelector('[data-status="blocked"] > span[aria-hidden="true"]')).toHaveTextContent("×");
   });
 
   it("returns no scenario for an unknown PayRun ID", () => {
