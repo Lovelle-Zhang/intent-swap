@@ -44,6 +44,14 @@ export function derivePilotSessionView(
       name,
       payRunId: payRun.id,
       actualFinalStatus: payRun.status as PilotScenarioView["actualFinalStatus"],
+      agent: { id: payRun.intent.agentId, name: null, ownerId: null },
+      purpose: payRun.intent.purpose,
+      createdAt: payRun.intent.createdAt,
+      amount: {
+        amountAtomic: payRun.intent.quotedAmount.amountAtomic,
+        asset: payRun.intent.quotedAmount.asset,
+        decimals: payRun.intent.quotedAmount.decimals,
+      },
       explanation,
       validationReceipt: projectValidationReceipt(explanation),
       policy: {

@@ -90,6 +90,18 @@ export interface PilotScenarioView {
   readonly name: PilotScenarioName;
   readonly payRunId: string;
   readonly actualFinalStatus: "completed" | "pending_review" | "blocked";
+  readonly agent: {
+    readonly id: string;
+    readonly name: null;
+    readonly ownerId: null;
+  };
+  readonly purpose: string;
+  readonly createdAt: string;
+  readonly amount: {
+    readonly amountAtomic: string;
+    readonly asset: string;
+    readonly decimals: number;
+  };
   readonly explanation: PayRunExplanation;
   readonly validationReceipt: ValidationReceiptProjection;
   readonly policy: PilotPolicySummary;
