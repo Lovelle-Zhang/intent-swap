@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:rls": "vitest run src/test/payrun/hosted/schema-rls.test.ts",
     "test:watch": "vitest",
     "pilot:prepare": "vite-node scripts/prepare-pilot-validation.ts",
     "smoke": "node scripts/smoke-legacy.mjs"
@@ -24,6 +25,7 @@
     "wagmi": "^2.9.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "14.3.1",
     "@types/node": "^20",
