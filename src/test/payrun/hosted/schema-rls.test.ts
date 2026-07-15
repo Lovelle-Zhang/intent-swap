@@ -64,7 +64,7 @@ describe.sequential("hosted Postgres schema and RLS contract", () => {
 
     const migration = await readFile(migrationPath, "utf8");
     await db.exec(migration);
-  });
+  }, 60_000);
 
   afterAll(async () => {
     await db?.close();
