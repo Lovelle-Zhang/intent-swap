@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.1.2",
+    "@supabase/ssr": "0.12.0",
+    "@supabase/supabase-js": "2.109.0",
     "@tanstack/react-query": "^5.40.0",
     "framer-motion": "^11.2.10",
     "next": "14.2.3",
