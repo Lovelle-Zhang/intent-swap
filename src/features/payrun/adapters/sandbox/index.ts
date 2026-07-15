@@ -1,4 +1,4 @@
-import type { LocalJsonPayRunStorage } from "../storage";
+import type { PayRunPersistence } from "../../application/ports";
 import { sha256Canonical } from "../storage/canonical-json";
 import {
   SandboxPayRunControlLoopService,
@@ -7,7 +7,9 @@ import {
 import { evaluateSandboxPolicy } from "./policy";
 import {
   buildPolicyRequest,
+  buildHostedSandboxScenarioFixture,
   buildSandboxScenarioFixture,
+  bindHostedSandboxProject,
   deterministicPayRunId,
   SANDBOX_PROJECT_ID,
 } from "./fixtures";
@@ -18,19 +20,45 @@ import { buildSandboxLedgerDraft, commitSandboxLedger } from "./ledger";
 
 export { SANDBOX_PROJECT_ID } from "./fixtures";
 
+type ControlLoopOverrides = Partial<Pick<
+  SandboxControlLoopDependencies,
+  "completeFunding" | "completePayment" | "collectProof" | "buildLedgerDraft" | "commitLedger"
+>>;
+
+type ScenarioFixtureBuilder = typeof buildSandboxScenarioFixture;
+
 export function createDeterministicSandboxControlLoop(
-  storage: LocalJsonPayRunStorage,
-  overrides: Partial<Pick<
-    SandboxControlLoopDependencies,
-    "completeFunding" | "completePayment" | "collectProof" | "buildLedgerDraft" | "commitLedger"
-  >> = {},
+  storage: PayRunPersistence,
+  overrides: ControlLoopOverrides = {},
+): SandboxPayRunControlLoopService {
+  return composeSandboxControlLoop(storage, buildSandboxScenarioFixture, overrides);
+}
+
+export function createHostedSandboxControlLoop(
+  storage: PayRunPersistence,
+  trustedProject: { readonly projectId: string },
+  overrides: ControlLoopOverrides = {},
+): SandboxPayRunControlLoopService {
+  const binding = bindHostedSandboxProject(trustedProject.projectId);
+  return composeSandboxControlLoop(
+    storage,
+    (projectId, payRunId, scenarioId) =>
+      buildHostedSandboxScenarioFixture(binding, projectId, payRunId, scenarioId),
+    overrides,
+  );
+}
+
+function composeSandboxControlLoop(
+  storage: PayRunPersistence,
+  fixtureBuilder: ScenarioFixtureBuilder,
+  overrides: ControlLoopOverrides,
 ): SandboxPayRunControlLoopService {
   return new SandboxPayRunControlLoopService({
     persistence: storage,
     hash: sha256Canonical,
     payRunId: deterministicPayRunId,
     fixture(projectId, payRunId, scenarioId) {
-      const fixture = buildSandboxScenarioFixture(projectId, payRunId, scenarioId);
+      const fixture = fixtureBuilder(projectId, payRunId, scenarioId);
       return {
         scenarioId,
         project: fixture.project,
@@ -49,7 +77,7 @@ export function createDeterministicSandboxControlLoop(
       return evaluateSandboxPolicy(fixture.policyRequest);
     },
     prepareFunding(fixture, reservation, decision, occurredAt) {
-      const source = buildSandboxScenarioFixture(
+      const source = fixtureBuilder(
         fixture.project.id,
         fixture.intent.payRunId,
         fixture.scenarioId,

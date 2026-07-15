@@ -40,6 +40,7 @@ import {
   type FundingRouteStep,
   type FundingSource,
   type IdempotencyRecord,
+  type InboxEvent,
   type JsonValue,
   type LedgerDraft,
   type LedgerEntry,
@@ -1742,6 +1743,38 @@ function parseIdempotencyRecord(value: unknown, path: string): IdempotencyRecord
   };
 }
 
+function parseInboxEvent(value: unknown, path: string): InboxEvent {
+  const record = object(value, path, [
+    "id",
+    "projectId",
+    "version",
+    "source",
+    "sourceEventId",
+    "status",
+    "payloadDigest",
+    "consumedAt",
+    "createdAt",
+    "updatedAt",
+  ]);
+  const status = enumeration(record.status, `${path}.status`, ["received", "consumed"] as const);
+  const consumedAt =
+    record.consumedAt === undefined ? undefined : timestamp(record.consumedAt, `${path}.consumedAt`);
+  if (status === "received" && consumedAt !== undefined) {
+    throw validationError(`${path}.consumedAt`, "received event cannot be consumed", consumedAt);
+  }
+  if (status === "consumed" && consumedAt === undefined) {
+    throw validationError(`${path}.consumedAt`, "consumed event requires a timestamp", consumedAt);
+  }
+  return {
+    ...parseAggregateMeta(record, path),
+    source: string(record.source, `${path}.source`),
+    sourceEventId: string(record.sourceEventId, `${path}.sourceEventId`),
+    status,
+    payloadDigest: string(record.payloadDigest, `${path}.payloadDigest`),
+    ...(consumedAt === undefined ? {} : { consumedAt }),
+  };
+}
+
 function parseSimpleAggregate<T extends Project | Agent | Merchant | Policy>(
   value: unknown,
   path: string,
@@ -1867,6 +1900,7 @@ export const ledgerJournalSchema = defineSchema(parseLedgerJournal);
 export const auditEventSchema = defineSchema(parseAuditEvent);
 export const domainOutboxEventSchema = defineSchema(parseOutboxEvent);
 export const idempotencyRecordSchema = defineSchema(parseIdempotencyRecord);
+export const inboxEventSchema = defineSchema(parseInboxEvent);
 export const payRunSchema = defineSchema(parsePayRun);
 
 export const projectSchema = defineSchema<Project>((value, path) =>
