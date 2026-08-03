@@ -1,4 +1,23 @@
-# Intent Swap
+# ZenFix PayRun
+
+> An **Agent Payment Control Layer**. Let AI agents spend money inside user-defined rules — every payment attempt becomes an explainable, auditable Pay Run.
+
+**Status:** `SANDBOX / NO REAL FUNDS` — local development sandbox only. Live funds are prohibited until the Hosted Sandbox gates pass. See [docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md).
+
+This repository is mid-migration (Incremental Strangler): the ZenFix PayRun domain core lives under `src/features/payrun/`, while the legacy **Intent Swap** DEX surface (documented below) still ships as the current homepage. See [docs/engineering/STATUS_REPORT.md](./docs/engineering/STATUS_REPORT.md) for exactly what is and isn't wired.
+
+### Try the live control loop
+
+```bash
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000/sandbox** and run a scenario. Each click runs the real PayRun control loop on the server, writes a fresh store to disk, and returns the actual state machine — no pre-baked snapshot. The four canonical scenarios (`allowed`, `needs_review`, `blocked`, `funding_mismatch`) exercise the policy allow / human-review / block paths.
+
+---
+
+# Legacy: Intent Swap (DEX)
 
 > Swap with intention. Not just tokens.
 
