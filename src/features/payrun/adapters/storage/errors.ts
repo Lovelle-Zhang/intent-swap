@@ -134,3 +134,37 @@ export class AppendOnlyViolationError extends Error {
     this.collection = collection;
   }
 }
+
+export class PersistenceUnavailableError extends Error {
+  readonly code = "persistence_unavailable" as const;
+
+  constructor(message = "Configured PayRun persistence is unavailable", options?: ErrorOptions) {
+    super(message, options);
+    this.name = "PersistenceUnavailableError";
+  }
+}
+
+export class CommitOutcomeUnknownError extends Error {
+  readonly code = "postgres_commit_outcome_unknown" as const;
+  readonly outcome = "unknown" as const;
+  readonly reconciliationRequired = true as const;
+
+  constructor(options?: ErrorOptions) {
+    super(
+      "Postgres COMMIT outcome is unknown; reconcile using the command idempotency key before retrying",
+      options,
+    );
+    this.name = "CommitOutcomeUnknownError";
+  }
+}
+
+export class UnsafeDatabaseRoleError extends Error {
+  readonly code = "unsafe_database_role" as const;
+  readonly role: string;
+
+  constructor(role: string, message = `Database role ${role} is not safe for request-path access`) {
+    super(message);
+    this.name = "UnsafeDatabaseRoleError";
+    this.role = role;
+  }
+}

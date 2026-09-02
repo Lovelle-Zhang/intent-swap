@@ -43,6 +43,19 @@ export interface SandboxScenarioFixture {
   readonly fundingScopeDigest: string;
 }
 
+export interface HostedSandboxProjectBinding {
+  readonly projectId: string;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function bindHostedSandboxProject(projectId: string): HostedSandboxProjectBinding {
+  if (!UUID_PATTERN.test(projectId)) {
+    throw new InvariantViolationError("Hosted Sandbox Project must use a canonical UUID");
+  }
+  return Object.freeze({ projectId });
+}
+
 export function deterministicPayRunId(projectId: string, idempotencyKey: string): string {
   return `payrun_${sha256Canonical({ projectId, idempotencyKey }).slice(0, 20)}`;
 }
@@ -55,6 +68,26 @@ export function buildSandboxScenarioFixture(
   if (projectId !== SANDBOX_PROJECT_ID) {
     throw new InvariantViolationError("Unknown Sandbox Project");
   }
+  return buildProjectSandboxScenarioFixture(projectId, payRunId, scenarioId);
+}
+
+export function buildHostedSandboxScenarioFixture(
+  binding: HostedSandboxProjectBinding,
+  projectId: string,
+  payRunId: string,
+  scenarioId: SandboxScenarioId,
+): SandboxScenarioFixture {
+  if (projectId !== binding.projectId) {
+    throw new InvariantViolationError("Unknown Hosted Sandbox Project");
+  }
+  return buildProjectSandboxScenarioFixture(projectId, payRunId, scenarioId);
+}
+
+function buildProjectSandboxScenarioFixture(
+  projectId: string,
+  payRunId: string,
+  scenarioId: SandboxScenarioId,
+): SandboxScenarioFixture {
   const amountAtomic = scenarioId === "needs_review" ? "440000" : scenarioId === "blocked" ? "8000000" : "420000";
   const merchantId = scenarioId === "needs_review"
     ? "merchant_new"

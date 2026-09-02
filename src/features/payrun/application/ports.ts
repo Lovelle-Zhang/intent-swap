@@ -150,6 +150,13 @@ export interface PayRunUnitOfWork {
   ): Promise<T>;
 }
 
+export interface PayRunPersistence extends PayRunUnitOfWorkContext {
+  readonly backend: "local_json" | "postgres";
+  readonly inbox: InboxEventRepository;
+  readonly unitOfWork: PayRunUnitOfWork;
+  close(): Promise<void>;
+}
+
 export interface Clock {
   now(): string;
 }

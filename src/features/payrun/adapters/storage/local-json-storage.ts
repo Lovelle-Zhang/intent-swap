@@ -8,6 +8,7 @@ import type {
   InboxEventRepository,
   LedgerRepository,
   PayRunRepository,
+  PayRunPersistence,
   PayRunUnitOfWork,
   PaymentExecutionRepository,
 } from "../../application/ports";
@@ -32,7 +33,8 @@ export interface LocalJsonPayRunStorageOptions {
   readonly diagnostics?: LocalJsonStorageDiagnostics;
 }
 
-export interface LocalJsonPayRunStorage {
+export interface LocalJsonPayRunStorage extends PayRunPersistence {
+  readonly backend: "local_json";
   readonly canonicalStorePath: string;
   readonly payRuns: PayRunRepository;
   readonly approvals: ApprovalRepository;
@@ -77,6 +79,7 @@ export async function openLocalJsonPayRunStorageWithDependencies(
   const repositories = createRepositorySet({ coordinator, assertOpen });
 
   return {
+    backend: "local_json",
     canonicalStorePath: coordinator.canonicalStorePath,
     ...repositories,
     unitOfWork: {
