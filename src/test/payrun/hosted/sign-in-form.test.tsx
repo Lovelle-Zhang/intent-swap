@@ -15,4 +15,9 @@ describe("ZenFix magic-link sign-in form", () => {
     // omitted from the native form POST, which would send an empty email.
     expect(screen.getByLabelText("Email address")).not.toBeDisabled();
   });
+
+  test("offers Continue with Google as the primary option", () => {
+    render(<SignInForm />);
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+  });
 });
