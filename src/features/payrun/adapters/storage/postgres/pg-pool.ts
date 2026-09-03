@@ -23,9 +23,18 @@ export function createNodePostgresPool(databaseUrl: string): SqlPool {
     connectionString: databaseUrl,
     max: 2,
     connectionTimeoutMillis: 5_000,
-    idleTimeoutMillis: 10_000,
+    // The Supabase transaction pooler drops idle server connections, so keep the
+    // client idle window short (well under the server's) and probe with TCP
+    // keepalives to shed dead sockets before a request reuses them.
+    idleTimeoutMillis: 5_000,
+    keepAlive: true,
     allowExitOnIdle: true,
   });
+  // Idle pooled clients can emit an async 'error' when the backend closes their
+  // connection. Without a listener node-postgres rethrows it as an unhandled
+  // exception that can crash the serverless instance; swallow it and let the
+  // next connect() (with the transaction-level retry) recover.
+  pool.on("error", () => {});
   return {
     async connect() {
       return new NodePostgresClient(await pool.connect());

@@ -41,6 +41,31 @@ async function assertSafeSessionRole(client: SqlClient): Promise<string> {
   return role.role_name;
 }
 
+// Acquire a pooled connection and open the transaction. The Supabase transaction
+// pooler silently closes idle server connections, so a long-lived client pool can
+// hand back a dead connection whose first statement (connect or BEGIN) fails. No
+// work has been done at that point, so we retry exactly once with a fresh
+// connection before failing closed as unavailable.
+async function beginHostedTransaction(pool: SqlPool): Promise<SqlClient> {
+  for (let attempt = 0; ; attempt += 1) {
+    let client: SqlClient;
+    try {
+      client = await pool.connect();
+    } catch (error) {
+      if (attempt === 0 && isPostgresConnectionFailure(error)) continue;
+      throw new PersistenceUnavailableError("Hosted Postgres connection is unavailable", { cause: error });
+    }
+    try {
+      await client.query("BEGIN");
+      return client;
+    } catch (error) {
+      try { client.release(); } catch {}
+      if (attempt === 0 && isPostgresConnectionFailure(error)) continue;
+      throw new PersistenceUnavailableError("Hosted Postgres transaction connection was lost", { cause: error });
+    }
+  }
+}
+
 export interface HostedTransactionOptions {
   readonly pool: SqlPool;
   readonly userId: string;
@@ -51,18 +76,11 @@ export async function withHostedTransaction<T>(
   options: HostedTransactionOptions,
   operation: (client: SqlClient) => Promise<T>,
 ): Promise<T> {
-  let client: SqlClient;
-  try {
-    client = await options.pool.connect();
-  } catch (error) {
-    throw new PersistenceUnavailableError("Hosted Postgres connection is unavailable", { cause: error });
-  }
+  const client = await beginHostedTransaction(options.pool);
 
   let loginRole = "unknown";
-  let phase: "begin" | "session_role" | "assume_role" | "context" | "operation" | "commit" = "begin";
+  let phase: "session_role" | "assume_role" | "context" | "operation" | "commit" = "session_role";
   try {
-    await client.query("BEGIN");
-    phase = "session_role";
     loginRole = await assertSafeSessionRole(client);
     phase = "assume_role";
     try {

@@ -136,4 +136,43 @@ describe.sequential("personal workspace bootstrap", () => {
     await expect(resolvePersonalWorkspace(unavailable, identity(USER_A)))
       .rejects.toBeInstanceOf(PersistenceUnavailableError);
   });
+
+  test("a stale pooled connection at BEGIN is retried once with a fresh connection", async () => {
+    let attempts = 0;
+    const flaky: SqlPool = {
+      connect: async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return {
+            query: async (text: string) => {
+              if (text.replace(/\s+/g, " ").trim() === "BEGIN") {
+                throw new Error("Connection terminated unexpectedly");
+              }
+              return { rows: [], rowCount: 0 };
+            },
+            release: () => {},
+          } as unknown as SqlClient;
+        }
+        return pool.connect();
+      },
+      end: async () => undefined,
+    };
+    const workspace = await resolvePersonalWorkspace(flaky, identity(USER_A));
+    expect(workspace.projectId).toEqual(expect.any(String));
+    expect(attempts).toBe(2);
+  });
+
+  test("a connection failure that persists after one retry fails closed as unavailable", async () => {
+    let attempts = 0;
+    const down: SqlPool = {
+      connect: async () => {
+        attempts += 1;
+        throw Object.assign(new Error("Connection terminated unexpectedly"), { code: "08006" });
+      },
+      end: async () => undefined,
+    };
+    await expect(resolvePersonalWorkspace(down, identity(USER_A)))
+      .rejects.toBeInstanceOf(PersistenceUnavailableError);
+    expect(attempts).toBe(2);
+  });
 });
