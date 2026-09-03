@@ -6,36 +6,39 @@ import { createSupabaseBrowserClient } from "@/features/payrun/adapters/supabase
 
 export function SignInForm() {
   const [pending, setPending] = useState(false);
-  const [googlePending, setGooglePending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function signInWithGoogle() {
-    setGooglePending(true);
+    setPending(true);
+    setError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       // On success the browser is redirected to Google; only reached on error.
-      if (error) setGooglePending(false);
+      if (oauthError) {
+        setError("Could not start Google sign-in. Please try again.");
+        setPending(false);
+      }
     } catch {
-      setGooglePending(false);
+      setError("Could not start Google sign-in. Please try again.");
+      setPending(false);
     }
   }
 
   return (
-    <div>
-      <button type="button" onClick={signInWithGoogle} disabled={googlePending}>
-        {googlePending ? "Redirecting to Google…" : "Continue with Google"}
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={signInWithGoogle}
+        disabled={pending}
+        className="flex w-full items-center justify-center rounded-md bg-white px-4 py-2.5 font-medium text-stone-900 transition-colors hover:bg-stone-100 disabled:opacity-60"
+      >
+        {pending ? "Redirecting to Google…" : "Continue with Google"}
       </button>
-
-      <p>or use an email magic link</p>
-
-      <form action="/zenfix/sign-in/request" method="post" onSubmit={() => setPending(true)}>
-        <label htmlFor="email">Email address</label>
-        <input id="email" name="email" type="email" autoComplete="email" required />
-        <button type="submit" disabled={pending}>{pending ? "Sending…" : "Email me a magic link"}</button>
-      </form>
+      {error ? <p role="alert" className="text-sm text-red-400">{error}</p> : null}
     </div>
   );
 }

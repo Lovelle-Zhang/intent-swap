@@ -13,7 +13,7 @@ export default function SignInPage({ searchParams }: { searchParams: { status?: 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6">
       <div><p className="text-sm text-cyan-300">ZenFix Hosted Sandbox</p><h1 className="text-3xl font-semibold">Sign in</h1></div>
-      <p className="text-stone-300">Use an email magic link to access your persistent Personal Workspace.</p>
+      <p className="text-stone-300">Sign in with Google to access your persistent Personal Workspace.</p>
       {message ? <p role="status" className="rounded border border-stone-700 p-3">{message}</p> : null}
       <SignInForm />
     </main>
