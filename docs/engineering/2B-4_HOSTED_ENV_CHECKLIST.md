@@ -16,7 +16,7 @@ Exactly four, as read by the code:
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (`https://xxxx.supabase.co`) | public (client + server) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase **publishable / anon** key | public |
-| `SUPABASE_DATABASE_URL` | Hosted Postgres connection string | **server-only secret — never prefix with `NEXT_PUBLIC`** |
+| `SUPABASE_DATABASE_URL` | Postgres connection string for the dedicated `zenfix_login` role (see §3), via the transaction pooler, ending in `?sslmode=no-verify` | **server-only secret — never prefix with `NEXT_PUBLIC`** |
 | `ZENFIX_APP_ORIGIN` | The deployment's **bare origin**, e.g. `https://intent-swap.app` — no path, query, or credentials (validated in code) | server |
 
 Sources in code: `readSupabasePublicConfig` / `readZenFixAppOrigin`
@@ -24,7 +24,8 @@ Sources in code: `readSupabasePublicConfig` / `readZenFixAppOrigin`
 (`src/features/payrun/hosted/runtime.ts`).
 
 No `service_role` key is needed — per-user isolation is enforced by Postgres RLS
-via `auth.uid()`.
+keyed on the request's JWT `sub` claim (`public.zenfix_current_uid()`; see §3),
+not on the `auth` schema.
 
 ## 2. Supabase dashboard configuration
 
@@ -39,18 +40,34 @@ via `auth.uid()`.
 
 ## 3. Database (one-time provisioning)
 
-- Apply the migration
-  **`supabase/migrations/202607150001_hosted_project_and_payrun_storage.sql`**
-  to the Supabase Postgres. It creates the `zenfix_app` role, the tables, the
-  owner-scoped RLS policies (`zenfix_owns_project`), and the grants.
-- The login role in `SUPABASE_DATABASE_URL` must be able to
-  **`SET LOCAL ROLE zenfix_app`** (the adapter switches role inside each
-  transaction). If that raises a permission error, run
-  `GRANT zenfix_app TO <your connection role>`.
-- **Connection pooling:** on Vercel serverless / Fluid Compute, point
-  `SUPABASE_DATABASE_URL` at the Supabase **Transaction-mode pooler (port
-  6543)**. The adapter uses transaction-scoped `SET LOCAL ROLE`, which is
-  pooler-compatible; do not rely on session-level settings.
+1. **Apply the migration**
+   **`supabase/migrations/202607150001_hosted_project_and_payrun_storage.sql`**
+   (SQL Editor → paste → Run). It creates the `zenfix_app` role (NOLOGIN), the
+   tables, the owner-scoped RLS (`public.zenfix_current_uid()` +
+   `zenfix_owns_project`), and the grants.
+
+2. **Create a dedicated login role.** The adapter refuses any connection role
+   that is a superuser or **bypasses RLS** (a safety check), and Supabase's
+   default `postgres` pooler role has `BYPASSRLS`. So connect as a role that can
+   log in, does **not** bypass RLS, and is a member of `zenfix_app`:
+   ```sql
+   create role zenfix_login with login nosuperuser nobypassrls password '<choose-a-strong-password>';
+   grant zenfix_app to zenfix_login;
+   ```
+
+3. **Build `SUPABASE_DATABASE_URL`** against the **Transaction-mode pooler (port
+   6543)**, connecting as `zenfix_login`, ending in `?sslmode=no-verify`:
+   ```
+   postgresql://zenfix_login.<project-ref>:<password>@<region>.pooler.supabase.com:6543/postgres?sslmode=no-verify
+   ```
+   - `zenfix_login.<project-ref>` is the Supavisor username form for a
+     non-default role (copy the pooler host/region from Dashboard → Connect).
+   - **`sslmode=no-verify`, not `require`:** current `node-postgres` treats
+     `require` as full certificate verification, which fails against the
+     pooler's certificate (`self-signed certificate in certificate chain`);
+     `no-verify` keeps TLS on without chain verification.
+   - The adapter uses transaction-scoped `SET LOCAL ROLE`, so the transaction
+     pooler is required for serverless; do not rely on session-level settings.
 
 ## 4. Verify
 
