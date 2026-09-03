@@ -7,7 +7,7 @@ export function SignInForm() {
   return (
     <form action="/zenfix/sign-in/request" method="post" onSubmit={() => setPending(true)}>
       <label htmlFor="email">Email address</label>
-      <input id="email" name="email" type="email" autoComplete="email" required disabled={pending} />
+      <input id="email" name="email" type="email" autoComplete="email" required />
       <button type="submit" disabled={pending}>{pending ? "Sending…" : "Email me a magic link"}</button>
     </form>
   );

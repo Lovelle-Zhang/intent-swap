@@ -11,6 +11,8 @@ describe("ZenFix magic-link sign-in form", () => {
     expect(screen.getByLabelText("Email address")).toHaveAttribute("type", "email");
     fireEvent.submit(container.querySelector("form")!);
     expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
-    expect(screen.getByLabelText("Email address")).toBeDisabled();
+    // The email input must NOT be disabled on submit: a disabled field is
+    // omitted from the native form POST, which would send an empty email.
+    expect(screen.getByLabelText("Email address")).not.toBeDisabled();
   });
 });
