@@ -1,23 +1,17 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 
 import { SignInForm } from "@/app/zenfix/sign-in/SignInForm";
 
-describe("ZenFix magic-link sign-in form", () => {
-  test("labels the email field and prevents duplicate submission while pending", () => {
-    const { container } = render(<SignInForm />);
-    expect(screen.getByLabelText("Email address")).toHaveAttribute("type", "email");
-    fireEvent.submit(container.querySelector("form")!);
-    expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
-    // The email input must NOT be disabled on submit: a disabled field is
-    // omitted from the native form POST, which would send an empty email.
-    expect(screen.getByLabelText("Email address")).not.toBeDisabled();
-  });
-
-  test("offers Continue with Google as the primary option", () => {
+describe("ZenFix sign-in", () => {
+  test("offers Google as the only sign-in option", () => {
     render(<SignInForm />);
     expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+    // The email magic-link option was removed: Supabase built-in email is
+    // rate-limited (2/hour) and the two unstyled buttons were easy to confuse.
+    expect(screen.queryByLabelText("Email address")).toBeNull();
+    expect(screen.queryByRole("button", { name: /magic link/i })).toBeNull();
   });
 });
