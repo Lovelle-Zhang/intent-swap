@@ -6,6 +6,7 @@ import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
 import { resolvePersonalWorkspace } from "@/features/payrun/hosted/workspace";
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
+import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 
 function escape(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -13,9 +14,11 @@ function escape(value: string): string {
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-    const workspace = await resolvePersonalWorkspace(getHostedSqlPool(), identity);
+    const workspace = await retryOnTransientUnavailable(async () => {
+      const supabase = createSupabaseServerClient();
+      const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
+      return resolvePersonalWorkspace(getHostedSqlPool(), identity);
+    });
     const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>ZenFix Personal Workspace</title></head><body style="margin:0;background:#0c0c0d;color:#f5f5f4;font-family:system-ui"><main style="max-width:680px;margin:0 auto;padding:10vh 24px"><p style="color:#67e8f9">ZenFix Hosted Sandbox</p><h1>${escape(workspace.name)}</h1><p>Your persistent Personal Workspace is ready.</p><dl><dt>Workspace ID</dt><dd><code>${escape(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escape(workspace.mode)}</dd></dl><p><a href="/zenfix/payruns">View your Pay Runs →</a></p><form action="/zenfix/sign-out" method="post"><button type="submit">Sign out</button></form></main></body></html>`;
     return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } });
   } catch (error) {

@@ -5,6 +5,7 @@ import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { AuthUnavailableError, AuthenticationRequiredError } from "@/features/payrun/hosted/errors";
 import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
+import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import {
   listWorkspacePayRuns,
   type HostedPayRunSummary,
@@ -41,9 +42,11 @@ function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): st
 
 export async function GET(request: Request) {
   try {
-    const supabase = createSupabaseServerClient();
-    const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-    const view = await listWorkspacePayRuns(getHostedSqlPool(), identity);
+    const view = await retryOnTransientUnavailable(async () => {
+      const supabase = createSupabaseServerClient();
+      const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
+      return listWorkspacePayRuns(getHostedSqlPool(), identity);
+    });
     const status = new URL(request.url).searchParams.get("status") ?? new URL(request.url).searchParams.get("error");
     const notice = status ? (NOTICES[status] ?? null) : null;
     return new Response(renderHtml(view, notice), {
