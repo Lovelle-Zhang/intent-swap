@@ -175,4 +175,21 @@ describe.sequential("personal workspace bootstrap", () => {
       .rejects.toBeInstanceOf(PersistenceUnavailableError);
     expect(attempts).toBe(2);
   });
+
+  test("closing workspace persistence never ends the shared hosted pool", async () => {
+    let ended = false;
+    const sharedPool: SqlPool = {
+      connect: async () => {
+        if (ended) throw new Error("Cannot use a pool after calling end on the pool");
+        return pool.connect();
+      },
+      end: async () => { ended = true; },
+    };
+    const opened = await openWorkspacePersistence(sharedPool, identity(USER_A));
+    await opened.persistence.close();
+    expect(ended).toBe(false);
+    // A later request on the same instance must still be able to use the pool.
+    const again = await resolvePersonalWorkspace(sharedPool, identity(USER_A));
+    expect(again.projectId).toBe(opened.workspace.projectId);
+  });
 });

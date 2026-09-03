@@ -47,8 +47,17 @@ export async function resolvePersonalWorkspace(
 
 export async function openWorkspacePersistence(pool: SqlPool, identity: VerifiedAuthIdentity) {
   const workspace = await resolvePersonalWorkspace(pool, identity);
+  // The hosted pool is a long-lived shared singleton (getHostedSqlPool). The
+  // persistence adapter's close() ends the pool it is handed, so give it a
+  // borrowed view whose end() is a no-op — otherwise a per-request close() tears
+  // down the shared pool and every later request on this serverless instance
+  // 503s with "Cannot use a pool after calling end on the pool".
+  const borrowedPool: SqlPool = {
+    connect: () => pool.connect(),
+    end: async () => {},
+  };
   const persistence = await openPostgresPayRunStorage({
-    pool,
+    pool: borrowedPool,
     context: { userId: identity.userId, projectId: workspace.projectId },
   });
   return { workspace, persistence };
