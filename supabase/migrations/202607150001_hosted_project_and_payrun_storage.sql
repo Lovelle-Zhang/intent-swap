@@ -423,18 +423,31 @@ CREATE CONSTRAINT TRIGGER ledger_entries_balanced_on_commit
   DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW EXECUTE FUNCTION public.zenfix_assert_balanced_ledger_journal();
 
+-- Owner identity for RLS. Read the authenticated user id straight from the
+-- request GUC the app sets (request.jwt.claim.sub) instead of auth.uid():
+-- managed Postgres (Supabase) will not let the app's login role be granted
+-- USAGE on the auth schema, so calling auth.uid() from zenfix_app fails.
+CREATE FUNCTION public.zenfix_current_uid()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SET search_path = pg_catalog, public
+AS $current_uid$
+  SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
+$current_uid$;
+
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects FORCE ROW LEVEL SECURITY;
 CREATE POLICY projects_owner_select ON public.projects
   FOR SELECT TO zenfix_app
-  USING (owner_user_id = auth.uid());
+  USING (owner_user_id = public.zenfix_current_uid());
 CREATE POLICY projects_owner_insert ON public.projects
   FOR INSERT TO zenfix_app
-  WITH CHECK (owner_user_id = auth.uid());
+  WITH CHECK (owner_user_id = public.zenfix_current_uid());
 CREATE POLICY projects_owner_update ON public.projects
   FOR UPDATE TO zenfix_app
-  USING (owner_user_id = auth.uid())
-  WITH CHECK (owner_user_id = auth.uid());
+  USING (owner_user_id = public.zenfix_current_uid())
+  WITH CHECK (owner_user_id = public.zenfix_current_uid());
 
 CREATE FUNCTION public.zenfix_owns_project(target_project_id uuid)
 RETURNS boolean
@@ -445,7 +458,7 @@ AS $function$
   SELECT EXISTS (
     SELECT 1
     FROM public.projects
-    WHERE id = target_project_id AND owner_user_id = auth.uid()
+    WHERE id = target_project_id AND owner_user_id = public.zenfix_current_uid()
   )
 $function$;
 
@@ -539,8 +552,7 @@ END
 $revoke_supabase_roles$;
 
 GRANT USAGE ON SCHEMA public TO zenfix_app;
-GRANT USAGE ON SCHEMA auth TO zenfix_app;
-GRANT EXECUTE ON FUNCTION auth.uid() TO zenfix_app;
+GRANT EXECUTE ON FUNCTION public.zenfix_current_uid() TO zenfix_app;
 GRANT EXECUTE ON FUNCTION public.zenfix_owns_project(uuid) TO zenfix_app;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE
