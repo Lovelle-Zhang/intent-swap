@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/features/payrun/adapters/supabase/server";
 import { PersistenceUnavailableError } from "@/features/payrun/adapters/storage";
+import { CommitOutcomeUnknownError, UnsafeDatabaseRoleError } from "@/features/payrun/adapters/storage/errors";
 import { AuthUnavailableError, AuthenticationRequiredError } from "@/features/payrun/hosted/errors";
 import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
@@ -28,13 +29,10 @@ export async function GET(request: Request) {
       }
       return Response.redirect(new URL("/zenfix/sign-in", appOrigin), 303);
     }
-    // TEMP DIAGNOSTIC (revert): surface the real error class + cause so the
-    // intermittent 503 can be pinpointed without dashboard log access.
-    const e = error as { name?: string; message?: string; code?: string; cause?: unknown };
-    const cause = e?.cause;
-    const causeDetail = cause instanceof Error ? `${cause.name}: ${cause.message}` : cause != null ? String(cause) : "";
-    const detail = `${e?.name ?? typeof error}${e?.code ? `(${e.code})` : ""}: ${e?.message ?? ""}${causeDetail ? ` <= ${causeDetail}` : ""}`;
-    console.error("[zenfix-diag] workspace 503", detail);
-    return new Response(`ZenFix Hosted Sandbox is temporarily unavailable. [diag] ${detail}`, { status: 503 });
+    if (error instanceof PersistenceUnavailableError || error instanceof AuthUnavailableError) {
+      return new Response("ZenFix Hosted Sandbox is temporarily unavailable.", { status: 503 });
+    }
+    if (error instanceof CommitOutcomeUnknownError || error instanceof UnsafeDatabaseRoleError) throw error;
+    throw error;
   }
 }
