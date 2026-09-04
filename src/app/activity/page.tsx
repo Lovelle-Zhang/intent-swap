@@ -321,7 +321,7 @@ function ActivityContent() {
                 Change email
               </button>
             )}
-            <Link href="/" className="text-stone-600 hover:text-stone-400 text-xs tracking-wide transition-colors">
+            <Link href="/swap" className="text-stone-600 hover:text-stone-400 text-xs tracking-wide transition-colors">
               ← Back
             </Link>
           </div>
@@ -378,7 +378,7 @@ function ActivityContent() {
                 : "Nothing here yet"}
             </p>
             {(email || filter === "swaps") && (
-              <Link href="/" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+              <Link href="/swap" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
                 Set your first trade →
               </Link>
             )}

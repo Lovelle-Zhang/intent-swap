@@ -294,7 +294,7 @@ function ExecutePageInner() {
               </button>
             )}
 
-            <Link href="/" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+            <Link href="/swap" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
               ← Back to home
             </Link>
           </div>
@@ -369,7 +369,7 @@ function ExecutePageInner() {
                 <span className="text-green-400/80 text-xs">Confirmed</span>
               </div>
             </div>
-            <Link href="/" className="block py-2.5 text-stone-600 hover:text-stone-400 text-sm transition-colors">
+            <Link href="/swap" className="block py-2.5 text-stone-600 hover:text-stone-400 text-sm transition-colors">
               New swap →
             </Link>
           </>

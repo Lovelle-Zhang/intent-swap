@@ -68,7 +68,7 @@ export default function LandingPage() {
           <a href="#how" className="text-stone-600 hover:text-stone-400 text-xs tracking-widest uppercase transition-colors hidden md:block">How it works</a>
           <a href="#pricing" className="text-stone-600 hover:text-stone-400 text-xs tracking-widest uppercase transition-colors hidden md:block">Pricing</a>
           <Link
-            href="/"
+            href="/swap"
             className="px-4 py-1.5 bg-gold-500 hover:bg-gold-400 text-stone-950 text-xs font-medium rounded-lg transition-colors"
           >
             Launch App →
@@ -109,7 +109,7 @@ export default function LandingPage() {
 
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
-              href="/"
+              href="/swap"
               className="px-8 py-3 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
             >
               Set your first trigger
@@ -351,7 +351,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <Link
-                href="/"
+                href="/swap"
                 className="block w-full text-center px-6 py-2.5 border border-stone-700 hover:border-stone-500 text-stone-300 hover:text-stone-100 rounded-xl text-sm transition-colors"
               >
                 Start for free
@@ -392,7 +392,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <Link
-                href="/"
+                href="/swap"
                 className="block w-full text-center px-6 py-2.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-lg hover:shadow-gold-500/20"
               >
                 Set a trigger — free
@@ -463,7 +463,7 @@ export default function LandingPage() {
             <p className="text-stone-400 text-sm">Connect your wallet. No sign-up. No email. No friction.</p>
           </div>
           <Link
-            href="/"
+            href="/swap"
             className="inline-block px-10 py-3.5 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-sm transition-all duration-200 hover:shadow-xl hover:shadow-gold-500/30 hover:-translate-y-0.5"
           >
             Set your first trigger

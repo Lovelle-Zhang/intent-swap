@@ -1,238 +1,113 @@
-"use client";
+import Link from "next/link";
+import type { Metadata } from "next";
 
-import { useState } from "react";
-import { useChainId, useAccount, useSwitchChain } from "wagmi";
-import { mainnet } from "wagmi/chains";
-import { WalletButton } from "@/components/WalletButton";
-import { IntentInput } from "@/components/IntentInput";
-import { TokenSearch, type TokenInfo } from "@/components/TokenSearch";
-import { CHAIN_LABELS, DEFAULT_CHAIN_LABEL } from "@/config/constants";
+export const metadata: Metadata = {
+  title: "ZenFix PayRun — Agent Payment Control Layer",
+  description:
+    "Let AI agents spend money inside your rules. Every payment attempt becomes an explainable, auditable Pay Run. Sandbox — no real funds.",
+};
 
-function TokenSearchCollapsible({
-  chainId,
-  onSelect,
-  tokenHint,
-  onClearHint,
-}: {
-  chainId: number;
-  onSelect: (t: TokenInfo) => void;
-  tokenHint: string;
-  onClearHint: () => void;
-}) {
-  const [open, setOpen] = useState(false);
+const FEATURES = [
+  {
+    icon: "🛡",
+    title: "Policy-gated spending",
+    desc: "Every payment an agent attempts is checked against your budget and rules before anything moves — allowed, held for review, or blocked.",
+  },
+  {
+    icon: "🧾",
+    title: "Explainable Pay Runs",
+    desc: "Each attempt becomes an auditable Pay Run carrying its policy decision, reason codes, and full trail — nothing happens off the record.",
+  },
+  {
+    icon: "🗂",
+    title: "Persistent workspace",
+    desc: "Sign in with Google and your sandbox workspace and its Pay Runs are always there when you come back.",
+  },
+];
+
+const STEPS = [
+  { n: "1", t: "Agent proposes a payment", d: "An AI agent submits an intent — recipient, amount, and purpose." },
+  { n: "2", t: "The control layer decides", d: "ZenFix evaluates it against your budget and policy in one deterministic pass." },
+  { n: "3", t: "The outcome is recorded", d: "Allowed, held, or blocked — captured as an auditable Pay Run you can inspect." },
+];
+
+export default function HomePage() {
   return (
-    <div className="mt-3">
-      {/* 折叠触发行 */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-600 hover:text-stone-400 hover:bg-stone-900/30 transition-all group"
-      >
-        <span className="flex items-center gap-2 text-[11px] tracking-wider">
-          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          {tokenHint ? (
-            <span className="text-gold-400/60 font-mono">{tokenHint}</span>
-          ) : (
-            <span>Search 1,700+ tokens</span>
-          )}
-        </span>
-        <svg
-          className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+    <div>
+      <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center">
+        <p className="text-xs font-semibold tracking-[0.18em] text-amber-400">SANDBOX · NO REAL FUNDS</p>
+        <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight text-stone-50 sm:text-6xl">
+          Let AI agents spend money
+          <br className="hidden sm:block" /> inside your rules.
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-stone-400">
+          ZenFix PayRun is an agent payment control layer. Every payment an agent attempts is
+          policy-checked and captured as an explainable, auditable Pay Run.
+        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <Link
+            href="/zenfix/sign-in"
+            className="rounded-lg bg-cyan-400 px-6 py-3 font-semibold text-stone-950 transition-colors hover:bg-cyan-300"
+          >
+            Sign in with Google
+          </Link>
+          <Link
+            href="/command-center"
+            className="rounded-lg border border-stone-700 px-6 py-3 font-medium text-stone-200 transition-colors hover:bg-stone-900"
+          >
+            Explore the sandbox
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-6 py-12">
+        <div className="grid gap-6 sm:grid-cols-3">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
+              <div className="text-2xl" aria-hidden>{f.icon}</div>
+              <h3 className="mt-4 text-lg font-semibold text-stone-100">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-400">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-6 py-12">
+        <h2 className="text-center text-sm font-semibold uppercase tracking-[0.12em] text-stone-500">How it works</h2>
+        <div className="mt-8 grid gap-6 sm:grid-cols-3">
+          {STEPS.map((s) => (
+            <div key={s.n} className="rounded-2xl border border-stone-800 p-6">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-800 text-sm font-semibold text-cyan-300">
+                {s.n}
+              </div>
+              <h3 className="mt-4 font-semibold text-stone-100">{s.t}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-400">{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <h2 className="text-2xl font-bold text-stone-50">Try the sandbox</h2>
+        <p className="mt-3 text-stone-400">One click with Google. No real funds ever move.</p>
+        <Link
+          href="/zenfix/sign-in"
+          className="mt-6 inline-block rounded-lg bg-cyan-400 px-6 py-3 font-semibold text-stone-950 transition-colors hover:bg-cyan-300"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          Sign in with Google
+        </Link>
+      </section>
 
-      {/* 展开内容 */}
-      {open && (
-        <div className="mt-1.5 px-1 space-y-1.5 animate-fade-in">
-          <TokenSearch chainId={chainId} onSelect={(t) => { onSelect(t); setOpen(false); }} />
-          {tokenHint && (
-            <p className="text-stone-600 text-[11px] px-1 flex items-center gap-1.5">
-              <span className="text-stone-700">Selected:</span>
-              <span className="text-gold-400/60 font-mono">{tokenHint}</span>
-              <button onClick={onClearHint} className="text-stone-700 hover:text-stone-500 ml-1">✕</button>
-            </p>
-          )}
+      <footer className="border-t border-stone-800/70">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-stone-500">
+          <span>ZenFix PayRun · Sandbox — no real funds</span>
+          <nav className="flex gap-5">
+            <Link href="/privacy" className="hover:text-stone-300">Privacy</Link>
+            <Link href="/terms" className="hover:text-stone-300">Terms</Link>
+            <Link href="/swap" className="hover:text-stone-300">Intent Swap</Link>
+          </nav>
         </div>
-      )}
-    </div>
-  );
-}
-
-export default function Home() {
-  const [mode, setMode] = useState<"swap" | "conditional">("conditional");
-  const [tokenHint, setTokenHint] = useState<string>("");
-  const chainId = useChainId();
-  const { isConnected } = useAccount();
-  const { switchChain, isPending: isSwitching } = useSwitchChain();
-  const chainLabel = CHAIN_LABELS[chainId] ?? DEFAULT_CHAIN_LABEL;
-  // We support Ethereum, Arbitrum, Linea. Only warn if user is on something unsupported.
-  const SUPPORTED_CHAINS = [1, 42161, 59144];
-  const isWrongChain = isConnected && !SUPPORTED_CHAINS.includes(chainId);
-
-  const handleTokenSelect = (token: TokenInfo) => {
-    setTokenHint(`${token.symbol} (${token.address.slice(0, 6)}…${token.address.slice(-4)})`);
-  };
-
-  return (
-    <main className="min-h-screen flex flex-col relative overflow-hidden">
-
-      {/* 背景层：多层光晕 */}
-      <div className="fixed inset-0 pointer-events-none">
-        {/* 中心暖光 */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse,rgba(245,158,11,0.05)_0%,transparent_65%)]" />
-        {/* 左下冷光 */}
-        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-[radial-gradient(ellipse,rgba(99,102,241,0.03)_0%,transparent_70%)]" />
-        {/* 右上冷光 */}
-        <div className="absolute top-0 right-0 w-[300px] h-[200px] bg-[radial-gradient(ellipse,rgba(168,162,158,0.03)_0%,transparent_70%)]" />
-        {/* 细线网格 */}
-        <div className="absolute inset-0 opacity-[0.015]"
-          style={{backgroundImage: "linear-gradient(rgba(168,162,158,1) 1px,transparent 1px),linear-gradient(90deg,rgba(168,162,158,1) 1px,transparent 1px)", backgroundSize: "80px 80px"}} />
-      </div>
-
-      {/* 顶栏 */}
-      <header className="relative z-50 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
-        {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-5 h-5 rounded border border-gold-500/20 flex items-center justify-center">
-            <span className="text-gold-500/70 text-xs">⬡</span>
-          </div>
-          <span className="text-stone-500 text-xs tracking-[0.18em] font-light uppercase">
-            Intent Swap
-          </span>
-        </div>
-
-        {/* 右侧：网络标识 + 钱包头像（统一在 WalletButton 内处理） */}
-        <div className="flex items-center">
-          <WalletButton />
-        </div>
-      </header>
-
-      {/* 错误链路提示横幅 */}
-      {isWrongChain && (
-        <div className="relative z-40 mx-4 md:mx-8 mt-0 mb-2">
-          <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/40 rounded-xl px-4 py-2.5">
-            <p className="text-amber-400/80 text-xs">
-              This network isn&apos;t supported. Switch to Ethereum, Arbitrum, or Linea.
-            </p>
-            <button
-              onClick={() => switchChain({ chainId: mainnet.id })}
-              disabled={isSwitching}
-              className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors ml-4 shrink-0"
-            >
-              {isSwitching ? "Switching..." : "Use Ethereum →"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 主体 */}
-      <div className="relative z-10 flex-1 flex flex-col items-center pt-[12vh] md:pt-[15vh] px-4 pb-16">
-        <div className="w-full max-w-xl animate-fade-in">
-
-          {/* 标题区 */}
-          <div className="text-center mb-8 md:mb-10">
-            {/* 装饰线 */}
-            <div className="flex items-center justify-center gap-3 mb-6 md:mb-7">
-              <div className="h-px w-12 md:w-20 bg-gradient-to-r from-transparent to-stone-700" />
-              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase font-light">{chainLabel}</span>
-              <div className="h-px w-12 md:w-20 bg-gradient-to-l from-transparent to-stone-700" />
-            </div>
-
-            <h1 className="text-stone-100 text-2xl md:text-[2.5rem] font-light tracking-tight leading-tight mb-3 md:mb-4 px-4">
-              Set the trade.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
-                Forget the chart.
-              </span>
-            </h1>
-            <p className="text-stone-500 text-xs md:text-[13px] leading-relaxed max-w-md mx-auto px-4">
-              Type a price condition in plain language.<br />
-              We watch the market and execute when it hits.
-            </p>
-          </div>
-
-          {/* Tab 切换 */}
-          <div className="flex items-center justify-center gap-2 mb-6 px-4">
-            {[
-              { key: "conditional", label: "Conditional Order" },
-              { key: "swap",        label: "Instant Swap" },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setMode(tab.key as typeof mode)}
-                className={`flex-1 md:flex-none md:min-w-[120px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
-                  mode === tab.key
-                    ? "bg-stone-800 text-stone-200 border border-stone-700"
-                    : "text-stone-500 hover:text-stone-300 border border-transparent"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* 输入区 */}
-          <IntentInput mode={mode} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
-
-          {/* Token 搜索 — 可折叠 */}
-          <TokenSearchCollapsible chainId={chainId} onSelect={handleTokenSelect} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
-          {/* How it works — 3-step explainer for first-time visitors */}
-          <div className="mt-12 md:mt-16">
-            <div className="text-center mb-6 md:mb-8">
-              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">How it works</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              {[
-                { n: "01", t: "Say what you want", d: "In plain English. \"Buy 0.1 ETH if ETH drops to $2200.\"" },
-                { n: "02", t: "Pre-fund a non-custodial Vault", d: "Your tokens stay on-chain under your address. You can withdraw any time." },
-                { n: "03", t: "Walk away", d: "When your price hits, the swap runs on-chain automatically. Output lands in your wallet." },
-              ].map((s) => (
-                <div key={s.n} className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4">
-                  <div className="text-gold-500/50 text-[10px] tracking-widest font-mono mb-2">{s.n}</div>
-                  <div className="text-stone-200 text-sm font-medium mb-1.5">{s.t}</div>
-                  <p className="text-stone-500 text-xs leading-relaxed">{s.d}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Trust strip — chain badges + verified contracts */}
-          <div className="mt-8 md:mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px]">
-            <span className="text-stone-600 tracking-wide">Live on</span>
-            <a href="https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Ethereum ↗</a>
-            <a href="https://arbiscan.io/address/0x3e89119234c0635e861cce71efa274f1defd6818" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Arbitrum ↗</a>
-            <a href="https://lineascan.build/address/0x568b8946697ac7e2c6bb1f1be9e5946e9c800097" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Linea ↗</a>
-            <span className="text-stone-700">·</span>
-            <a href="https://github.com/Lovelle-Zhang/intent-swap/blob/main/contracts/SECURITY.md" target="_blank" rel="noopener noreferrer" className="text-emerald-500/70 hover:text-emerald-400 transition-colors">
-              ✓ Contracts verified · non-custodial
-            </a>
-          </div>
-
-          {/* 底部特性 */}
-          <div className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            {[
-              { label: "Set & forget" },
-              { label: "·" },
-              { label: "Push + email alerts" },
-              { label: "·" },
-              { label: "Free during beta" },
-            ].map((f, i) => (
-              <span key={i} className="text-stone-700 text-[10px] tracking-wider font-light">
-                {f.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* 底部细线 */}
-      <div className="relative z-10 h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent mx-6 md:mx-8" />
-      <footer className="relative z-10 text-center py-3 md:py-4 text-stone-700 text-[10px] tracking-[0.2em] font-light">
-        INTENT.SWAP
       </footer>
-    </main>
+    </div>
   );
 }

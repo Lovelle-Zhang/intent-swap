@@ -73,7 +73,7 @@ export default function DocsPage() {
 
         {/* Back */}
         <Link
-          href="/"
+          href="/swap"
           className="inline-flex items-center gap-2 text-stone-700 hover:text-stone-500 text-xs tracking-wide transition-colors"
         >
           ← Back
@@ -191,7 +191,7 @@ export default function DocsPage() {
                 </ul>
                 {plan.highlight && (
                   <a
-                    href="/"
+                    href="/swap"
                     className="block w-full text-center py-2 bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-lg text-xs transition-colors mt-2"
                   >
                     Use it — free
