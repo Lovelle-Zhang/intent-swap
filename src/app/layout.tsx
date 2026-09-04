@@ -7,6 +7,8 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "ZenFix PayRun — Agent Payment Control Layer (Sandbox)",
   description: "Let AI agents spend money inside user-defined rules. Every payment attempt becomes an explainable, auditable Pay Run. Sandbox only — no real funds.",
+  // Google Search Console site-ownership verification for intent-swap.app (public token).
+  verification: { google: "jPoZyylctOR6nuyDUgGhPcJAhtS43yzhZg_oNnvFGdk" },
 };
 
 export default function RootLayout({
