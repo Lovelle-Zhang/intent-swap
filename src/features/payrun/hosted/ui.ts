@@ -36,6 +36,9 @@ table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
 th{padding:12px 16px;text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8b8b86;font-weight:600;border-bottom:1px solid #26262b;background:#141416}
 td{padding:12px 16px;border-bottom:1px solid #1c1c1f;color:#d6d3d1}
 td code{font-size:12px;color:#a8a29e}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.purpose{white-space:normal;max-width:340px}
+td.muted{color:#8b8b86}
 tr:last-child td{border-bottom:0}
 tbody tr:hover td{background:#151517}
 .empty{padding:26px;text-align:center;color:#78716c}
