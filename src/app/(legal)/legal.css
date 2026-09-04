@@ -1,0 +1,28 @@
+/* Legal pages — control-layer identity, scoped under .zf-legal. */
+.zf-legal{
+  --bg:#0A0C0F;--surface-2:#161A20;--line:#232A33;--line-soft:#1A1F26;
+  --text:#EBEDEF;--muted:#8A929C;--faint:#5A626C;--signal:#2DD4BF;--sandbox:#F5B841;
+  min-height:100vh;color:var(--text);font-family:var(--font-body,system-ui,sans-serif);line-height:1.6;
+  background:var(--bg);background-image:linear-gradient(var(--line-soft) 1px,transparent 1px);background-size:100% 34px;
+}
+.zf-legal *{box-sizing:border-box}
+.zf-legal .bar{border-bottom:1px solid var(--line-soft)}
+.zf-legal .bar-in{max-width:760px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.zf-legal .brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-family:var(--font-display,sans-serif);font-weight:700;font-size:16px;letter-spacing:-.01em}
+.zf-legal .brand svg{width:28px;height:28px;display:block}
+.zf-legal .brand b{color:var(--muted);font-weight:600}
+.zf-legal .sandbox-tag{font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sandbox);border:1px solid color-mix(in srgb,var(--sandbox) 40%,transparent);padding:3px 9px;border-radius:999px}
+.zf-legal .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+.zf-legal h1{font-family:var(--font-display,sans-serif);font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0}
+.zf-legal .updated{margin:6px 0 0;font-family:var(--font-mono,monospace);font-size:12px;color:var(--faint)}
+.zf-legal .intro{margin:22px 0 0;color:var(--muted);font-size:16px;max-width:65ch}
+.zf-legal section{margin:28px 0 0;max-width:65ch}
+.zf-legal h2{font-family:var(--font-display,sans-serif);font-size:17px;font-weight:600;color:var(--text);margin:0 0 8px}
+.zf-legal p{margin:0;color:var(--muted);font-size:15px}
+.zf-legal strong{color:var(--text);font-weight:600}
+.zf-legal a{color:var(--signal);text-decoration:none}
+.zf-legal a:hover{text-decoration:underline}
+.zf-legal .foot{max-width:760px;margin:0 auto;padding:22px 24px 40px;display:flex;gap:20px;border-top:1px solid var(--line-soft);font-family:var(--font-mono,monospace);font-size:12px}
+.zf-legal .foot a{color:var(--faint)}
+.zf-legal .foot a:hover{color:var(--muted)}
+.zf-legal :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
