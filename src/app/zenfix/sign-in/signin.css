@@ -1,0 +1,29 @@
+/* Sign-in screen — control-layer identity. Scoped under .zf-auth (self-contained). */
+.zf-auth{
+  --bg:#0A0C0F;--surface:#111419;--surface-2:#161A20;--line:#232A33;--line-soft:#1A1F26;
+  --text:#EBEDEF;--muted:#8A929C;--faint:#5A626C;--signal:#2DD4BF;--sandbox:#F5B841;--block:#F2777A;
+  min-height:100vh;display:grid;place-items:center;padding:32px 24px;position:relative;overflow:hidden;
+  color:var(--text);font-family:var(--font-body,system-ui,sans-serif);line-height:1.55;
+  background:var(--bg);background-image:linear-gradient(var(--line-soft) 1px,transparent 1px);background-size:100% 34px;
+}
+.zf-auth *{box-sizing:border-box}
+.zf-auth::before{content:"";position:absolute;top:-8%;left:50%;transform:translateX(-50%);width:680px;height:520px;pointer-events:none;
+  background:radial-gradient(circle at center,color-mix(in srgb,var(--signal) 12%,transparent),transparent 62%);filter:blur(8px)}
+.zf-auth .card{position:relative;width:100%;max-width:420px;border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(180deg,var(--surface-2),var(--surface));padding:34px 30px;box-shadow:0 30px 80px -40px rgba(0,0,0,.9)}
+.zf-auth .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display,sans-serif);font-weight:700;font-size:17px;letter-spacing:-.01em}
+.zf-auth .brand svg{width:30px;height:30px;display:block}
+.zf-auth .brand b{color:var(--muted);font-weight:600}
+.zf-auth .eyebrow{margin:22px 0 0;font-family:var(--font-mono,monospace);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--sandbox)}
+.zf-auth h1{margin:8px 0 0;font-family:var(--font-display,sans-serif);font-size:30px;font-weight:700;letter-spacing:-.02em}
+.zf-auth .lead{margin:10px 0 0;color:var(--muted);font-size:14.5px}
+.zf-auth .notice{margin:20px 0 0;padding:11px 14px;border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:9px;background:color-mix(in srgb,var(--signal) 8%,transparent);color:#D6F5EE;font-size:13.5px}
+.zf-auth .gbtn{margin-top:24px;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;border-radius:11px;border:1px solid #E7E7EA;background:#fff;color:#1A1A1A;padding:12px 16px;transition:background .15s}
+.zf-auth .gbtn:hover{background:#F1F1F3}
+.zf-auth .gbtn:disabled{opacity:.6;cursor:default}
+.zf-auth .gbtn svg{width:18px;height:18px}
+.zf-auth .err{margin:12px 0 0;color:var(--block);font-size:13px}
+.zf-auth .foot{margin:22px 0 0;display:flex;gap:16px;font-family:var(--font-mono,monospace);font-size:12px;color:var(--faint)}
+.zf-auth .foot a{color:var(--faint);text-decoration:none}
+.zf-auth .foot a:hover{color:var(--muted)}
+.zf-auth :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:8px}
