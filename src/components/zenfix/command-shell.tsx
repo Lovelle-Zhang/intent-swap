@@ -19,7 +19,12 @@ export function CommandShell({
     <main className={styles.shell}>
       <aside className={styles.sidebar}>
         <Link className={styles.brand} href="/command-center" aria-label="ZenFix Command Center">
-          <span className={styles.brandMark}>Z</span>
+          <svg className={styles.brandLogo} viewBox="0 0 40 40" aria-hidden="true">
+            <rect x=".75" y=".75" width="38.5" height="38.5" rx="11" fill="#161A20" stroke="#232A33" />
+            <path d="M17.5 12.5 H13 V27.5 H17.5" fill="none" stroke="#2DD4BF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22.5 12.5 H27 V27.5 H22.5" fill="none" stroke="#2DD4BF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="20" cy="20" r="3.1" fill="#F5B841" />
+          </svg>
           <span>ZenFix</span>
         </Link>
         <nav className={styles.navigation} aria-label="Primary navigation">

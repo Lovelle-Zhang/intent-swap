@@ -1,16 +1,33 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import "./legal.css";
+
+function Logo() {
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect x=".75" y=".75" width="38.5" height="38.5" rx="11" fill="var(--surface-2)" stroke="var(--line)" />
+      <path d="M17.5 12.5 H13 V27.5 H17.5" fill="none" stroke="var(--signal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22.5 12.5 H27 V27.5 H22.5" fill="none" stroke="var(--signal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="3.1" fill="var(--sandbox)" />
+    </svg>
+  );
+}
 
 export default function LegalLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <p className="text-xs font-semibold tracking-[0.18em] text-amber-400">SANDBOX / NO REAL FUNDS</p>
-      <div className="mt-8 space-y-6 leading-relaxed text-stone-300">{children}</div>
-      <nav className="mt-14 flex gap-6 border-t border-stone-800 pt-6 text-sm text-cyan-300">
-        <Link href="/privacy" className="hover:underline">Privacy</Link>
-        <Link href="/terms" className="hover:underline">Terms</Link>
-        <Link href="/zenfix/sign-in" className="hover:underline">Sign in &rarr;</Link>
-      </nav>
-    </main>
+    <div className="zf-legal">
+      <header className="bar">
+        <div className="bar-in">
+          <Link className="brand" href="/"><Logo /> ZenFix <b>PayRun</b></Link>
+          <span className="sandbox-tag">Sandbox · No real funds</span>
+        </div>
+      </header>
+      <main className="wrap">{children}</main>
+      <div className="foot">
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/terms">Terms</Link>
+        <Link href="/zenfix/sign-in">Sign in &rarr;</Link>
+      </div>
+    </div>
   );
 }
