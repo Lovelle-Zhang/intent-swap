@@ -12,32 +12,46 @@ import {
   type HostedWorkspacePayRunsView,
 } from "@/features/payrun/hosted/workspace-payruns";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
+import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-function escape(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
-}
 
 const NOTICES: Record<string, string> = {
   payrun_created: "Sandbox Pay Run created.",
   invalid_scenario: "That scenario is not recognized.",
 };
 
+function statusVariant(value: string): "ok" | "blocked" | "neutral" {
+  const v = value.toLowerCase();
+  if (["completed", "succeeded", "executed", "settled", "paid", "allowed", "approved"].includes(v)) return "ok";
+  if (["failed", "blocked", "declined", "denied", "cancelled", "canceled", "rejected"].includes(v)) return "blocked";
+  return "neutral";
+}
+
 function renderRow(payRun: HostedPayRunSummary): string {
   const amount = formatAtomicMoney(payRun.amount);
-  const policy = payRun.policy ? escape(payRun.policy.outcome) : "—";
-  return `<tr><td><code>${escape(payRun.payRunId)}</code></td><td>${escape(payRun.status)}</td><td>${escape(payRun.purpose)}</td><td>${escape(payRun.agentId)}</td><td>${escape(amount)}</td><td>${policy}</td></tr>`;
+  const policyCell = payRun.policy
+    ? statusBadge(payRun.policy.outcome, statusVariant(payRun.policy.outcome))
+    : "—";
+  return `<tr><td><code>${escapeHtml(payRun.payRunId)}</code></td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td>${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td>${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
 }
 
 function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): string {
-  const options = SANDBOX_SCENARIO_IDS.map((id) => `<option value="${id}">${id}</option>`).join("");
+  const options = SANDBOX_SCENARIO_IDS.map((id) => `<option value="${id}">${escapeHtml(id)}</option>`).join("");
   const rows = view.payRuns.length === 0
-    ? `<tr><td colspan="6">No Pay Runs yet — create one above.</td></tr>`
+    ? `<tr><td colspan="6" class="empty">No Pay Runs yet — create one above.</td></tr>`
     : view.payRuns.map(renderRow).join("");
-  const banner = notice ? `<p role="status">${escape(notice)}</p>` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>ZenFix Pay Runs</title></head><body style="margin:0;background:#0c0c0d;color:#f5f5f4;font-family:system-ui"><main style="max-width:920px;margin:0 auto;padding:6vh 24px"><p style="color:#fbbf24;letter-spacing:.15em">SANDBOX / NO REAL FUNDS</p><p style="color:#67e8f9">${escape(view.workspace.name)} · <code>${escape(view.workspace.projectId)}</code></p><h1>Pay Runs</h1>${banner}<form action="/zenfix/payruns/create" method="post"><label for="scenarioId">Scenario</label> <select id="scenarioId" name="scenarioId">${options}</select> <button type="submit">Create sandbox Pay Run</button></form><table><thead><tr><th>Pay Run</th><th>Status</th><th>Purpose</th><th>Agent</th><th>Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table><p><a href="/zenfix/workspace">← Workspace</a></p></main></body></html>`;
+  const form = `<div class="card"><h2>Create a sandbox Pay Run</h2><form class="row" action="/zenfix/payruns/create" method="post"><label for="scenarioId">Scenario</label><select id="scenarioId" name="scenarioId">${options}</select><button type="submit" class="btn">Create Pay Run</button></form></div>`;
+  const table = `<div class="tablewrap"><table><thead><tr><th>Pay Run</th><th>Status</th><th>Purpose</th><th>Agent</th><th>Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return hostedPage({
+    title: "ZenFix Pay Runs",
+    heading: "Pay Runs",
+    workspace: { name: view.workspace.name, projectId: view.workspace.projectId },
+    notice,
+    bodyHtml: form + table,
+    actionsHtml: `<div class="actions"><a class="link" href="/zenfix/workspace">← Workspace</a></div>`,
+  });
 }
 
 export async function GET(request: Request) {
