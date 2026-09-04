@@ -29,21 +29,28 @@ function statusVariant(value: string): "ok" | "blocked" | "neutral" {
   return "neutral";
 }
 
+function formatCreatedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
 function renderRow(payRun: HostedPayRunSummary): string {
   const amount = formatAtomicMoney(payRun.amount);
   const policyCell = payRun.policy
     ? statusBadge(payRun.policy.outcome, statusVariant(payRun.policy.outcome))
     : "—";
-  return `<tr><td><code>${escapeHtml(payRun.payRunId)}</code></td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td>${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td>${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
+  return `<tr><td><code>${escapeHtml(payRun.payRunId)}</code></td><td class="muted">${escapeHtml(formatCreatedAt(payRun.createdAt))}</td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td class="purpose">${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td class="num">${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
 }
 
 function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): string {
   const options = SANDBOX_SCENARIO_IDS.map((id) => `<option value="${id}">${escapeHtml(id)}</option>`).join("");
   const rows = view.payRuns.length === 0
-    ? `<tr><td colspan="6" class="empty">No Pay Runs yet — create one above.</td></tr>`
+    ? `<tr><td colspan="7" class="empty">No Pay Runs yet. Create your first sandbox run above.</td></tr>`
     : view.payRuns.map(renderRow).join("");
   const form = `<div class="card"><h2>Create a sandbox Pay Run</h2><form class="row" action="/zenfix/payruns/create" method="post"><label for="scenarioId">Scenario</label><select id="scenarioId" name="scenarioId">${options}</select><button type="submit" class="btn">Create Pay Run</button></form></div>`;
-  const table = `<div class="tablewrap"><table><thead><tr><th>Pay Run</th><th>Status</th><th>Purpose</th><th>Agent</th><th>Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const table = `<div class="tablewrap"><table><thead><tr><th>Pay Run</th><th>Created</th><th>Status</th><th>Purpose</th><th>Agent</th><th class="num">Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   return hostedPage({
     title: "ZenFix Pay Runs",
     heading: "Pay Runs",
