@@ -49,6 +49,7 @@ function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): st
     heading: "Pay Runs",
     workspace: { name: view.workspace.name, projectId: view.workspace.projectId },
     notice,
+    wide: true,
     bodyHtml: form + table,
     actionsHtml: `<div class="actions"><a class="link" href="/zenfix/workspace">← Workspace</a></div>`,
   });

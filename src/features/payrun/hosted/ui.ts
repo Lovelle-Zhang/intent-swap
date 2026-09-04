@@ -13,6 +13,7 @@ const STYLE = `
 body{margin:0;background:#0a0a0b;color:#e7e5e4;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .wrap{max-width:880px;margin:0 auto;padding:56px 24px 96px}
+.wrap.wide{max-width:1120px}
 .eyebrow{margin:0;font-size:11px;font-weight:600;letter-spacing:.18em;color:#fbbf24}
 .crumb{margin:8px 0 0;font-size:13px;color:#8b8b86}
 .crumb b{color:#67e8f9;font-weight:600}
@@ -62,13 +63,15 @@ export interface HostedPageOptions {
   readonly notice?: string | null;
   readonly bodyHtml?: string;
   readonly actionsHtml?: string;
+  readonly wide?: boolean;
 }
 
 export function hostedPage(options: HostedPageOptions): string {
+  const wrapClass = options.wide ? "wrap wide" : "wrap";
   const crumb = options.workspace
     ? `<p class="crumb"><b>${escapeHtml(options.workspace.name)}</b> · <code>${escapeHtml(options.workspace.projectId)}</code></p>`
     : "";
   const lead = options.lead ? `<p class="lead">${escapeHtml(options.lead)}</p>` : "";
   const notice = options.notice ? `<p class="notice" role="status">${escapeHtml(options.notice)}</p>` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(options.title)}</title><style>${STYLE}</style></head><body><main class="wrap"><p class="eyebrow">SANDBOX / NO REAL FUNDS</p>${crumb}<h1>${escapeHtml(options.heading)}</h1>${lead}${notice}${options.bodyHtml ?? ""}${options.actionsHtml ?? ""}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(options.title)}</title><style>${STYLE}</style></head><body><main class="${wrapClass}"><p class="eyebrow">SANDBOX / NO REAL FUNDS</p>${crumb}<h1>${escapeHtml(options.heading)}</h1>${lead}${notice}${options.bodyHtml ?? ""}${options.actionsHtml ?? ""}</main></body></html>`;
 }
