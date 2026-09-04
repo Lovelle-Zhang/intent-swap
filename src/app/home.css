@@ -1,0 +1,107 @@
+/* ZenFix landing — scoped entirely under .zf-home so it never leaks to other routes. */
+.zf-home{
+  --bg:#0A0C0F; --surface:#111419; --surface-2:#161A20; --surface-3:#1B2027;
+  --line:#232A33; --line-soft:#1A1F26;
+  --text:#EBEDEF; --muted:#8A929C; --faint:#5A626C;
+  --signal:#2DD4BF; --allow:#34D399; --hold:#F5B841; --block:#F2777A; --sandbox:#F5B841;
+
+  color:var(--text);
+  font-family:var(--font-body, system-ui, sans-serif);
+  line-height:1.55;
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--line-soft) 1px, transparent 1px);
+  background-size:100% 34px;
+  min-height:100vh;
+}
+.zf-home *,.zf-home *::before,.zf-home *::after{box-sizing:border-box}
+@media (prefers-reduced-motion: reduce){ .zf-home *{animation:none !important; transition:none !important} }
+.zf-home a{color:inherit; text-decoration:none}
+.zf-home .wrap{max-width:1120px; margin:0 auto; padding:0 28px}
+.zf-home .mono{font-family:var(--font-mono, monospace)}
+.zf-home .eyebrow{font-family:var(--font-mono, monospace); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+
+.zf-home .bar{position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+  background:color-mix(in srgb, var(--bg) 82%, transparent); border-bottom:1px solid var(--line-soft)}
+.zf-home .bar .wrap{display:flex; align-items:center; justify-content:space-between; height:64px}
+.zf-home .brand{display:flex; align-items:center; gap:12px; font-family:var(--font-display, sans-serif); font-weight:700; letter-spacing:-.01em; font-size:18px}
+.zf-home .brand svg{width:34px; height:34px; display:block}
+.zf-home .brand .tag{font-family:var(--font-mono, monospace); font-size:10px; letter-spacing:.14em; color:var(--sandbox); border:1px solid color-mix(in srgb, var(--sandbox) 40%, transparent); padding:2px 7px; border-radius:999px; text-transform:uppercase}
+.zf-home .navlinks{display:flex; gap:26px; align-items:center; font-size:14px; color:var(--muted)}
+.zf-home .navlinks a:hover{color:var(--text)}
+.zf-home .btn{font-family:var(--font-body, sans-serif); font-weight:600; font-size:14px; border-radius:10px; padding:10px 16px; border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:.15s}
+.zf-home .btn-primary{background:var(--signal); color:#04201C; border-color:var(--signal)}
+.zf-home .btn-primary:hover{background:#3EE9D3; box-shadow:0 0 0 4px color-mix(in srgb, var(--signal) 18%, transparent)}
+.zf-home .btn-ghost{border-color:var(--line); color:var(--text)}
+.zf-home .btn-ghost:hover{background:var(--surface-2); border-color:var(--surface-3)}
+@media(max-width:760px){ .zf-home .navlinks a:not(.btn){display:none} }
+
+.zf-home .hero{position:relative; overflow:hidden}
+.zf-home .hero::before{content:""; position:absolute; top:-140px; right:-120px; width:680px; height:680px; pointer-events:none;
+  background:radial-gradient(circle at center, color-mix(in srgb, var(--signal) 16%, transparent), transparent 62%); filter:blur(8px)}
+.zf-home .hero .wrap{position:relative; display:grid; grid-template-columns:1.05fr .95fr; gap:56px; align-items:center; padding-top:92px; padding-bottom:104px}
+@media(max-width:900px){ .zf-home .hero .wrap{grid-template-columns:1fr; gap:44px; padding-top:56px; padding-bottom:72px} }
+.zf-home .kicker{display:inline-flex; align-items:center; gap:9px; margin-bottom:26px}
+.zf-home .kicker .dot{width:7px; height:7px; border-radius:50%; background:var(--sandbox); box-shadow:0 0 0 4px color-mix(in srgb, var(--sandbox) 22%, transparent); animation:zf-breathe 3s ease-in-out infinite}
+@keyframes zf-breathe{50%{opacity:.45}}
+.zf-home h1{font-family:var(--font-display, sans-serif); font-weight:700; letter-spacing:-.025em; line-height:1.02; font-size:clamp(40px, 6vw, 68px); margin:0; text-wrap:balance}
+.zf-home h1 em{font-style:normal; color:var(--signal)}
+.zf-home .lede{margin:24px 0 0; max-width:34ch; color:var(--muted); font-size:clamp(16px,1.4vw,18px)}
+.zf-home .cta{display:flex; gap:14px; margin-top:34px; flex-wrap:wrap}
+.zf-home .trust{display:flex; gap:22px; margin-top:34px; padding-top:22px; border-top:1px solid var(--line-soft); font-family:var(--font-mono, monospace); font-size:12px; color:var(--faint); flex-wrap:wrap}
+.zf-home .trust b{color:var(--muted); font-weight:500}
+
+.zf-home .payrun{background:linear-gradient(180deg, var(--surface-2), var(--surface)); border:1px solid var(--line); border-radius:16px; box-shadow:0 30px 80px -40px rgba(0,0,0,.9); overflow:hidden}
+.zf-home .payrun .top{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft); background:color-mix(in srgb, var(--surface-3) 60%, transparent)}
+.zf-home .payrun .top .id{font-family:var(--font-mono, monospace); font-size:12px; color:var(--muted)}
+.zf-home .payrun .top .id b{color:var(--text); font-weight:500}
+.zf-home .live{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono, monospace); font-size:11px; letter-spacing:.12em; color:var(--signal); text-transform:uppercase}
+.zf-home .live::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--signal); animation:zf-blink 1.4s steps(2,end) infinite}
+@keyframes zf-blink{50%{opacity:.2}}
+.zf-home .payrun .body{padding:18px}
+.zf-home .field{display:grid; grid-template-columns:96px 1fr; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line-soft); font-size:14px}
+.zf-home .field:last-of-type{border-bottom:0}
+.zf-home .field .k{font-family:var(--font-mono, monospace); font-size:12px; color:var(--faint); text-transform:uppercase; letter-spacing:.08em; padding-top:1px}
+.zf-home .field .v{color:var(--text)}
+.zf-home .field .v.num{font-family:var(--font-mono, monospace); font-variant-numeric:tabular-nums}
+.zf-home .gate{margin-top:16px; border-top:1px solid var(--line-soft); padding-top:16px}
+.zf-home .checks{display:flex; flex-direction:column; gap:9px}
+.zf-home .check{display:flex; align-items:center; gap:10px; font-family:var(--font-mono, monospace); font-size:12.5px; color:var(--muted)}
+.zf-home .check .mark{width:16px; height:16px; border-radius:50%; display:grid; place-items:center; background:color-mix(in srgb, var(--allow) 16%, transparent); color:var(--allow); flex:none}
+.zf-home .check .mark svg{width:9px; height:9px}
+.zf-home .check .pass{color:var(--allow); margin-left:auto}
+.zf-home .stamp{margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:14px; border:1px solid color-mix(in srgb, var(--allow) 42%, transparent); background:color-mix(in srgb, var(--allow) 12%, transparent); border-radius:11px; padding:13px 16px}
+.zf-home .stamp .lab{font-family:var(--font-mono, monospace); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.zf-home .stamp .out{font-family:var(--font-display, sans-serif); font-weight:700; font-size:20px; letter-spacing:.02em; color:var(--allow); display:flex; align-items:center; gap:9px}
+.zf-home .stamp .out .ring{width:10px;height:10px;border-radius:50%;background:var(--allow);box-shadow:0 0 0 4px color-mix(in srgb, var(--allow) 20%, transparent)}
+
+.zf-home .block{padding:84px 0; border-top:1px solid var(--line-soft)}
+.zf-home .lead-h{font-family:var(--font-display, sans-serif); font-weight:700; letter-spacing:-.02em; font-size:clamp(26px,3.4vw,38px); margin:14px 0 0; text-wrap:balance}
+.zf-home .lead-p{color:var(--muted); max-width:56ch; margin:14px 0 0}
+.zf-home .flow{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:44px}
+@media(max-width:820px){ .zf-home .flow{grid-template-columns:1fr} }
+.zf-home .step{position:relative; background:var(--surface); border:1px solid var(--line-soft); border-radius:14px; padding:22px}
+.zf-home .step .n{font-family:var(--font-mono, monospace); font-size:12px; color:var(--signal); letter-spacing:.1em}
+.zf-home .step h3{font-family:var(--font-display, sans-serif); font-weight:600; font-size:19px; margin:14px 0 8px; letter-spacing:-.01em}
+.zf-home .step p{margin:0; color:var(--muted); font-size:14.5px}
+.zf-home .step .wire{position:absolute; top:34px; right:-18px; width:18px; height:1px; background:var(--line)}
+@media(max-width:820px){ .zf-home .step .wire{display:none} }
+.zf-home .states{display:flex; gap:12px; margin-top:40px; flex-wrap:wrap}
+.zf-home .state{flex:1; min-width:220px; border:1px solid var(--line-soft); border-radius:13px; padding:18px; background:var(--surface)}
+.zf-home .state .pill{display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono, monospace); font-size:11px; letter-spacing:.1em; text-transform:uppercase; padding:4px 10px; border-radius:999px; border:1px solid transparent}
+.zf-home .state.a .pill{color:var(--allow); background:color-mix(in srgb,var(--allow) 12%,transparent); border-color:color-mix(in srgb,var(--allow) 34%,transparent)}
+.zf-home .state.h .pill{color:var(--hold); background:color-mix(in srgb,var(--hold) 12%,transparent); border-color:color-mix(in srgb,var(--hold) 34%,transparent)}
+.zf-home .state.b .pill{color:var(--block); background:color-mix(in srgb,var(--block) 12%,transparent); border-color:color-mix(in srgb,var(--block) 34%,transparent)}
+.zf-home .state .pill .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.zf-home .state p{margin:14px 0 0; color:var(--muted); font-size:14px}
+.zf-home .state .rc{font-family:var(--font-mono, monospace); font-size:12px; color:var(--faint); margin-top:12px}
+.zf-home .close{position:relative; text-align:center; padding:96px 0}
+.zf-home .close::before{content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 20%, color-mix(in srgb,var(--signal) 12%, transparent), transparent 60%); pointer-events:none}
+.zf-home .close .wrap{position:relative}
+.zf-home .close h2{font-family:var(--font-display, sans-serif); font-weight:700; font-size:clamp(30px,4vw,46px); letter-spacing:-.02em; margin:0; text-wrap:balance}
+.zf-home .close p{color:var(--muted); margin:16px 0 0}
+.zf-home .close .cta{justify-content:center}
+.zf-home .foot{border-top:1px solid var(--line-soft); padding:32px 0}
+.zf-home .foot .wrap{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; font-family:var(--font-mono, monospace); font-size:12px; color:var(--faint)}
+.zf-home .foot nav{display:flex; gap:22px}
+.zf-home .foot nav a:hover{color:var(--muted)}
+.zf-home :focus-visible{outline:2px solid var(--signal); outline-offset:2px; border-radius:6px}
