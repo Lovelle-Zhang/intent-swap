@@ -1,110 +1,137 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import "./home.css";
+
+const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
+const body = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "ZenFix PayRun — Agent Payment Control Layer",
   description:
-    "Let AI agents spend money inside your rules. Every payment attempt becomes an explainable, auditable Pay Run. Sandbox — no real funds.",
+    "ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules, then recorded as an auditable Pay Run. Sandbox — no real funds.",
 };
 
-const FEATURES = [
-  {
-    icon: "🛡",
-    title: "Policy-gated spending",
-    desc: "Every payment an agent attempts is checked against your budget and rules before anything moves — allowed, held for review, or blocked.",
-  },
-  {
-    icon: "🧾",
-    title: "Explainable Pay Runs",
-    desc: "Each attempt becomes an auditable Pay Run carrying its policy decision, reason codes, and full trail — nothing happens off the record.",
-  },
-  {
-    icon: "🗂",
-    title: "Persistent workspace",
-    desc: "Sign in with Google and your sandbox workspace and its Pay Runs are always there when you come back.",
-  },
+const CHECKS = ["Within daily budget", "Recipient allow-listed", "Policy: purchase ≤ $1"];
+const STEPS = [
+  { n: "01 · intent", t: "The agent proposes", d: "An agent submits who to pay, how much, and what for — a structured intent, not a raw transfer." },
+  { n: "02 · policy", t: "The layer decides", d: "Budget, recipient, and your policies are evaluated in one deterministic pass — allow, hold, or block." },
+  { n: "03 · record", t: "It becomes a Pay Run", d: "The outcome, its reason codes, and the full trail are written down. Nothing happens off the record." },
+];
+const STATES = [
+  { c: "a", label: "Allowed", p: "Cleared every rule and executed inside budget.", rc: "reason: within_budget, recipient_ok" },
+  { c: "h", label: "Held", p: "Needs a human. Parked for review, nothing moved.", rc: "reason: over_soft_limit" },
+  { c: "b", label: "Blocked", p: "Violated a hard rule and was stopped cold.", rc: "reason: recipient_not_listed" },
 ];
 
-const STEPS = [
-  { n: "1", t: "Agent proposes a payment", d: "An AI agent submits an intent — recipient, amount, and purpose." },
-  { n: "2", t: "The control layer decides", d: "ZenFix evaluates it against your budget and policy in one deterministic pass." },
-  { n: "3", t: "The outcome is recorded", d: "Allowed, held, or blocked — captured as an auditable Pay Run you can inspect." },
-];
+function Logo() {
+  return (
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <rect x=".75" y=".75" width="38.5" height="38.5" rx="11" fill="var(--surface-2)" stroke="var(--line)" />
+      <path d="M17.5 12.5 H13 V27.5 H17.5" fill="none" stroke="var(--signal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22.5 12.5 H27 V27.5 H22.5" fill="none" stroke="var(--signal)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="3.1" fill="var(--sandbox)" />
+    </svg>
+  );
+}
+const Check = () => (
+  <span className="mark"><svg viewBox="0 0 12 12"><path d="M2 6.5 5 9 10 3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+);
 
 export default function HomePage() {
   return (
-    <div>
-      <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center">
-        <p className="text-xs font-semibold tracking-[0.18em] text-amber-400">SANDBOX · NO REAL FUNDS</p>
-        <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight text-stone-50 sm:text-6xl">
-          Let AI agents spend money
-          <br className="hidden sm:block" /> inside your rules.
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-stone-400">
-          ZenFix PayRun is an agent payment control layer. Every payment an agent attempts is
-          policy-checked and captured as an explainable, auditable Pay Run.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link
-            href="/zenfix/sign-in"
-            className="rounded-lg bg-cyan-400 px-6 py-3 font-semibold text-stone-950 transition-colors hover:bg-cyan-300"
-          >
-            Sign in with Google
-          </Link>
-          <Link
-            href="/command-center"
-            className="rounded-lg border border-stone-700 px-6 py-3 font-medium text-stone-200 transition-colors hover:bg-stone-900"
-          >
-            Explore the sandbox
-          </Link>
+    <div className={`zf-home ${display.variable} ${body.variable} ${mono.variable}`}>
+      <header className="bar">
+        <div className="wrap">
+          <Link className="brand" href="/"><Logo /> ZenFix <span className="tag">Sandbox</span></Link>
+          <nav className="navlinks">
+            <a href="#how">How it works</a>
+            <a href="#states">Pay Runs</a>
+            <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
+          </nav>
         </div>
-      </section>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <div className="grid gap-6 sm:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="rounded-2xl border border-stone-800 bg-stone-900/40 p-6">
-              <div className="text-2xl" aria-hidden>{f.icon}</div>
-              <h3 className="mt-4 text-lg font-semibold text-stone-100">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-stone-400">{f.desc}</p>
+      <section className="hero">
+        <div className="wrap">
+          <div>
+            <span className="kicker"><span className="dot" /><span className="eyebrow">Agent Payment Control Layer</span></span>
+            <h1>Let agents pay.<br />On <em>your</em> terms.</h1>
+            <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then recorded as a Pay Run you can read.</p>
+            <div className="cta">
+              <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
+              <Link className="btn btn-ghost" href="/command-center">Explore the sandbox →</Link>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-6 py-12">
-        <h2 className="text-center text-sm font-semibold uppercase tracking-[0.12em] text-stone-500">How it works</h2>
-        <div className="mt-8 grid gap-6 sm:grid-cols-3">
-          {STEPS.map((s) => (
-            <div key={s.n} className="rounded-2xl border border-stone-800 p-6">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-800 text-sm font-semibold text-cyan-300">
-                {s.n}
+            <div className="trust">
+              <span><b>No real funds</b> — simulated</span>
+              <span><b>One-click</b> Google sign-in</span>
+              <span><b>Every run</b> auditable</span>
+            </div>
+          </div>
+          <div className="payrun" role="img" aria-label="A sandbox Pay Run evaluated and allowed by policy">
+            <div className="top"><span className="id">PAY&nbsp;RUN&nbsp;·&nbsp;<b>payrun_dd27f286</b></span><span className="live">Evaluating</span></div>
+            <div className="body">
+              <div className="field"><span className="k">Agent</span><span className="v mono">agent_sandbox_004</span></div>
+              <div className="field"><span className="k">Purpose</span><span className="v">Purchase a verified API result</span></div>
+              <div className="field"><span className="k">Amount</span><span className="v num">0.42 USDC</span></div>
+              <div className="gate">
+                <div className="checks">
+                  {CHECKS.map((c) => (
+                    <div className="check" key={c}><Check /> {c} <span className="pass mono">pass</span></div>
+                  ))}
+                </div>
+                <div className="stamp"><span className="lab">Policy decision</span><span className="out"><span className="ring" />Allowed</span></div>
               </div>
-              <h3 className="mt-4 font-semibold text-stone-100">{s.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-stone-400">{s.d}</p>
             </div>
-          ))}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-6 py-16 text-center">
-        <h2 className="text-2xl font-bold text-stone-50">Try the sandbox</h2>
-        <p className="mt-3 text-stone-400">One click with Google. No real funds ever move.</p>
-        <Link
-          href="/zenfix/sign-in"
-          className="mt-6 inline-block rounded-lg bg-cyan-400 px-6 py-3 font-semibold text-stone-950 transition-colors hover:bg-cyan-300"
-        >
-          Sign in with Google
-        </Link>
+      <section className="block" id="how">
+        <div className="wrap">
+          <span className="eyebrow">How the control layer works</span>
+          <h2 className="lead-h">A payment is a request first, money second.</h2>
+          <p className="lead-p">Nothing leaves until it clears your rules. Each attempt runs through one deterministic pass and lands as an explainable record.</p>
+          <div className="flow">
+            {STEPS.map((s, i) => (
+              <div className="step" key={s.n}>{i < 2 && <span className="wire" />}<div className="n">{s.n}</div><h3>{s.t}</h3><p>{s.d}</p></div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      <footer className="border-t border-stone-800/70">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-stone-500">
+      <section className="block" id="states">
+        <div className="wrap">
+          <span className="eyebrow">Three outcomes · one vocabulary</span>
+          <h2 className="lead-h">Read any Pay Run at a glance.</h2>
+          <p className="lead-p">The same decision language runs through the whole product — the list, the detail, and the audit trail.</p>
+          <div className="states">
+            {STATES.map((s) => (
+              <div className={`state ${s.c}`} key={s.label}><span className="pill"><span className="d" />{s.label}</span><p>{s.p}</p><div className="rc">{s.rc}</div></div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="close">
+        <div className="wrap">
+          <h2>Give your agents a budget,<br />not the keys.</h2>
+          <p>One click with Google. It&rsquo;s a sandbox — no real funds ever move.</p>
+          <div className="cta">
+            <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
+            <Link className="btn btn-ghost" href="/command-center">Explore the sandbox →</Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="foot">
+        <div className="wrap">
           <span>ZenFix PayRun · Sandbox — no real funds</span>
-          <nav className="flex gap-5">
-            <Link href="/privacy" className="hover:text-stone-300">Privacy</Link>
-            <Link href="/terms" className="hover:text-stone-300">Terms</Link>
-            <Link href="/swap" className="hover:text-stone-300">Intent Swap</Link>
+          <nav>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/swap">Intent Swap</Link>
           </nav>
         </div>
       </footer>
