@@ -1,0 +1,238 @@
+"use client";
+
+import { useState } from "react";
+import { useChainId, useAccount, useSwitchChain } from "wagmi";
+import { mainnet } from "wagmi/chains";
+import { WalletButton } from "@/components/WalletButton";
+import { IntentInput } from "@/components/IntentInput";
+import { TokenSearch, type TokenInfo } from "@/components/TokenSearch";
+import { CHAIN_LABELS, DEFAULT_CHAIN_LABEL } from "@/config/constants";
+
+function TokenSearchCollapsible({
+  chainId,
+  onSelect,
+  tokenHint,
+  onClearHint,
+}: {
+  chainId: number;
+  onSelect: (t: TokenInfo) => void;
+  tokenHint: string;
+  onClearHint: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3">
+      {/* 折叠触发行 */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-600 hover:text-stone-400 hover:bg-stone-900/30 transition-all group"
+      >
+        <span className="flex items-center gap-2 text-[11px] tracking-wider">
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {tokenHint ? (
+            <span className="text-gold-400/60 font-mono">{tokenHint}</span>
+          ) : (
+            <span>Search 1,700+ tokens</span>
+          )}
+        </span>
+        <svg
+          className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* 展开内容 */}
+      {open && (
+        <div className="mt-1.5 px-1 space-y-1.5 animate-fade-in">
+          <TokenSearch chainId={chainId} onSelect={(t) => { onSelect(t); setOpen(false); }} />
+          {tokenHint && (
+            <p className="text-stone-600 text-[11px] px-1 flex items-center gap-1.5">
+              <span className="text-stone-700">Selected:</span>
+              <span className="text-gold-400/60 font-mono">{tokenHint}</span>
+              <button onClick={onClearHint} className="text-stone-700 hover:text-stone-500 ml-1">✕</button>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Home() {
+  const [mode, setMode] = useState<"swap" | "conditional">("conditional");
+  const [tokenHint, setTokenHint] = useState<string>("");
+  const chainId = useChainId();
+  const { isConnected } = useAccount();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const chainLabel = CHAIN_LABELS[chainId] ?? DEFAULT_CHAIN_LABEL;
+  // We support Ethereum, Arbitrum, Linea. Only warn if user is on something unsupported.
+  const SUPPORTED_CHAINS = [1, 42161, 59144];
+  const isWrongChain = isConnected && !SUPPORTED_CHAINS.includes(chainId);
+
+  const handleTokenSelect = (token: TokenInfo) => {
+    setTokenHint(`${token.symbol} (${token.address.slice(0, 6)}…${token.address.slice(-4)})`);
+  };
+
+  return (
+    <main className="min-h-screen flex flex-col relative overflow-hidden">
+
+      {/* 背景层：多层光晕 */}
+      <div className="fixed inset-0 pointer-events-none">
+        {/* 中心暖光 */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse,rgba(245,158,11,0.05)_0%,transparent_65%)]" />
+        {/* 左下冷光 */}
+        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-[radial-gradient(ellipse,rgba(99,102,241,0.03)_0%,transparent_70%)]" />
+        {/* 右上冷光 */}
+        <div className="absolute top-0 right-0 w-[300px] h-[200px] bg-[radial-gradient(ellipse,rgba(168,162,158,0.03)_0%,transparent_70%)]" />
+        {/* 细线网格 */}
+        <div className="absolute inset-0 opacity-[0.015]"
+          style={{backgroundImage: "linear-gradient(rgba(168,162,158,1) 1px,transparent 1px),linear-gradient(90deg,rgba(168,162,158,1) 1px,transparent 1px)", backgroundSize: "80px 80px"}} />
+      </div>
+
+      {/* 顶栏 */}
+      <header className="relative z-50 flex items-center justify-between px-6 md:px-8 py-4 md:py-5">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-5 h-5 rounded border border-gold-500/20 flex items-center justify-center">
+            <span className="text-gold-500/70 text-xs">⬡</span>
+          </div>
+          <span className="text-stone-500 text-xs tracking-[0.18em] font-light uppercase">
+            Intent Swap
+          </span>
+        </div>
+
+        {/* 右侧：网络标识 + 钱包头像（统一在 WalletButton 内处理） */}
+        <div className="flex items-center">
+          <WalletButton />
+        </div>
+      </header>
+
+      {/* 错误链路提示横幅 */}
+      {isWrongChain && (
+        <div className="relative z-40 mx-4 md:mx-8 mt-0 mb-2">
+          <div className="flex items-center justify-between bg-amber-950/40 border border-amber-800/40 rounded-xl px-4 py-2.5">
+            <p className="text-amber-400/80 text-xs">
+              This network isn&apos;t supported. Switch to Ethereum, Arbitrum, or Linea.
+            </p>
+            <button
+              onClick={() => switchChain({ chainId: mainnet.id })}
+              disabled={isSwitching}
+              className="text-amber-400 hover:text-amber-300 text-xs font-medium disabled:opacity-50 transition-colors ml-4 shrink-0"
+            >
+              {isSwitching ? "Switching..." : "Use Ethereum →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 主体 */}
+      <div className="relative z-10 flex-1 flex flex-col items-center pt-[12vh] md:pt-[15vh] px-4 pb-16">
+        <div className="w-full max-w-xl animate-fade-in">
+
+          {/* 标题区 */}
+          <div className="text-center mb-8 md:mb-10">
+            {/* 装饰线 */}
+            <div className="flex items-center justify-center gap-3 mb-6 md:mb-7">
+              <div className="h-px w-12 md:w-20 bg-gradient-to-r from-transparent to-stone-700" />
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase font-light">{chainLabel}</span>
+              <div className="h-px w-12 md:w-20 bg-gradient-to-l from-transparent to-stone-700" />
+            </div>
+
+            <h1 className="text-stone-100 text-2xl md:text-[2.5rem] font-light tracking-tight leading-tight mb-3 md:mb-4 px-4">
+              Set the trade.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold-400 to-stone-400">
+                Forget the chart.
+              </span>
+            </h1>
+            <p className="text-stone-500 text-xs md:text-[13px] leading-relaxed max-w-md mx-auto px-4">
+              Type a price condition in plain language.<br />
+              We watch the market and execute when it hits.
+            </p>
+          </div>
+
+          {/* Tab 切换 */}
+          <div className="flex items-center justify-center gap-2 mb-6 px-4">
+            {[
+              { key: "conditional", label: "Conditional Order" },
+              { key: "swap",        label: "Instant Swap" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setMode(tab.key as typeof mode)}
+                className={`flex-1 md:flex-none md:min-w-[120px] py-2.5 rounded-lg text-xs tracking-wide transition-all duration-200 ${
+                  mode === tab.key
+                    ? "bg-stone-800 text-stone-200 border border-stone-700"
+                    : "text-stone-500 hover:text-stone-300 border border-transparent"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 输入区 */}
+          <IntentInput mode={mode} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
+
+          {/* Token 搜索 — 可折叠 */}
+          <TokenSearchCollapsible chainId={chainId} onSelect={handleTokenSelect} tokenHint={tokenHint} onClearHint={() => setTokenHint("")} />
+          {/* How it works — 3-step explainer for first-time visitors */}
+          <div className="mt-12 md:mt-16">
+            <div className="text-center mb-6 md:mb-8">
+              <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">How it works</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {[
+                { n: "01", t: "Say what you want", d: "In plain English. \"Buy 0.1 ETH if ETH drops to $2200.\"" },
+                { n: "02", t: "Pre-fund a non-custodial Vault", d: "Your tokens stay on-chain under your address. You can withdraw any time." },
+                { n: "03", t: "Walk away", d: "When your price hits, the swap runs on-chain automatically. Output lands in your wallet." },
+              ].map((s) => (
+                <div key={s.n} className="bg-stone-900/30 border border-stone-800/50 rounded-xl px-5 py-4">
+                  <div className="text-gold-500/50 text-[10px] tracking-widest font-mono mb-2">{s.n}</div>
+                  <div className="text-stone-200 text-sm font-medium mb-1.5">{s.t}</div>
+                  <p className="text-stone-500 text-xs leading-relaxed">{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Trust strip — chain badges + verified contracts */}
+          <div className="mt-8 md:mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px]">
+            <span className="text-stone-600 tracking-wide">Live on</span>
+            <a href="https://etherscan.io/address/0x52a8fe40324621d310ede9bfd20396b82dfec0ee" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Ethereum ↗</a>
+            <a href="https://arbiscan.io/address/0x3e89119234c0635e861cce71efa274f1defd6818" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Arbitrum ↗</a>
+            <a href="https://lineascan.build/address/0x568b8946697ac7e2c6bb1f1be9e5946e9c800097" target="_blank" rel="noopener noreferrer" className="text-stone-500 hover:text-stone-300 transition-colors">Linea ↗</a>
+            <span className="text-stone-700">·</span>
+            <a href="https://github.com/Lovelle-Zhang/intent-swap/blob/main/contracts/SECURITY.md" target="_blank" rel="noopener noreferrer" className="text-emerald-500/70 hover:text-emerald-400 transition-colors">
+              ✓ Contracts verified · non-custodial
+            </a>
+          </div>
+
+          {/* 底部特性 */}
+          <div className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            {[
+              { label: "Set & forget" },
+              { label: "·" },
+              { label: "Push + email alerts" },
+              { label: "·" },
+              { label: "Free during beta" },
+            ].map((f, i) => (
+              <span key={i} className="text-stone-700 text-[10px] tracking-wider font-light">
+                {f.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 底部细线 */}
+      <div className="relative z-10 h-px bg-gradient-to-r from-transparent via-stone-800 to-transparent mx-6 md:mx-8" />
+      <footer className="relative z-10 text-center py-3 md:py-4 text-stone-700 text-[10px] tracking-[0.2em] font-light">
+        INTENT.SWAP
+      </footer>
+    </main>
+  );
+}

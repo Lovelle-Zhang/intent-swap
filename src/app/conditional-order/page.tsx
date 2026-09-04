@@ -412,7 +412,7 @@ export default function ConditionalOrderPage() {
             <p className="text-center text-emerald-400 text-[11px]">
               · Free during beta — try without paying
             </p>
-            <Link href="/" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
+            <Link href="/swap" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
               ← Back to swap
             </Link>
           </div>
@@ -439,7 +439,7 @@ export default function ConditionalOrderPage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Link href="/" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
+              <Link href="/swap" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
               <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Conditional Order</span>
             </div>
             <ConnectButton accountStatus="avatar" chainStatus="none" showBalance={false} />
@@ -486,7 +486,7 @@ export default function ConditionalOrderPage() {
               <Link href="/activity?filter=orders" className="flex-1 py-2.5 text-center text-stone-400 hover:text-stone-200 border border-stone-800 hover:border-stone-700 rounded-xl text-xs transition-colors">
                 View activity
               </Link>
-              <Link href="/" className="flex-1 py-2.5 text-center bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-xs transition-colors">
+              <Link href="/swap" className="flex-1 py-2.5 text-center bg-gold-500 hover:bg-gold-400 text-stone-950 font-medium rounded-xl text-xs transition-colors">
                 New swap
               </Link>
             </div>

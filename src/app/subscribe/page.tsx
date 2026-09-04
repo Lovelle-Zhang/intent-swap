@@ -123,7 +123,7 @@ export default function SubscribePage() {
           >
             Create Conditional Order →
           </Link>
-          <Link href="/" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+          <Link href="/swap" className="block text-stone-700 hover:text-stone-500 text-xs transition-colors">
             ← Back to swap
           </Link>
         </div>
@@ -162,7 +162,7 @@ export default function SubscribePage() {
           <p className="text-emerald-400 text-xs font-medium">✓ Free during beta</p>
           <p className="text-stone-400 text-[11px] leading-relaxed">
             Conditional orders are currently free for everyone. No payment needed — just go
-            to <Link href="/" className="underline underline-offset-2 hover:text-stone-200">the app</Link> and set a trigger.
+            to <Link href="/swap" className="underline underline-offset-2 hover:text-stone-200">the app</Link> and set a trigger.
             Auto-execute is coming; we&apos;ll switch to a per-trigger fee then.
           </p>
         </div>
@@ -170,7 +170,7 @@ export default function SubscribePage() {
         {/* Header */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
+            <Link href="/swap" className="text-stone-700 hover:text-stone-500 text-xs transition-colors">←</Link>
             <span className="text-stone-600 text-[10px] tracking-[0.25em] uppercase">Subscribe (optional)</span>
           </div>
           <h1 className="text-stone-200 text-2xl font-light">Conditional Orders</h1>
@@ -359,7 +359,7 @@ export default function SubscribePage() {
           </p>
         </form>
 
-        <Link href="/" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
+        <Link href="/swap" className="block text-center text-stone-700 hover:text-stone-500 text-xs transition-colors">
           ← Back to swap
         </Link>
       </div>

@@ -141,7 +141,7 @@ export default function PortfolioPage() {
             <span className="text-stone-700 text-xl">◎</span>
           </div>
           <p className="text-stone-500 text-sm">Connect wallet to view portfolio</p>
-          <Link href="/" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
+          <Link href="/swap" className="inline-block text-stone-700 hover:text-stone-500 text-xs transition-colors">
             ← Back
           </Link>
         </div>
@@ -177,7 +177,7 @@ export default function PortfolioPage() {
             >
               {loading ? "…" : "↻ refresh"}
             </button>
-            <Link href="/" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">
+            <Link href="/swap" className="text-stone-600 hover:text-stone-400 text-xs transition-colors">
               ← Back
             </Link>
           </div>
