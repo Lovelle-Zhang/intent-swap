@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const scenarioId = form.get("scenarioId");
     if (!isScenarioId(scenarioId)) {
-      return Response.redirect(new URL("/zenfix/workspace?error=invalid_scenario", appOrigin), 303);
+      return Response.redirect(new URL("/zenfix/payruns?error=invalid_scenario", appOrigin), 303);
     }
 
     const supabase = createSupabaseServerClient();
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       await persistence.close();
     }
 
-    return Response.redirect(new URL("/zenfix/workspace?status=payrun_created", appOrigin), 303);
+    return Response.redirect(new URL("/zenfix/payruns?status=payrun_created", appOrigin), 303);
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
       return Response.redirect(new URL("/zenfix/sign-in", appOrigin), 303);

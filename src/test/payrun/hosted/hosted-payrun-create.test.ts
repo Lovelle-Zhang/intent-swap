@@ -60,7 +60,7 @@ describe("hosted PayRun create (write path)", () => {
     const response = await POST(new Request("https://evil.test/zenfix/payruns/create", { method: "POST", body: body("allowed") }));
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://zenfix.test/zenfix/workspace?status=payrun_created");
+    expect(response.headers.get("location")).toBe("https://zenfix.test/zenfix/payruns?status=payrun_created");
     expect(hostedWorkspace.open).toHaveBeenCalledWith(expect.anything(), { userId: auth.user!.id });
     expect(loop.create).toHaveBeenCalledWith(
       expect.objectContaining({ close: hostedWorkspace.close }),
@@ -90,7 +90,7 @@ describe("hosted PayRun create (write path)", () => {
     const response = await POST(new Request("https://evil.test/zenfix/payruns/create", { method: "POST", body: body("nonsense") }));
 
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("https://zenfix.test/zenfix/workspace?error=invalid_scenario");
+    expect(response.headers.get("location")).toBe("https://zenfix.test/zenfix/payruns?error=invalid_scenario");
     expect(hostedWorkspace.open).not.toHaveBeenCalled();
     expect(loop.execute).not.toHaveBeenCalled();
   });
