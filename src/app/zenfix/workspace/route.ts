@@ -17,11 +17,12 @@ export async function GET(request: Request) {
       return resolvePersonalWorkspace(getHostedSqlPool(), identity);
     });
     const body = hostedPage({
-      title: "ZenFix Personal Workspace",
-      heading: workspace.name,
-      lead: "Your persistent Personal Workspace is ready.",
-      bodyHtml: `<div class="card"><h2>Workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>`,
-      actionsHtml: `<div class="actions"><a class="link" href="/zenfix/payruns">View your Pay Runs →</a><form action="/zenfix/sign-out" method="post" style="margin:0"><button type="submit" class="btn ghost">Sign out</button></form></div>`,
+      title: "ZenFix — Overview",
+      heading: "Overview",
+      active: "overview",
+      lead: "Your agent payment control layer, in sandbox. Create Pay Runs and inspect how each one is decided.",
+      bodyHtml: `<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>`,
+      actionsHtml: `<div class="actions"><a class="btn" href="/zenfix/payruns">Open Pay Runs →</a></div>`,
     });
     return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } });
   } catch (error) {

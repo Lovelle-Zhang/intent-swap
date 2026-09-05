@@ -61,7 +61,7 @@ export default function HomePage() {
             <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then recorded as a Pay Run you can read.</p>
             <div className="cta">
               <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
-              <Link className="btn btn-ghost" href="/command-center">Explore the sandbox →</Link>
+              <a className="btn btn-ghost" href="#how">See how it works</a>
             </div>
             <div className="trust">
               <span><b>No real funds</b> — simulated</span>
@@ -120,7 +120,7 @@ export default function HomePage() {
           <p>One click with Google. It&rsquo;s a sandbox — no real funds ever move.</p>
           <div className="cta">
             <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
-            <Link className="btn btn-ghost" href="/command-center">Explore the sandbox →</Link>
+            <a className="btn btn-ghost" href="#how">See how it works</a>
           </div>
         </div>
       </section>
