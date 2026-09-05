@@ -1,5 +1,5 @@
 import type { SqlPool } from "../adapters/storage/postgres/sql";
-import type { PayRun } from "../domain/types";
+import type { AuditEvent, PayRun } from "../domain/types";
 import {
   openWorkspacePersistence,
   type PersonalWorkspaceView,
@@ -56,6 +56,31 @@ export async function listWorkspacePayRuns(
   try {
     const payRuns = await persistence.payRuns.list(workspace.projectId);
     return { workspace, payRuns: payRuns.map(projectHostedPayRunSummary) };
+  } finally {
+    await persistence.close();
+  }
+}
+
+export interface HostedPayRunDetail {
+  readonly workspace: PersonalWorkspaceView;
+  readonly payRun: PayRun;
+  readonly auditEvents: readonly AuditEvent[];
+}
+
+// 2B-detail: load a single PayRun with its full aggregate (intent, policy
+// decision, funding/payment/proof/ledger) plus its audit trail, scoped to the
+// signed-in user's workspace. Returns null when the id is not in this workspace.
+export async function getWorkspacePayRun(
+  pool: SqlPool,
+  identity: VerifiedAuthIdentity,
+  payRunId: string,
+): Promise<HostedPayRunDetail | null> {
+  const { workspace, persistence } = await openWorkspacePersistence(pool, identity);
+  try {
+    const payRun = await persistence.payRuns.get(workspace.projectId, payRunId);
+    if (!payRun) return null;
+    const auditEvents = await persistence.auditEvents.list(workspace.projectId, payRunId);
+    return { workspace, payRun, auditEvents };
   } finally {
     await persistence.close();
   }
