@@ -19,12 +19,21 @@ const STYLE = `
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;line-height:1.55;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px);background-size:100% 34px}
 code{font-family:var(--font-mono)}
 .topbar{border-bottom:1px solid var(--line-soft)}
-.bar-in{max-width:880px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.bar-in{max-width:880px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .bar-in.wide{max-width:1120px}
-.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em}
+.bar-left{display:flex;align-items:center;gap:30px;min-width:0}
+.bar-right{display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:16px;letter-spacing:-.01em;flex:none}
 .brand svg{width:28px;height:28px;display:block}
 .brand b{color:var(--muted);font-weight:600}
+.appnav{display:flex;gap:22px}
+.appnav a{display:inline-flex;align-items:center;height:60px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;border-bottom:2px solid transparent}
+.appnav a:hover{color:var(--text)}
+.appnav a.on{color:var(--text);border-bottom-color:var(--signal)}
 .sandbox-tag{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--sandbox);border:1px solid color-mix(in srgb,var(--sandbox) 40%,transparent);padding:3px 9px;border-radius:999px}
+.signout{font:inherit;font-size:13px;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:7px 12px}
+.signout:hover{background:var(--surface-2);color:var(--text)}
+@media(max-width:560px){.bar-left{gap:16px}.appnav{gap:14px}.sandbox-tag{display:none}}
 .wrap{max-width:880px;margin:0 auto;padding:40px 24px 96px}
 .wrap.wide{max-width:1120px}
 .eyebrow{margin:0;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
@@ -82,6 +91,7 @@ export interface HostedPageOptions {
   readonly bodyHtml?: string;
   readonly actionsHtml?: string;
   readonly wide?: boolean;
+  readonly active?: "overview" | "payruns";
 }
 
 export function hostedPage(options: HostedPageOptions): string {
@@ -92,6 +102,8 @@ export function hostedPage(options: HostedPageOptions): string {
     : "";
   const lead = options.lead ? `<p class="lead">${escapeHtml(options.lead)}</p>` : "";
   const notice = options.notice ? `<p class="notice" role="status">${escapeHtml(options.notice)}</p>` : "";
-  const topbar = `<header class="topbar"><div class="${barClass}"><a class="brand" href="/">${LOGO} ZenFix <b>PayRun</b></a><span class="sandbox-tag">Sandbox · No real funds</span></div></header>`;
+  const navItem = (id: "overview" | "payruns", href: string, label: string) =>
+    `<a href="${href}"${options.active === id ? ' class="on" aria-current="page"' : ""}>${label}</a>`;
+  const topbar = `<header class="topbar"><div class="${barClass}"><div class="bar-left"><a class="brand" href="/zenfix/workspace">${LOGO} ZenFix <b>PayRun</b></a><nav class="appnav">${navItem("overview", "/zenfix/workspace", "Overview")}${navItem("payruns", "/zenfix/payruns", "Pay Runs")}</nav></div><div class="bar-right"><span class="sandbox-tag">Sandbox · No real funds</span><form action="/zenfix/sign-out" method="post"><button type="submit" class="signout">Sign out</button></form></div></div></header>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(options.title)}</title>${FONTS}<style>${STYLE}</style></head><body>${topbar}<main class="${wrapClass}">${crumb}<h1>${escapeHtml(options.heading)}</h1>${lead}${notice}${options.bodyHtml ?? ""}${options.actionsHtml ?? ""}</main></body></html>`;
 }
