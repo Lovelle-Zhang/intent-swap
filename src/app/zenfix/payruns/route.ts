@@ -41,7 +41,7 @@ function renderRow(payRun: HostedPayRunSummary): string {
   const policyCell = payRun.policy
     ? statusBadge(payRun.policy.outcome, statusVariant(payRun.policy.outcome))
     : "—";
-  return `<tr><td><code>${escapeHtml(payRun.payRunId)}</code></td><td class="muted">${escapeHtml(formatCreatedAt(payRun.createdAt))}</td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td class="purpose">${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td class="num">${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
+  return `<tr><td><a class="link" href="/zenfix/payruns/${encodeURIComponent(payRun.payRunId)}"><code>${escapeHtml(payRun.payRunId)}</code></a></td><td class="muted">${escapeHtml(formatCreatedAt(payRun.createdAt))}</td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td class="purpose">${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td class="num">${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
 }
 
 function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): string {

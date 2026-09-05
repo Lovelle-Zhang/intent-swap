@@ -68,7 +68,29 @@ tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 60%,transparent)
 .badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
 .badge.ok{color:var(--allow);background:color-mix(in srgb,var(--allow) 12%,transparent);border-color:color-mix(in srgb,var(--allow) 34%,transparent)}
 .badge.blocked{color:var(--block);background:color-mix(in srgb,var(--block) 12%,transparent);border-color:color-mix(in srgb,var(--block) 34%,transparent)}
+.badge.hold{color:var(--sandbox);background:color-mix(in srgb,var(--sandbox) 12%,transparent);border-color:color-mix(in srgb,var(--sandbox) 34%,transparent)}
 .badge.neutral{color:var(--muted);background:color-mix(in srgb,var(--muted) 12%,transparent);border-color:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{font-family:var(--font-mono);font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:4px 9px}
+.meta{margin-top:14px;display:flex;gap:22px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px;color:var(--faint)}
+.meta b{color:var(--text);font-weight:500}
+.checklist{margin:16px 0 0;list-style:none;padding:0;display:flex;flex-direction:column;gap:12px}
+.checklist li{display:grid;grid-template-columns:11px 1fr;gap:12px}
+.checklist .mk{margin-top:5px;width:11px;height:11px;border-radius:3px;background:var(--faint)}
+.checklist .mk.ok{background:var(--allow)}.checklist .mk.hold{background:var(--sandbox)}.checklist .mk.blocked{background:var(--block)}
+.checklist .rc{font-family:var(--font-mono);font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+.checklist p{margin:3px 0 0;color:var(--muted);font-size:13.5px}
+.stages{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.stage{flex:1;min-width:130px;border:1px solid var(--line-soft);border-radius:11px;padding:13px 15px}
+.stage .lab{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.stage .val{margin-top:7px;font-size:13px;color:var(--text)}
+.trail{margin:16px 0 0;list-style:none;padding:0}
+.trail li{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.trail li:last-child{border-bottom:0}
+.trail time{font-family:var(--font-mono);font-size:12px;color:var(--faint)}
+.trail .act{font-size:14px}
+.trail .act small{display:block;margin-top:2px;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.detail-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px}
 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:12px 28px;font-size:14px}
 dt{color:var(--muted);font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 dd{margin:0;color:var(--text)}
@@ -78,7 +100,7 @@ a.link:hover{text-decoration:underline}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 `;
 
-export function statusBadge(text: string, variant: "ok" | "blocked" | "neutral"): string {
+export function statusBadge(text: string, variant: "ok" | "blocked" | "hold" | "neutral"): string {
   return `<span class="badge ${variant}">${escapeHtml(text)}</span>`;
 }
 
