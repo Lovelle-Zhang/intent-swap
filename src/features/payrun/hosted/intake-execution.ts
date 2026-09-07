@@ -53,7 +53,9 @@ export async function handleExecutionReport(
       const detail = await getWorkspacePayRun(pool, identity, payRunId);
       if (!detail) return json({ error: "Pay Run not found" }, 404);
       const current = detail.payRun;
-      if (current.status !== "policy_allowed") {
+      // A run is executable once Policy allowed it, or once a human approved a
+      // needs_review run (approved). Anything else has not been authorized.
+      if (current.status !== "policy_allowed" && current.status !== "approved") {
         return json({ error: "Pay Run is not awaiting execution", status: current.status }, 409);
       }
       // The persisted run's updatedAt may be ahead of wall clock (intake stamps

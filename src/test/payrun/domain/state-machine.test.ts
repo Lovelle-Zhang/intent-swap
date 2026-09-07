@@ -58,7 +58,7 @@ const normativeTransitions: Readonly<Record<PayRunStatus, readonly PayRunStatus[
   ],
   execution_reported: [],
   pending_review: ["approved", "denied", "expired", "cancellation_pending"],
-  approved: ["policy_evaluating", "expired", "cancellation_pending"],
+  approved: ["policy_evaluating", "execution_reported", "expired", "cancellation_pending"],
   funding_preparing: [
     "funding_preparing",
     "funding_prepared",
@@ -83,7 +83,7 @@ const normativeTransitions: Readonly<Record<PayRunStatus, readonly PayRunStatus[
 };
 
 describe("canonical PayRun transition table", () => {
-  it("contains exactly the 21 canonical states and 44 normative edges", () => {
+  it("contains exactly the 21 canonical states and 45 normative edges", () => {
     expect(PAY_RUN_STATUSES).toEqual([
       "intent_recorded",
       "policy_evaluating",
@@ -108,7 +108,7 @@ describe("canonical PayRun transition table", () => {
       "failed",
     ]);
     expect(LEGAL_TRANSITIONS).toEqual(normativeTransitions);
-    expect(Object.values(LEGAL_TRANSITIONS).flat()).toHaveLength(44);
+    expect(Object.values(LEGAL_TRANSITIONS).flat()).toHaveLength(45);
   });
 
   for (const from of Object.keys(normativeTransitions) as PayRunStatus[]) {

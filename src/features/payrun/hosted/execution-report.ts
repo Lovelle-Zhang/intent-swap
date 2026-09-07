@@ -58,8 +58,8 @@ export function buildExecutionReport(
 }
 
 // Returns false when the compare-and-set loses (another writer already moved the
-// run out of policy_allowed). transitionPayRun throwing Terminal/VersionConflict
-// is left to the caller to translate into 409.
+// run out of its authorized status — policy_allowed or approved). transitionPayRun
+// throwing Terminal/VersionConflict is left to the caller to translate into 409.
 export async function commitExecutionReport(
   persistence: PayRunPersistence, projectId: string, current: PayRun,
   report: ExecutionReport, idempotencyKey: string, now: string,
@@ -78,7 +78,7 @@ export async function commitExecutionReport(
   });
   return persistence.unitOfWork.execute(projectId, async (context) => {
     const cas = await context.payRuns.compareAndSet(
-      projectId, current.id, current.version, "policy_allowed", result.payRun,
+      projectId, current.id, current.version, current.status, result.payRun,
     );
     if (cas.kind === "conflict") return false;
     await context.idempotency.insert(projectId, result.idempotencyRecord);
