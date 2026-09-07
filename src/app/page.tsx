@@ -48,6 +48,7 @@ export default function HomePage() {
           <nav className="navlinks">
             <a href="#how">How it works</a>
             <a href="#states">Pay Runs</a>
+            <a href="/api-docs">API docs</a>
             <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
           </nav>
         </div>
@@ -129,6 +130,7 @@ export default function HomePage() {
         <div className="wrap">
           <span>ZenFix PayRun · Sandbox — no real funds</span>
           <nav>
+            <a href="/api-docs">API docs</a>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/swap">Intent Swap</Link>
