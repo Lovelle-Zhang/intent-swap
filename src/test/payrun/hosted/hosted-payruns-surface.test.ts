@@ -87,6 +87,30 @@ describe("hosted Pay Runs read surface", () => {
     expect(html).toContain("Sandbox Pay Run created.");
   });
 
+  test("state + search filters narrow the rendered rows", async () => {
+    read.list.mockResolvedValue({ workspace: WORKSPACE, payRuns: [
+      summary({ payRunId: "payrun_allow", status: "policy_allowed", agentId: "agent_a", purpose: "buy dataset" }),
+      summary({ payRunId: "payrun_block", status: "blocked", agentId: "agent_b", purpose: "unknown payee" }),
+      summary({ payRunId: "payrun_exec", status: "execution_reported", agentId: "agent_a", purpose: "executed run" }),
+    ] });
+    const blocked = await (await get("https://zenfix.test/zenfix/payruns?state=blocked")).text();
+    expect(blocked).toContain("payrun_block");
+    expect(blocked).not.toContain("payrun_allow");
+    expect(blocked).not.toContain("payrun_exec");
+    expect(blocked).toContain("1 of 3");
+
+    const searched = await (await get("https://zenfix.test/zenfix/payruns?q=agent_a")).text();
+    expect(searched).toContain("payrun_allow");
+    expect(searched).toContain("payrun_exec");
+    expect(searched).not.toContain("payrun_block");
+  });
+
+  test("a filter matching nothing shows the no-match empty state", async () => {
+    read.list.mockResolvedValue({ workspace: WORKSPACE, payRuns: [summary({ status: "policy_allowed" })] });
+    const html = await (await get("https://zenfix.test/zenfix/payruns?state=blocked")).text();
+    expect(html).toContain("No Pay Runs match your filter");
+  });
+
   test("persistence outage returns 503 without rendering", async () => {
     read.list.mockRejectedValue(new PersistenceUnavailableError());
     const response = await get();
