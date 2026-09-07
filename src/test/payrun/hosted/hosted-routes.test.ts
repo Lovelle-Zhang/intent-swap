@@ -24,6 +24,13 @@ vi.mock("@/features/payrun/hosted/runtime", () => ({ getHostedSqlPool: () => ({}
 vi.mock("@/features/payrun/hosted/workspace", () => ({
   resolvePersonalWorkspace: (...args: unknown[]) => workspace.resolve(...args),
 }));
+// The Overview route gained a budget dependency; against the fake {} pool it
+// cannot run real SQL, so stub the module with an unlimited state.
+vi.mock("@/features/payrun/hosted/workspace-budget", () => ({
+  getBudgetState: async () => ({
+    dailyBudgetAtomic: "0", spentTodayAtomic: "0", remainingAtomic: "1000000000", unlimited: true,
+  }),
+}));
 
 describe("hosted auth and workspace HTTP boundary", () => {
   beforeEach(() => {

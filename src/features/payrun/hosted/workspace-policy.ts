@@ -41,12 +41,14 @@ export interface WorkspacePolicyView {
   readonly rules: PolicyRuleSnapshot;
   readonly version: number; // 0 when the workspace has never saved a policy
   readonly updatedAt: string | null;
+  readonly dailyBudgetAtomic: string; // atomic USDC; "0" = unlimited
 }
 
 interface PolicyRow extends Record<string, unknown> {
   readonly rules: PolicyRuleSnapshot;
   readonly version: number;
   readonly updated_at: string;
+  readonly daily_budget_atomic: string;
 }
 
 function toView(row: PolicyRow): WorkspacePolicyView {
@@ -54,6 +56,7 @@ function toView(row: PolicyRow): WorkspacePolicyView {
     rules: row.rules,
     version: row.version,
     updatedAt: new Date(row.updated_at).toISOString(),
+    dailyBudgetAtomic: row.daily_budget_atomic,
   };
 }
 
@@ -66,11 +69,13 @@ export async function getWorkspacePolicy(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const found = await client.query<PolicyRow>(
-        "SELECT rules, version, updated_at FROM public.policies WHERE project_id = $1::uuid",
+        "SELECT rules, version, updated_at, daily_budget_atomic FROM public.policies WHERE project_id = $1::uuid",
         [workspace.projectId],
       );
       const row = found.rows[0];
-      return row ? toView(row) : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null };
+      return row
+        ? toView(row)
+        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0" };
     },
   );
 }
@@ -79,20 +84,22 @@ export async function saveWorkspacePolicy(
   pool: SqlPool,
   identity: VerifiedAuthIdentity,
   rules: PolicyRuleSnapshot,
+  dailyBudgetAtomic: string,
 ): Promise<WorkspacePolicyView> {
   const workspace = await resolvePersonalWorkspace(pool, identity);
   return withHostedTransaction(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const saved = await client.query<PolicyRow>(
-        `INSERT INTO public.policies (project_id, version, rules)
-         VALUES ($1::uuid, 1, $2::jsonb)
+        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic)
+         VALUES ($1::uuid, 1, $2::jsonb, $3::text)
          ON CONFLICT (project_id) DO UPDATE
            SET rules = EXCLUDED.rules,
+               daily_budget_atomic = EXCLUDED.daily_budget_atomic,
                version = public.policies.version + 1,
                updated_at = transaction_timestamp()
-         RETURNING rules, version, updated_at`,
-        [workspace.projectId, JSON.stringify(rules)],
+         RETURNING rules, version, updated_at, daily_budget_atomic`,
+        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic],
       );
       return toView(saved.rows[0]);
     },

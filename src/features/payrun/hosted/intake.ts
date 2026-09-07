@@ -65,6 +65,7 @@ export function buildIntakeEvaluation(
   policyRules: PolicyRuleSnapshot,
   policyMeta: IntakePolicyMeta,
   now: string,
+  projectRemainingAtomic: string,
 ): IntakeEvaluation {
   const amountAtomic = usdcToAtomic(input.amount);
   if (amountAtomic === null) {
@@ -120,7 +121,7 @@ export function buildIntakeEvaluation(
     evaluatedBy: { service: "zenfix_policy_engine", engineVersion: "1.0.0" },
     policySnapshot,
     budgetSnapshot: {
-      projectRemaining: policyRules.absoluteHardLimit,
+      projectRemaining: usdcMoney(projectRemainingAtomic),
       agentRemaining: policyRules.absoluteHardLimit,
       merchantRemaining: policyRules.absoluteHardLimit,
     },

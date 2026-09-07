@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0" });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
@@ -74,6 +74,18 @@ describe("hosted policy route", () => {
     expect(savedRules.transactionLimit.amountAtomic).toBe("100000000");
     expect(savedRules.allowedMerchantIds).toEqual(["merchant_known"]);
     expect(savedRules.requireReviewForNewMerchant).toBe(true);
+    expect(store.save.mock.calls[0][3]).toBe("0");
+  });
+
+  test("POST persists a submitted daily budget as atomic USDC", async () => {
+    const { POST } = await loadRoute();
+    await POST(postBody({
+      transactionLimit: "100",
+      reviewThreshold: "50",
+      absoluteHardLimit: "1000",
+      dailyBudget: "250",
+    }));
+    expect(store.save.mock.calls[0][3]).toBe("250000000");
   });
 
   test("POST with a malformed amount returns 400, preserves input, and never writes", async () => {

@@ -68,7 +68,10 @@ export async function GET(request: Request) {
     });
     const saved = new URL(request.url).searchParams.get("status") === "saved";
     const notice = saved ? { text: "Policy saved.", variant: "ok" as const } : null;
-    return new Response(renderPage(valuesFromRules(view.rules), notice), { status: 200, headers: HTML_HEADERS });
+    return new Response(
+      renderPage(valuesFromRules(view.rules, view.dailyBudgetAtomic), notice),
+      { status: 200, headers: HTML_HEADERS },
+    );
   } catch (error) {
     return unavailable(error);
   }
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
     await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-      return saveWorkspacePolicy(getHostedSqlPool(), identity, parsed.rules);
+      return saveWorkspacePolicy(getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic);
     });
     const appOrigin = readZenFixAppOrigin();
     return Response.redirect(new URL("/zenfix/policy?status=saved", appOrigin), 303);

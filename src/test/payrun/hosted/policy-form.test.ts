@@ -6,6 +6,7 @@ import {
   parsePolicyForm,
   usdcToAtomic,
   valuesFromForm,
+  valuesFromRules,
 } from "@/features/payrun/hosted/policy-form";
 
 function form(entries: Record<string, string>): FormData {
@@ -79,6 +80,33 @@ describe("parsePolicyForm", () => {
   test("rejects a per-transaction limit above the hard limit", () => {
     const result = parsePolicyForm(form({ ...VALID, transactionLimit: "2000" }), DEFAULT_POLICY_RULES);
     expect(result).toEqual({ ok: false, error: expect.stringContaining("hard limit") });
+  });
+});
+
+describe("daily budget", () => {
+  test("parses a USDC daily budget to atomic", () => {
+    const result = parsePolicyForm(form({ ...VALID, dailyBudget: "100" }), DEFAULT_POLICY_RULES);
+    expect(result.ok && result.dailyBudgetAtomic).toBe("100000000");
+  });
+
+  test("an empty or whitespace daily budget means unlimited (\"0\")", () => {
+    expect(parsePolicyForm(form({ ...VALID, dailyBudget: "" }), DEFAULT_POLICY_RULES)).toMatchObject({ dailyBudgetAtomic: "0" });
+    expect(parsePolicyForm(form({ ...VALID, dailyBudget: "   " }), DEFAULT_POLICY_RULES)).toMatchObject({ dailyBudgetAtomic: "0" });
+  });
+
+  test("rejects a malformed daily budget", () => {
+    const result = parsePolicyForm(form({ ...VALID, dailyBudget: "abc" }), DEFAULT_POLICY_RULES);
+    expect(result).toEqual({ ok: false, error: expect.stringContaining("daily budget") });
+  });
+
+  test("valuesFromRules round-trips the daily budget (USDC<->atomic, \"0\"<->\"\")", () => {
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "0").dailyBudget).toBe("");
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "100000000").dailyBudget).toBe("100");
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "12500000").dailyBudget).toBe("12.5");
+  });
+
+  test("valuesFromForm reflects the submitted daily budget verbatim", () => {
+    expect(valuesFromForm(form({ ...VALID, dailyBudget: "42.5" })).dailyBudget).toBe("42.5");
   });
 });
 

@@ -112,7 +112,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
     holder.pool = pool;
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES);
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0");
     apiKey = (await createWorkspaceApiKey(pool, identity, "exec agent")).key;
     ({ POST: INTAKE_POST } = await import("@/app/api/v1/payruns/route"));
     ({ POST: EXEC_POST } = await import("@/app/api/v1/payruns/[id]/execution/route"));
