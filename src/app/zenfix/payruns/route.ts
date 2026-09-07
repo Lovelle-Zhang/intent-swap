@@ -13,6 +13,12 @@ import {
 } from "@/features/payrun/hosted/workspace-payruns";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
+import {
+  applyPayRunFilter,
+  parsePayRunFilter,
+  renderFilterBar,
+  type PayRunFilter,
+} from "@/features/payrun/hosted/payruns-filter";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,12 +50,18 @@ function renderRow(payRun: HostedPayRunSummary): string {
   return `<tr><td><a class="link" href="/zenfix/payruns/${encodeURIComponent(payRun.payRunId)}"><code>${escapeHtml(payRun.payRunId)}</code></a></td><td class="muted">${escapeHtml(formatCreatedAt(payRun.createdAt))}</td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td class="purpose">${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td class="num">${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
 }
 
-function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): string {
+function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null, filter: PayRunFilter): string {
   const options = SANDBOX_SCENARIO_IDS.map((id) => `<option value="${id}">${escapeHtml(id)}</option>`).join("");
-  const rows = view.payRuns.length === 0
-    ? `<tr><td colspan="7" class="empty">No Pay Runs yet. Create your first sandbox run above.</td></tr>`
-    : view.payRuns.map(renderRow).join("");
+  const total = view.payRuns.length;
+  const filtered = applyPayRunFilter(view.payRuns, filter);
+  const emptyMsg = total === 0
+    ? "No Pay Runs yet. Create your first sandbox run above."
+    : "No Pay Runs match your filter.";
+  const rows = filtered.length === 0
+    ? `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`
+    : filtered.map(renderRow).join("");
   const form = `<div class="card"><h2>Create a sandbox Pay Run</h2><form class="row" action="/zenfix/payruns/create" method="post"><label for="scenarioId">Scenario</label><select id="scenarioId" name="scenarioId">${options}</select><button type="submit" class="btn">Create Pay Run</button></form></div>`;
+  const filterBar = total === 0 ? "" : renderFilterBar(filter, total, filtered.length);
   const table = `<div class="tablewrap"><table><thead><tr><th>Pay Run</th><th>Created</th><th>Status</th><th>Purpose</th><th>Agent</th><th class="num">Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   return hostedPage({
     title: "ZenFix Pay Runs",
@@ -58,7 +70,7 @@ function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null): st
     notice,
     wide: true,
     active: "payruns",
-    bodyHtml: form + table,
+    bodyHtml: form + filterBar + table,
   });
 }
 
@@ -69,9 +81,11 @@ export async function GET(request: Request) {
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
       return listWorkspacePayRuns(getHostedSqlPool(), identity);
     });
-    const status = new URL(request.url).searchParams.get("status") ?? new URL(request.url).searchParams.get("error");
+    const params = new URL(request.url).searchParams;
+    const status = params.get("status") ?? params.get("error");
     const notice = status ? (NOTICES[status] ?? null) : null;
-    return new Response(renderHtml(view, notice), {
+    const filter = parsePayRunFilter(params);
+    return new Response(renderHtml(view, notice, filter), {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" },
     });
