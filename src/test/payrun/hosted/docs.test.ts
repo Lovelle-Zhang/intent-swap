@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { GET } from "@/app/docs/route";
+import { GET } from "@/app/api-docs/route";
 import { renderDocsPage } from "@/features/payrun/hosted/docs";
 
 describe("public API docs page", () => {

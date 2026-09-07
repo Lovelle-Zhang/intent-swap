@@ -21,7 +21,7 @@ function usageCard(apiUrl: string): string {
   -H "Content-Type: application/json" \\
   -d '{"agentId":"agent_ops_01","purpose":"Buy a verified API result","amount":"12.50",
        "merchant":{"id":"acme_api","payee":"ACME","category":"api"},"artifactType":"api_result"}'`;
-  return `<div class="card"><h2>Using a key</h2><p class="lead">Your agent submits an intent; ZenFix checks it against your <a class="link" href="/zenfix/policy">Policy</a> and returns an allow / needs-review / block decision. No funds move — the decision and its full trail land in <a class="link" href="/zenfix/payruns">Pay Runs</a>. See the full <a class="link" href="/docs">API reference</a>.</p><pre class="curl"><code>${escapeHtml(curl)}</code></pre></div>`;
+  return `<div class="card"><h2>Using a key</h2><p class="lead">Your agent submits an intent; ZenFix checks it against your <a class="link" href="/zenfix/policy">Policy</a> and returns an allow / needs-review / block decision. No funds move — the decision and its full trail land in <a class="link" href="/zenfix/payruns">Pay Runs</a>. See the full <a class="link" href="/api-docs">API reference</a>.</p><pre class="curl"><code>${escapeHtml(curl)}</code></pre></div>`;
 }
 
 export function renderKeysBody(keys: readonly ApiKeyView[], apiUrl: string, newKey?: string): string {
