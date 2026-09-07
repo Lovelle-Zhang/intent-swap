@@ -741,8 +741,11 @@ export function assertPayRunInvariants(payRun: PayRun): void {
       }
       assertSameProject(payRun.projectId, report);
       const decision = latestDecision(payRun);
-      if (!decision || decision.outcome !== "allowed") {
-        throw new InvariantViolationError("execution_reported requires an allowed policy decision");
+      const humanApproved = payRun.approval?.status === "approved";
+      if (!humanApproved && (!decision || decision.outcome !== "allowed")) {
+        throw new InvariantViolationError(
+          "execution_reported requires an allowed policy decision or a human-approved run",
+        );
       }
       if (report.outcome !== "executed" && report.outcome !== "failed") {
         throw new InvariantViolationError("ExecutionReport outcome must be executed or failed");

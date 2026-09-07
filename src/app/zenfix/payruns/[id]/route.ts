@@ -6,6 +6,7 @@ import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
 import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import { getWorkspacePayRun, type HostedPayRunDetail } from "@/features/payrun/hosted/workspace-payruns";
+import { renderReview, reviewNotice } from "@/features/payrun/hosted/review-view";
 import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 
@@ -41,8 +42,9 @@ function payRunVariant(pr: HostedPayRunDetail["payRun"]): Variant {
   return variantOf(pr.status);
 }
 
-function renderDetail(detail: HostedPayRunDetail): string {
+function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): string {
   const pr = detail.payRun;
+  const notice = reviewNotice(statusParam);
   const decision = pr.policyDecisions.at(-1) ?? null;
   const amount = formatAtomicMoney(pr.intent.quotedAmount);
   const intentCard = `<div class="card"><h2>Intent</h2><dl><dt>Agent</dt><dd><code>${escapeHtml(pr.intent.agentId)}</code></dd><dt>Purpose</dt><dd>${escapeHtml(pr.intent.purpose)}</dd><dt>Amount</dt><dd><code>${escapeHtml(amount)}</code></dd><dt>Created</dt><dd class="mono">${escapeHtml(fmtTime(pr.intent.createdAt))}</dd></dl></div>`;
@@ -58,17 +60,21 @@ function renderDetail(detail: HostedPayRunDetail): string {
   const trail = detail.auditEvents.length
     ? `<div class="card"><h2>Audit trail</h2><ol class="trail">${detail.auditEvents.map((e) => `<li><time>${escapeHtml(fmtTime(e.occurredAt))}</time><div class="act">${escapeHtml(humanize(e.actionCode))}<small>${escapeHtml(e.reasonCode)}</small></div></li>`).join("")}</ol></div>`
     : "";
+  const reviewCard = renderReview(pr);
   return hostedPage({
     title: `ZenFix — Pay Run ${pr.id}`,
     heading: "Pay Run",
     active: "payruns",
     workspace: { name: detail.workspace.name, projectId: detail.workspace.projectId },
-    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), payRunVariant(pr))}</div>${intentCard}${policyCard}${stagesCard}${reportCard}${trail}`,
+    notice: notice?.notice ?? null,
+    noticeVariant: notice?.variant,
+    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), payRunVariant(pr))}</div>${intentCard}${policyCard}${reviewCard}${stagesCard}${reportCard}${trail}`,
     actionsHtml: `<div class="actions"><a class="link" href="/zenfix/payruns">← All Pay Runs</a></div>`,
   });
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const statusParam = new URL(request.url).searchParams.get("status");
   try {
     const detail = await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
@@ -86,7 +92,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       });
       return new Response(notFound, { status: 404, headers });
     }
-    return new Response(renderDetail(detail), { status: 200, headers });
+    return new Response(renderDetail(detail, statusParam), { status: 200, headers });
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
       let appOrigin: string;

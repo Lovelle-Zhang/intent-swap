@@ -53,7 +53,7 @@ export const LEGAL_TRANSITIONS: Readonly<Record<PayRunStatus, readonly PayRunSta
   ],
   execution_reported: [],
   pending_review: ["approved", "denied", "expired", "cancellation_pending"],
-  approved: ["policy_evaluating", "expired", "cancellation_pending"],
+  approved: ["policy_evaluating", "execution_reported", "expired", "cancellation_pending"],
   funding_preparing: [
     "funding_preparing",
     "funding_prepared",
