@@ -10,6 +10,8 @@ import { getWorkspacePayRun, listWorkspacePayRuns } from "@/features/payrun/host
 import { loadHostedMigrationsSql } from "./hosted-migrations";
 
 const USER = "00000000-0000-4000-8000-00000000000c";
+const USER_BUDGET = "00000000-0000-4000-8000-00000000000d";
+const USER_UNLIMITED = "00000000-0000-4000-8000-00000000000e";
 
 // The route reads its Postgres pool from getHostedSqlPool(); point it at the
 // PGlite test pool so the real route handler drives the real storage.
@@ -61,6 +63,21 @@ const POLICY_RULES: PolicyRuleSnapshot = {
   allowedArtifactTypes: ["api_result"],
 };
 
+// Daily budget accumulation uses a fresh workspace with a high review threshold
+// so amounts under it are allowed outright, letting the DERIVED spent-today drive
+// the block instead of the review path.
+const NO_REVIEW_RULES: PolicyRuleSnapshot = {
+  allowedMerchantIds: ["acme_api"],
+  blockedMerchantIds: [],
+  blockedCategories: [],
+  allowedRails: ["base"],
+  transactionLimit: usdcMoney("1000000000"), // 1000 USDC
+  absoluteHardLimit: usdcMoney("1000000000"), // 1000 USDC
+  reviewThreshold: usdcMoney("1000000000"), // 1000 USDC — 60/500 stay below
+  requireReviewForNewMerchant: false,
+  allowedArtifactTypes: ["api_result"],
+};
+
 let db: PGlite;
 let pool: Pool;
 let apiKey: string;
@@ -95,13 +112,13 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
         SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
       $$;
       CREATE ROLE zenfix_login LOGIN NOSUPERUSER NOBYPASSRLS;
-      INSERT INTO auth.users VALUES ('${USER}'::uuid);
+      INSERT INTO auth.users VALUES ('${USER}'::uuid), ('${USER_BUDGET}'::uuid), ('${USER_UNLIMITED}'::uuid);
     `);
     await db.exec(await loadHostedMigrationsSql());
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
     holder.pool = pool;
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES);
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0");
     apiKey = (await createWorkspaceApiKey(pool, identity, "intake agent")).key;
     ({ POST } = await import("@/app/api/v1/payruns/route"));
   }, 60_000);
@@ -175,5 +192,45 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
       merchant: { id: "acme_api", payee: "ACME", category: "api" }, artifactType: "api_result",
     });
     expect(response.status).toBe(400);
+  });
+
+  describe.sequential("daily budget accumulation", () => {
+  const identityBudget: VerifiedAuthIdentity = { userId: USER_BUDGET };
+  const identityUnlimited: VerifiedAuthIdentity = { userId: USER_UNLIMITED };
+  let budgetKey: string;
+  let unlimitedKey: string;
+
+  beforeAll(async () => {
+    await saveWorkspacePolicy(pool, identityBudget, NO_REVIEW_RULES, "100000000"); // 100 USDC/day
+    budgetKey = (await createWorkspaceApiKey(pool, identityBudget, "budget agent")).key;
+    await saveWorkspacePolicy(pool, identityUnlimited, NO_REVIEW_RULES, "0"); // unlimited
+    unlimitedKey = (await createWorkspaceApiKey(pool, identityUnlimited, "unlimited agent")).key;
+  });
+
+  test("first 60 USDC intent is allowed (spends 60 of a 100 USDC daily budget)", async () => {
+    const response = await post(`Bearer ${budgetKey}`, intent({ idempotencyKey: "budget-1", amount: "60" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+
+  test("second 60 USDC intent is blocked — remaining 40 < 60 trips the project budget", async () => {
+    const response = await post(`Bearer ${budgetKey}`, intent({ idempotencyKey: "budget-2", amount: "60" }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.decision.outcome).toBe("blocked");
+    expect(json.decision.reasonCodes).toContain("budget.project_limit_exceeded");
+  });
+
+  test("a blocked run does not consume budget — a following 40 USDC intent is still allowed", async () => {
+    const response = await post(`Bearer ${budgetKey}`, intent({ idempotencyKey: "budget-3", amount: "40" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+
+  test("with an unlimited daily budget a large within-hard-limit intent stays allowed", async () => {
+    const response = await post(`Bearer ${unlimitedKey}`, intent({ idempotencyKey: "unlimited-1", amount: "500" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
   });
 });

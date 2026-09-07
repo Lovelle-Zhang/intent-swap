@@ -36,17 +36,19 @@ export interface PolicyFormValues {
   readonly transactionLimit: string;
   readonly reviewThreshold: string;
   readonly absoluteHardLimit: string;
+  readonly dailyBudget: string; // USDC; "" = unlimited
   readonly requireReviewForNewMerchant: boolean;
   readonly allowedMerchantIds: string;
   readonly blockedMerchantIds: string;
   readonly blockedCategories: string;
 }
 
-export function valuesFromRules(rules: PolicyRuleSnapshot): PolicyFormValues {
+export function valuesFromRules(rules: PolicyRuleSnapshot, dailyBudgetAtomic: string): PolicyFormValues {
   return {
     transactionLimit: atomicToUsdc(rules.transactionLimit.amountAtomic),
     reviewThreshold: atomicToUsdc(rules.reviewThreshold.amountAtomic),
     absoluteHardLimit: atomicToUsdc(rules.absoluteHardLimit.amountAtomic),
+    dailyBudget: dailyBudgetAtomic === "0" ? "" : atomicToUsdc(dailyBudgetAtomic),
     requireReviewForNewMerchant: rules.requireReviewForNewMerchant,
     allowedMerchantIds: rules.allowedMerchantIds.join("\n"),
     blockedMerchantIds: rules.blockedMerchantIds.join("\n"),
@@ -60,6 +62,7 @@ export function valuesFromForm(form: FormData): PolicyFormValues {
     transactionLimit: text("transactionLimit"),
     reviewThreshold: text("reviewThreshold"),
     absoluteHardLimit: text("absoluteHardLimit"),
+    dailyBudget: text("dailyBudget"),
     requireReviewForNewMerchant: form.get("requireReviewForNewMerchant") === "on",
     allowedMerchantIds: text("allowedMerchantIds"),
     blockedMerchantIds: text("blockedMerchantIds"),
@@ -68,7 +71,7 @@ export function valuesFromForm(form: FormData): PolicyFormValues {
 }
 
 export type PolicyFormResult =
-  | { readonly ok: true; readonly rules: PolicyRuleSnapshot }
+  | { readonly ok: true; readonly rules: PolicyRuleSnapshot; readonly dailyBudgetAtomic: string }
   | { readonly ok: false; readonly error: string };
 
 export function parsePolicyForm(form: FormData, base: PolicyRuleSnapshot): PolicyFormResult {
@@ -78,11 +81,17 @@ export function parsePolicyForm(form: FormData, base: PolicyRuleSnapshot): Polic
   if (transactionLimit === null || reviewThreshold === null || absoluteHardLimit === null) {
     return { ok: false, error: "Each limit must be a USDC amount with up to 6 decimals (e.g. 100 or 12.50)." };
   }
+  const dailyBudgetRaw = String(form.get("dailyBudget") ?? "");
+  const dailyBudgetAtomic = dailyBudgetRaw.trim() === "" ? "0" : usdcToAtomic(dailyBudgetRaw);
+  if (dailyBudgetAtomic === null) {
+    return { ok: false, error: "The daily budget must be a USDC amount with up to 6 decimals (e.g. 100 or 12.50)." };
+  }
   if (BigInt(transactionLimit) > BigInt(absoluteHardLimit)) {
     return { ok: false, error: "The per-transaction limit cannot exceed the absolute hard limit." };
   }
   return {
     ok: true,
+    dailyBudgetAtomic,
     rules: {
       ...base,
       transactionLimit: usdcMoney(transactionLimit),
@@ -111,6 +120,7 @@ export function renderPolicyForm(values: PolicyFormValues): string {
       ${amountField("transactionLimit", "Per-transaction limit", "A single payment above this is blocked.", values.transactionLimit)}
       ${amountField("reviewThreshold", "Review threshold", "At or above this, a payment needs review first.", values.reviewThreshold)}
       ${amountField("absoluteHardLimit", "Absolute hard limit", "The ceiling no payment may ever cross.", values.absoluteHardLimit)}
+      ${amountField("dailyBudget", "Daily budget", "0 or empty = unlimited.", values.dailyBudget)}
     </div></div>
     <div class="card"><h2>Merchants</h2>
       ${listField("allowedMerchantIds", "Allowed merchants", "Merchant IDs that are pre-approved.", values.allowedMerchantIds)}
