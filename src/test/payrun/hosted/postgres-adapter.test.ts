@@ -1,7 +1,6 @@
-import { readFile, rm, mkdtemp } from "node:fs/promises";
+import { rm, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
@@ -47,10 +46,8 @@ import {
   UPDATED_AT,
 } from "@/test/payrun/domain/fixtures";
 import { buildInboxEventFixture } from "@/test/payrun/storage/fixtures";
+import { loadHostedMigrationsSql } from "./hosted-migrations";
 
-const migrationPath = fileURLToPath(
-  new URL("../../../../supabase/migrations/202607150001_hosted_project_and_payrun_storage.sql", import.meta.url),
-);
 const USER_A_ID = "00000000-0000-4000-8000-00000000000a";
 const USER_B_ID = "00000000-0000-4000-8000-00000000000b";
 const PROJECT_A_ID = "10000000-0000-4000-8000-00000000000a";
@@ -310,7 +307,7 @@ beforeAll(async () => {
     AS $$ SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     INSERT INTO auth.users (id) VALUES ('${USER_A_ID}'::uuid), ('${USER_B_ID}'::uuid);
   `);
-  await db.exec(await readFile(migrationPath, "utf8"));
+  await db.exec(await loadHostedMigrationsSql());
   await db.exec(`
     CREATE ROLE zenfix_login NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
     GRANT zenfix_app TO zenfix_login;

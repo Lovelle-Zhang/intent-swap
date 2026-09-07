@@ -97,6 +97,18 @@ dd{margin:0;color:var(--text)}
 .actions{margin:28px 0 0;display:flex;flex-wrap:wrap;gap:18px;align-items:center}
 a.link{color:var(--signal);text-decoration:none;font-size:14px}
 a.link:hover{text-decoration:underline}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:18px}
+.field .hint{color:var(--faint);font-size:12px}
+input[type=text],input[type=number],textarea{font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);padding:9px 13px;width:100%}
+input[type=number]{max-width:220px;font-family:var(--font-mono)}
+input[type=text]{max-width:520px}
+textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-mono);font-size:13px}
+.suffix{display:flex;align-items:center;gap:9px}.suffix .u{font-family:var(--font-mono);font-size:12px;color:var(--faint)}
+.check{display:flex;align-items:flex-start;gap:11px;margin-top:20px;max-width:520px}
+.check input{width:17px;height:17px;margin-top:2px;accent-color:var(--signal);flex:none}
+.check .ct{font-size:14px;color:var(--text)}.check .ct small{display:block;color:var(--faint);font-size:12px;margin-top:2px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 28px}
+.notice.warn{border-left-color:var(--block);background:color-mix(in srgb,var(--block) 8%,transparent);color:#F6D5D6}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 `;
 
@@ -110,10 +122,11 @@ export interface HostedPageOptions {
   readonly workspace?: { readonly name: string; readonly projectId: string };
   readonly lead?: string;
   readonly notice?: string | null;
+  readonly noticeVariant?: "ok" | "warn";
   readonly bodyHtml?: string;
   readonly actionsHtml?: string;
   readonly wide?: boolean;
-  readonly active?: "overview" | "payruns";
+  readonly active?: "overview" | "payruns" | "policy";
 }
 
 export function hostedPage(options: HostedPageOptions): string {
@@ -123,9 +136,11 @@ export function hostedPage(options: HostedPageOptions): string {
     ? `<p class="crumb"><b>${escapeHtml(options.workspace.name)}</b> · <code>${escapeHtml(options.workspace.projectId)}</code></p>`
     : "";
   const lead = options.lead ? `<p class="lead">${escapeHtml(options.lead)}</p>` : "";
-  const notice = options.notice ? `<p class="notice" role="status">${escapeHtml(options.notice)}</p>` : "";
-  const navItem = (id: "overview" | "payruns", href: string, label: string) =>
+  const notice = options.notice
+    ? `<p class="notice${options.noticeVariant === "warn" ? " warn" : ""}" role="status">${escapeHtml(options.notice)}</p>`
+    : "";
+  const navItem = (id: "overview" | "payruns" | "policy", href: string, label: string) =>
     `<a href="${href}"${options.active === id ? ' class="on" aria-current="page"' : ""}>${label}</a>`;
-  const topbar = `<header class="topbar"><div class="${barClass}"><div class="bar-left"><a class="brand" href="/zenfix/workspace">${LOGO} ZenFix <b>PayRun</b></a><nav class="appnav">${navItem("overview", "/zenfix/workspace", "Overview")}${navItem("payruns", "/zenfix/payruns", "Pay Runs")}</nav></div><div class="bar-right"><span class="sandbox-tag">Sandbox · No real funds</span><form action="/zenfix/sign-out" method="post"><button type="submit" class="signout">Sign out</button></form></div></div></header>`;
+  const topbar = `<header class="topbar"><div class="${barClass}"><div class="bar-left"><a class="brand" href="/zenfix/workspace">${LOGO} ZenFix <b>PayRun</b></a><nav class="appnav">${navItem("overview", "/zenfix/workspace", "Overview")}${navItem("payruns", "/zenfix/payruns", "Pay Runs")}${navItem("policy", "/zenfix/policy", "Policy")}</nav></div><div class="bar-right"><span class="sandbox-tag">Sandbox · No real funds</span><form action="/zenfix/sign-out" method="post"><button type="submit" class="signout">Sign out</button></form></div></div></header>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(options.title)}</title>${FONTS}<style>${STYLE}</style></head><body>${topbar}<main class="${wrapClass}">${crumb}<h1>${escapeHtml(options.heading)}</h1>${lead}${notice}${options.bodyHtml ?? ""}${options.actionsHtml ?? ""}</main></body></html>`;
 }

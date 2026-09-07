@@ -1,11 +1,7 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
-const migrationPath = fileURLToPath(
-  new URL("../../../../supabase/migrations/202607150001_hosted_project_and_payrun_storage.sql", import.meta.url),
-);
+import { loadHostedMigrationsSql } from "./hosted-migrations";
 
 const USER_A_ID = "00000000-0000-4000-8000-00000000000a";
 const USER_B_ID = "00000000-0000-4000-8000-00000000000b";
@@ -62,8 +58,7 @@ describe.sequential("hosted Postgres schema and RLS contract", () => {
         ('${USER_B_ID}'::uuid);
     `);
 
-    const migration = await readFile(migrationPath, "utf8");
-    await db.exec(migration);
+    await db.exec(await loadHostedMigrationsSql());
   }, 60_000);
 
   afterAll(async () => {
