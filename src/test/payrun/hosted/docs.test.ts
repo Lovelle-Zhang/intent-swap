@@ -27,4 +27,13 @@ describe("public API docs page", () => {
     expect(html).toContain('href="/zenfix/policy"');
     expect(html).toContain('href="/zenfix/keys"');
   });
+
+  test("has a quickstart and per-language snippets (curl / Python / JS)", () => {
+    const html = renderDocsPage();
+    expect(html).toContain("Quickstart");
+    for (const lang of ["curl", "Python", "JavaScript"]) expect(html).toContain(`>${lang}</p>`);
+    expect(html).toContain("import requests");
+    expect(html).toContain("await fetch("); // JS snippet present (quotes are HTML-escaped in code blocks)
+    expect(html).toContain("JSON.stringify({");
+  });
 });
