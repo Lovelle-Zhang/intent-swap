@@ -109,6 +109,7 @@ textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-
 .check .ct{font-size:14px;color:var(--text)}.check .ct small{display:block;color:var(--faint);font-size:12px;margin-top:2px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 28px}
 .notice.warn{border-left-color:var(--block);background:color-mix(in srgb,var(--block) 8%,transparent);color:#F6D5D6}
+.muted{color:var(--muted)}
 .inline{display:inline}
 .btn.sm{padding:6px 11px;font-size:13px}
 .newkey{border-left:3px solid var(--signal)}

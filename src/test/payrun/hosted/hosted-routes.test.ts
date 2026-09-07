@@ -31,6 +31,17 @@ vi.mock("@/features/payrun/hosted/workspace-budget", () => ({
     dailyBudgetAtomic: "0", spentTodayAtomic: "0", remainingAtomic: "1000000000", unlimited: true,
   }),
 }));
+// The Overview route also derives control-plane stats from pay_runs; the fake
+// {} pool cannot run SQL, so stub the read model with a small fixture.
+vi.mock("@/features/payrun/hosted/workspace-overview", () => ({
+  getOverviewStats: async () => ({
+    today: { allowed: 2, needsReview: 1, blocked: 0, executed: 3 },
+    pendingReview: [{
+      payRunId: "pr_pending_1", agentId: "agent_ci", purpose: "Test invoice",
+      amountAtomic: "12500000", asset: "USDC", createdAt: "2026-09-07T00:00:00.000Z",
+    }],
+  }),
+}));
 
 describe("hosted auth and workspace HTTP boundary", () => {
   beforeEach(() => {
@@ -72,7 +83,12 @@ describe("hosted auth and workspace HTTP boundary", () => {
     const first = await GET(new Request("https://zenfix.test/zenfix/workspace?projectId=forged&ownerUserId=forged"));
     const second = await GET(new Request("https://zenfix.test/zenfix/workspace"));
     expect(first.status).toBe(200);
-    expect(await first.text()).toContain("10000000-0000-4000-8000-00000000000a");
+    const firstBody = await first.text();
+    expect(firstBody).toContain("10000000-0000-4000-8000-00000000000a");
+    // The Overview dashboard renders its decisions tiles and review queue.
+    expect(firstBody).toContain("Needs your review");
+    expect(firstBody).toContain("Needs review");
+    expect(firstBody).toContain("agent_ci");
     expect(second.status).toBe(200);
     expect(workspace.resolve).toHaveBeenNthCalledWith(1, expect.anything(), { userId: auth.user!.id });
     expect(workspace.resolve).toHaveBeenNthCalledWith(2, expect.anything(), { userId: auth.user!.id });
