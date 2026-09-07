@@ -1,6 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
@@ -12,10 +9,8 @@ import {
   type VerifiedAuthIdentity,
 } from "@/features/payrun/hosted/workspace";
 import { buildIdempotencyRecord } from "@/test/payrun/domain/fixtures";
+import { loadHostedMigrationsSql } from "./hosted-migrations";
 
-const migrationPath = fileURLToPath(
-  new URL("../../../../supabase/migrations/202607150001_hosted_project_and_payrun_storage.sql", import.meta.url),
-);
 const USER_A = "00000000-0000-4000-8000-00000000000a";
 const USER_B = "00000000-0000-4000-8000-00000000000b";
 
@@ -67,7 +62,7 @@ describe.sequential("personal workspace bootstrap", () => {
       CREATE ROLE zenfix_login LOGIN NOSUPERUSER NOBYPASSRLS;
       INSERT INTO auth.users VALUES ('${USER_A}'::uuid), ('${USER_B}'::uuid);
     `);
-    await db.exec(await readFile(migrationPath, "utf8"));
+    await db.exec(await loadHostedMigrationsSql());
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
   }, 60_000);
