@@ -22,6 +22,14 @@ const LEAD =
   "Bearer keys let your agents call the ZenFix intake API. Only a hash is stored — the full key is shown once.";
 const NOTICES: Record<string, string> = { revoked: "API key revoked." };
 
+function intakeApiUrl(): string {
+  try {
+    return `${readZenFixAppOrigin()}/api/v1/payruns`;
+  } catch {
+    return "/api/v1/payruns";
+  }
+}
+
 function renderPage(
   keys: readonly ApiKeyView[],
   notice: string | null,
@@ -33,7 +41,7 @@ function renderPage(
     active: "keys",
     lead: LEAD,
     notice,
-    bodyHtml: renderKeysBody(keys, newKey),
+    bodyHtml: renderKeysBody(keys, intakeApiUrl(), newKey),
   });
 }
 

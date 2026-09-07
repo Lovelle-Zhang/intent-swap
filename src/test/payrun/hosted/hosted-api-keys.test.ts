@@ -57,6 +57,8 @@ describe("hosted API keys route", () => {
     const html = await res.text();
     expect(html).toContain("Create a key");
     expect(html).toContain("zfk_live_Ab12Cd");
+    expect(html).toContain("Using a key");
+    expect(html).toContain("curl -X POST https://zenfix.test/api/v1/payruns");
   });
 
   test("GET with no keys shows the empty state", async () => {
