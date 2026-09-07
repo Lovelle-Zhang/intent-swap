@@ -34,6 +34,8 @@ a.link{color:var(--signal);text-decoration:none}a.link:hover{text-decoration:und
 .verb{font-family:var(--mono);font-size:12px;font-weight:600;color:#04201C;background:var(--signal);border-radius:6px;padding:2px 8px;letter-spacing:.04em}
 pre.code{margin:14px 0;padding:15px 17px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
 pre.code code{font-family:var(--mono);font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.65}
+.lang{margin:16px 0 4px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+ol{margin:12px 0;padding-left:22px}
 footer{max-width:820px;margin:0 auto;padding:0 24px 80px;color:var(--faint);font-size:13px}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 `;
