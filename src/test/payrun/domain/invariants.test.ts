@@ -58,6 +58,20 @@ describe("PayRun domain invariants", () => {
     },
   );
 
+  it("accepts an execution_reported run bound to an allowed decision and rejects a missing or unallowed report", () => {
+    const valid = buildPayRunAt("execution_reported");
+    expect(() => assertPayRunInvariants(valid)).not.toThrow();
+
+    const { executionReport: _dropped, ...withoutReport } = valid;
+    expect(() => assertPayRunInvariants(withoutReport as PayRun)).toThrowError(InvariantViolationError);
+
+    const notAllowed = {
+      ...valid,
+      policyDecisions: [buildPolicyDecision("blocked")],
+    } as PayRun;
+    expect(() => assertPayRunInvariants(notAllowed)).toThrowError(InvariantViolationError);
+  });
+
   it("rejects Payment without an accepted Funding result", () => {
     const invalid = {
       ...buildPayRunAt("payment_executing"),

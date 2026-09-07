@@ -712,6 +712,7 @@ export function assertPayRunInvariants(payRun: PayRun): void {
   if (payRun.paymentExecution) assertLineage(payRun, payRun.paymentExecution);
   if (payRun.proofRequest) assertLineage(payRun, payRun.proofRequest);
   if (payRun.executionProof) assertLineage(payRun, payRun.executionProof);
+  if (payRun.executionReport) assertLineage(payRun, payRun.executionReport);
   if (payRun.ledgerDraft) assertLineage(payRun, payRun.ledgerDraft);
   if (payRun.ledgerJournal) assertLineage(payRun, payRun.ledgerJournal);
   if (payRun.cancellation) assertLineage(payRun, payRun.cancellation);
@@ -733,6 +734,21 @@ export function assertPayRunInvariants(payRun: PayRun): void {
       assertAllowedDecision(payRun);
       assertNoDownstream(payRun, "funding");
       break;
+    case "execution_reported": {
+      const report = payRun.executionReport;
+      if (!report || report.payRunId !== payRun.id) {
+        throw new InvariantViolationError("execution_reported requires a bound ExecutionReport");
+      }
+      assertSameProject(payRun.projectId, report);
+      const decision = latestDecision(payRun);
+      if (!decision || decision.outcome !== "allowed") {
+        throw new InvariantViolationError("execution_reported requires an allowed policy decision");
+      }
+      if (report.outcome !== "executed" && report.outcome !== "failed") {
+        throw new InvariantViolationError("ExecutionReport outcome must be executed or failed");
+      }
+      break;
+    }
     case "pending_review": {
       const decision = latestDecision(payRun);
       if (decision?.outcome !== "needs_review" || payRun.approval?.status !== "pending") {
