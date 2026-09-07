@@ -44,7 +44,14 @@ export const LEGAL_TRANSITIONS: Readonly<Record<PayRunStatus, readonly PayRunSta
     "expired",
     "cancellation_pending",
   ],
-  policy_allowed: ["policy_evaluating", "funding_preparing", "expired", "cancellation_pending"],
+  policy_allowed: [
+    "policy_evaluating",
+    "funding_preparing",
+    "execution_reported",
+    "expired",
+    "cancellation_pending",
+  ],
+  execution_reported: [],
   pending_review: ["approved", "denied", "expired", "cancellation_pending"],
   approved: ["policy_evaluating", "expired", "cancellation_pending"],
   funding_preparing: [
@@ -72,6 +79,7 @@ export const LEGAL_TRANSITIONS: Readonly<Record<PayRunStatus, readonly PayRunSta
 
 export const TERMINAL_PAY_RUN_STATUSES = deepFreeze([
   "completed",
+  "execution_reported",
   "blocked",
   "denied",
   "expired",
@@ -87,6 +95,7 @@ const DATA_KEYS = [
   "paymentExecution",
   "proofRequest",
   "executionProof",
+  "executionReport",
   "ledgerDraft",
   "ledgerJournal",
   "expiry",
@@ -98,6 +107,7 @@ const ALLOWED_DATA_KEYS: Readonly<Record<PayRunStatus, readonly (keyof PayRunTra
   intent_recorded: [],
   policy_evaluating: ["policyEvaluation"],
   policy_allowed: ["policyDecision"],
+  execution_reported: ["executionReport"],
   pending_review: ["policyDecision", "approval"],
   approved: ["approval"],
   funding_preparing: ["fundingPreparation"],
@@ -387,6 +397,14 @@ function applyTransitionData(
         throw new InvariantViolationError("Approval-aware Policy allow must retain authorization basis");
       }
       return { ...next, policyDecisions: [...current.policyDecisions, decision] };
+    }
+    case "execution_reported": {
+      const report = requireData(command.data, "executionReport");
+      assertSameProject(current.projectId, report);
+      if (report.payRunId !== current.id) {
+        throw new InvariantViolationError("Execution report belongs to another PayRun");
+      }
+      return { ...next, executionReport: report };
     }
     case "pending_review": {
       const decision = requireData(command.data, "policyDecision");

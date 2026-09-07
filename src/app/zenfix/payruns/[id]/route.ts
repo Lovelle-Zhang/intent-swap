@@ -34,6 +34,13 @@ function stage(label: string, value: string | null | undefined): string {
   return `<div class="stage"><div class="lab">${label}</div><div class="val">${value ? escapeHtml(humanize(value)) : "—"}</div></div>`;
 }
 
+function payRunVariant(pr: HostedPayRunDetail["payRun"]): Variant {
+  if (pr.status === "execution_reported") {
+    return pr.executionReport?.outcome === "executed" ? "ok" : "blocked";
+  }
+  return variantOf(pr.status);
+}
+
 function renderDetail(detail: HostedPayRunDetail): string {
   const pr = detail.payRun;
   const decision = pr.policyDecisions.at(-1) ?? null;
@@ -44,6 +51,10 @@ function renderDetail(detail: HostedPayRunDetail): string {
     : "";
   const ledger = pr.ledgerJournal ? "balanced" : pr.ledgerDraft ? "drafted" : null;
   const stagesCard = `<div class="card"><h2>Execution</h2><div class="stages">${stage("Funding", pr.fundingPreparation?.status)}${stage("Payment", pr.paymentExecution?.status)}${stage("Proof", pr.executionProof?.verificationStatus)}${stage("Ledger", ledger)}</div></div>`;
+  const report = pr.executionReport;
+  const reportCard = report
+    ? `<div class="card"><h2>Execution report</h2><div class="detail-head">${statusBadge(humanize(report.outcome), report.outcome === "executed" ? "ok" : "blocked")}<span class="meta"><span>Rail <b>${escapeHtml(report.rail)}</b></span></span></div><dl><dt>Provider reference</dt><dd><code>${escapeHtml(report.providerReference)}</code></dd><dt>Transaction hash</dt><dd>${report.transactionHash ? `<code>${escapeHtml(report.transactionHash)}</code>` : "—"}</dd><dt>Reported</dt><dd class="mono">${escapeHtml(fmtTime(report.reportedAt))}</dd></dl></div>`
+    : "";
   const trail = detail.auditEvents.length
     ? `<div class="card"><h2>Audit trail</h2><ol class="trail">${detail.auditEvents.map((e) => `<li><time>${escapeHtml(fmtTime(e.occurredAt))}</time><div class="act">${escapeHtml(humanize(e.actionCode))}<small>${escapeHtml(e.reasonCode)}</small></div></li>`).join("")}</ol></div>`
     : "";
@@ -52,7 +63,7 @@ function renderDetail(detail: HostedPayRunDetail): string {
     heading: "Pay Run",
     active: "payruns",
     workspace: { name: detail.workspace.name, projectId: detail.workspace.projectId },
-    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), variantOf(pr.status))}</div>${intentCard}${policyCard}${stagesCard}${trail}`,
+    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), payRunVariant(pr))}</div>${intentCard}${policyCard}${stagesCard}${reportCard}${trail}`,
     actionsHtml: `<div class="actions"><a class="link" href="/zenfix/payruns">← All Pay Runs</a></div>`,
   });
 }

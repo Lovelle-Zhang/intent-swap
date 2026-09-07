@@ -31,6 +31,7 @@ import {
   type ExecutionAttempt,
   type ExecutionProof,
   type ExecutionProofRequest,
+  type ExecutionReport,
   type ExpiryRecord,
   type FailureRecord,
   type FundingAttempt,
@@ -1362,6 +1363,42 @@ function parseExecutionProof(
   };
 }
 
+function parseExecutionReport(value: unknown, path: string): ExecutionReport {
+  const record = object(value, path, [
+    "id",
+    "projectId",
+    "payRunId",
+    "outcome",
+    "providerReference",
+    "rail",
+    "transactionHash",
+    "artifactReference",
+    "reportedAt",
+    "reportedBy",
+  ]);
+  const reportedBy = object(record.reportedBy, `${path}.reportedBy`, ["actorId", "actorType"]);
+  return {
+    id: string(record.id, `${path}.id`),
+    projectId: string(record.projectId, `${path}.projectId`),
+    payRunId: string(record.payRunId, `${path}.payRunId`),
+    outcome: enumeration(record.outcome, `${path}.outcome`, ["executed", "failed"] as const),
+    providerReference: string(record.providerReference, `${path}.providerReference`),
+    rail: string(record.rail, `${path}.rail`),
+    transactionHash: nullableString(record.transactionHash, `${path}.transactionHash`),
+    artifactReference: nullableString(record.artifactReference, `${path}.artifactReference`),
+    reportedAt: timestamp(record.reportedAt, `${path}.reportedAt`),
+    reportedBy: {
+      actorId: string(reportedBy.actorId, `${path}.reportedBy.actorId`),
+      actorType: enumeration(reportedBy.actorType, `${path}.reportedBy.actorType`, [
+        "agent",
+        "user",
+        "system",
+        "worker",
+      ] as const),
+    },
+  };
+}
+
 function parseLedgerEntry(value: unknown, path: string): LedgerEntry {
   const record = object(value, path, [
     "id",
@@ -1560,6 +1597,7 @@ function parsePayRun(value: unknown, path: string): PayRun {
     "paymentExecution",
     "proofRequest",
     "executionProof",
+    "executionReport",
     "ledgerDraft",
     "ledgerJournal",
     "expiry",
@@ -1577,6 +1615,7 @@ function parsePayRun(value: unknown, path: string): PayRun {
   const paymentExecution = optional(record, "paymentExecution", path, parsePaymentExecution);
   const proofRequest = optional(record, "proofRequest", path, parseProofRequest);
   const executionProof = optional(record, "executionProof", path, parseExecutionProof);
+  const executionReport = optional(record, "executionReport", path, parseExecutionReport);
   const ledgerDraft = optional(record, "ledgerDraft", path, parseLedgerDraft);
   const ledgerJournal = optional(record, "ledgerJournal", path, parseLedgerJournal);
   const expiry = optional(record, "expiry", path, parseExpiry);
@@ -1603,6 +1642,7 @@ function parsePayRun(value: unknown, path: string): PayRun {
     ...(paymentExecution ? { paymentExecution } : {}),
     ...(proofRequest ? { proofRequest } : {}),
     ...(executionProof ? { executionProof } : {}),
+    ...(executionReport ? { executionReport } : {}),
     ...(ledgerDraft ? { ledgerDraft } : {}),
     ...(ledgerJournal ? { ledgerJournal } : {}),
     ...(expiry ? { expiry } : {}),
@@ -1896,6 +1936,7 @@ export const artifactProofSchema = defineSchema(parseArtifactProof);
 export const fundingPreparationSchema = defineSchema(parseFundingPreparation);
 export const paymentExecutionSchema = defineSchema(parsePaymentExecution);
 export const executionProofSchema = defineSchema(parseExecutionProof);
+export const executionReportSchema = defineSchema(parseExecutionReport);
 export const ledgerJournalSchema = defineSchema(parseLedgerJournal);
 export const auditEventSchema = defineSchema(parseAuditEvent);
 export const domainOutboxEventSchema = defineSchema(parseOutboxEvent);
@@ -2056,6 +2097,7 @@ export const payRunTransitionCommandSchema = defineSchema<PayRunTransitionComman
     "paymentExecution",
     "proofRequest",
     "executionProof",
+    "executionReport",
     "ledgerDraft",
     "ledgerJournal",
     "expiry",
@@ -2108,6 +2150,9 @@ export const payRunTransitionCommandSchema = defineSchema<PayRunTransitionComman
         : {}),
       ...(data.executionProof !== undefined
         ? { executionProof: parseExecutionProof(data.executionProof, `${path}.data.executionProof`) }
+        : {}),
+      ...(data.executionReport !== undefined
+        ? { executionReport: parseExecutionReport(data.executionReport, `${path}.data.executionReport`) }
         : {}),
       ...(data.ledgerDraft !== undefined
         ? { ledgerDraft: parseLedgerDraft(data.ledgerDraft, `${path}.data.ledgerDraft`) }

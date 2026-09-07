@@ -29,6 +29,7 @@ import {
   TRANSITION_AT,
   buildApproval,
   buildApprovalDecision,
+  buildExecutionReport,
   buildFundingPreparation,
   buildIntent,
   buildLedgerJournal,
@@ -51,9 +52,11 @@ const normativeTransitions: Readonly<Record<PayRunStatus, readonly PayRunStatus[
   policy_allowed: [
     "policy_evaluating",
     "funding_preparing",
+    "execution_reported",
     "expired",
     "cancellation_pending",
   ],
+  execution_reported: [],
   pending_review: ["approved", "denied", "expired", "cancellation_pending"],
   approved: ["policy_evaluating", "expired", "cancellation_pending"],
   funding_preparing: [
@@ -80,11 +83,12 @@ const normativeTransitions: Readonly<Record<PayRunStatus, readonly PayRunStatus[
 };
 
 describe("canonical PayRun transition table", () => {
-  it("contains exactly the 20 canonical states and 43 normative edges", () => {
+  it("contains exactly the 21 canonical states and 44 normative edges", () => {
     expect(PAY_RUN_STATUSES).toEqual([
       "intent_recorded",
       "policy_evaluating",
       "policy_allowed",
+      "execution_reported",
       "pending_review",
       "approved",
       "funding_preparing",
@@ -104,7 +108,7 @@ describe("canonical PayRun transition table", () => {
       "failed",
     ]);
     expect(LEGAL_TRANSITIONS).toEqual(normativeTransitions);
-    expect(Object.values(LEGAL_TRANSITIONS).flat()).toHaveLength(43);
+    expect(Object.values(LEGAL_TRANSITIONS).flat()).toHaveLength(44);
   });
 
   for (const from of Object.keys(normativeTransitions) as PayRunStatus[]) {
@@ -388,6 +392,39 @@ describe("PayRun transition protocol", () => {
       transitionPayRun(approved, buildTransitionCommand(approved, "funding_preparing")),
     ).toThrowError(InvalidTransitionError);
     expect(canTransition("approved", "policy_evaluating")).toBe(true);
+  });
+
+  it("binds an execution report on the policy_allowed -> execution_reported transition", () => {
+    const allowed = buildPayRunAt("policy_allowed");
+    const result = transitionPayRun(
+      allowed,
+      buildTransitionCommand(allowed, "execution_reported"),
+    );
+
+    expect(result.payRun.status).toBe("execution_reported");
+    expect(result.payRun.executionReport?.payRunId).toBe(allowed.id);
+    expect(result.payRun.executionReport?.outcome).toBe("executed");
+  });
+
+  it("rejects an execution report bound to a different PayRun", () => {
+    const allowed = buildPayRunAt("policy_allowed");
+    expect(() =>
+      transitionPayRun(
+        allowed,
+        buildTransitionCommand(allowed, "execution_reported", {
+          data: { executionReport: buildExecutionReport({ payRunId: "payrun_other" }) },
+        }),
+      ),
+    ).toThrowError(InvariantViolationError);
+  });
+
+  it("keeps execution_reported terminal", () => {
+    const reported = buildPayRunAt("execution_reported");
+    for (const to of PAY_RUN_STATUSES) {
+      expect(() =>
+        transitionPayRun(reported, buildTransitionCommand(reported, to)),
+      ).toThrowError(TerminalStateError);
+    }
   });
 
   it("never permits blocked to leave its terminal state", () => {

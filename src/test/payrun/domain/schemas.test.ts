@@ -200,6 +200,16 @@ describe("canonical runtime schemas", () => {
     expect(parsed.status).toBe("completed");
   });
 
+  it("round-trips a PayRun carrying an execution report", () => {
+    const payRun = buildPayRunAt("execution_reported");
+    const parsed = payRunSchema.parse(payRun);
+
+    expect(parsed.status).toBe("execution_reported");
+    expect(parsed.executionReport?.payRunId).toBe(PAY_RUN_ID);
+    expect(parsed.executionReport?.outcome).toBe("executed");
+    expect(JSON.parse(JSON.stringify(parsed))).toEqual(JSON.parse(JSON.stringify(payRun)));
+  });
+
   it("rejects a nested artifact from another project", () => {
     const payRun = buildPayRunAt("funding_prepared");
     const crossProject = {

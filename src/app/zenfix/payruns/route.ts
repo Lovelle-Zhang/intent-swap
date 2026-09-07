@@ -24,7 +24,7 @@ const NOTICES: Record<string, string> = {
 
 function statusVariant(value: string): "ok" | "blocked" | "neutral" {
   const v = value.toLowerCase();
-  if (["completed", "succeeded", "executed", "settled", "paid", "allowed", "approved"].includes(v)) return "ok";
+  if (["completed", "succeeded", "executed", "execution_reported", "settled", "paid", "allowed", "approved"].includes(v)) return "ok";
   if (["failed", "blocked", "declined", "denied", "cancelled", "canceled", "rejected"].includes(v)) return "blocked";
   return "neutral";
 }

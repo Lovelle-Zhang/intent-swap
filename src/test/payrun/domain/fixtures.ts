@@ -10,6 +10,7 @@ import type {
   EvidenceReference,
   ExecutionProof,
   ExecutionProofRequest,
+  ExecutionReport,
   ExpiryRecord,
   FailureRecord,
   FundingPreparation,
@@ -437,6 +438,24 @@ export function buildExecutionProof(
   };
 }
 
+export function buildExecutionReport(
+  overrides: Partial<ExecutionReport> = {},
+): ExecutionReport {
+  return {
+    id: `report_${PAY_RUN_ID}`,
+    projectId: PROJECT_ID,
+    payRunId: PAY_RUN_ID,
+    outcome: "executed",
+    providerReference: "rail:txn:001",
+    rail: "base",
+    transactionHash: null,
+    artifactReference: "artifact:001",
+    reportedAt: UPDATED_AT,
+    reportedBy: { actorId: "agent_001", actorType: "agent" },
+    ...overrides,
+  };
+}
+
 export function buildLedgerDraft(overrides: Partial<LedgerDraft> = {}): LedgerDraft {
   return {
     id: "ledger_draft_001",
@@ -628,6 +647,12 @@ export function buildPayRunAt(status: PayRunStatus): PayRun {
       return { ...base, policyEvaluation: buildEvaluationAttempt() };
     case "policy_allowed":
       return { ...base, policyDecisions: [buildPolicyDecision("allowed")] };
+    case "execution_reported":
+      return {
+        ...base,
+        policyDecisions: [buildPolicyDecision("allowed")],
+        executionReport: buildExecutionReport(),
+      };
     case "pending_review":
       return {
         ...base,
@@ -772,6 +797,9 @@ export function buildTransitionCommand(
       break;
     case "blocked":
       data.policyDecision = buildPolicyDecision("blocked");
+      break;
+    case "execution_reported":
+      data.executionReport = buildExecutionReport();
       break;
     case "approved":
       data.approval = buildApproval("approved", {

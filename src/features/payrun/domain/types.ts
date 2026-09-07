@@ -476,6 +476,17 @@ export interface ExecutionProof extends ProjectScopedRecord {
   readonly capturedAt: ISO8601;
 }
 
+export interface ExecutionReport extends ProjectScopedRecord {
+  readonly payRunId: string;
+  readonly outcome: "executed" | "failed";
+  readonly providerReference: string;
+  readonly rail: string;
+  readonly transactionHash: string | null;
+  readonly artifactReference: string | null;
+  readonly reportedAt: ISO8601;
+  readonly reportedBy: DomainActor;
+}
+
 export interface ArtifactProof {
   readonly projectId: ProjectId;
   readonly payRunId: string;
@@ -621,6 +632,7 @@ export const PAY_RUN_STATUS_VALUES = [
   "intent_recorded",
   "policy_evaluating",
   "policy_allowed",
+  "execution_reported",
   "pending_review",
   "approved",
   "funding_preparing",
@@ -656,6 +668,7 @@ export interface PayRun extends AggregateRoot {
   readonly paymentExecution?: PaymentExecution;
   readonly proofRequest?: ExecutionProofRequest;
   readonly executionProof?: ExecutionProof;
+  readonly executionReport?: ExecutionReport;
   readonly ledgerDraft?: LedgerDraft;
   readonly ledgerJournal?: LedgerJournal;
   readonly expiry?: ExpiryRecord;
@@ -673,6 +686,7 @@ export interface PayRunTransitionData {
   readonly paymentExecution?: PaymentExecution;
   readonly proofRequest?: ExecutionProofRequest;
   readonly executionProof?: ExecutionProof;
+  readonly executionReport?: ExecutionReport;
   readonly ledgerDraft?: LedgerDraft;
   readonly ledgerJournal?: LedgerJournal;
   readonly expiry?: ExpiryRecord;
