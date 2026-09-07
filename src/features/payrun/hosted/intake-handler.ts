@@ -10,7 +10,12 @@ import { persistIntakeDecision } from "./intake-persist";
 import { usdcToAtomic } from "./policy-form";
 import { retryOnTransientUnavailable } from "./retry";
 import { getWorkspacePolicy } from "./workspace-policy";
-import { computeRemainingAtomic, getSpentTodayAtomic } from "./workspace-budget";
+import {
+  agentRemainingAtomic,
+  computeRemainingAtomic,
+  getAgentSpentTodayAtomic,
+  getSpentTodayAtomic,
+} from "./workspace-budget";
 import { openWorkspacePersistence } from "./workspace";
 
 // 2B-intake HTTP boundary: authenticate a real external agent by bearer API key,
@@ -101,8 +106,14 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
       const remaining = computeRemainingAtomic(
         policy.dailyBudgetAtomic, spent, policy.rules.absoluteHardLimit.amountAtomic,
       );
+      const agentSpent = await getAgentSpentTodayAtomic(
+        pool, identity, workspace.projectId, input.agentId,
+      );
+      const agentRemaining = agentRemainingAtomic(
+        policy.agentBudgets, input.agentId, agentSpent, policy.rules.absoluteHardLimit.amountAtomic,
+      );
       const evaluation = buildIntakeEvaluation(
-        input, workspace.projectId, policy.rules, { version: policy.version }, now, remaining,
+        input, workspace.projectId, policy.rules, { version: policy.version }, now, remaining, agentRemaining,
       );
       await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
       return json({ payRunId: evaluation.payRunId, decision: toResponseDecision(evaluation.decision) }, 200);

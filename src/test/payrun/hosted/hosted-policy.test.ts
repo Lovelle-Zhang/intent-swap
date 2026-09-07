@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0" });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {} });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
