@@ -109,6 +109,11 @@ textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-
 .check .ct{font-size:14px;color:var(--text)}.check .ct small{display:block;color:var(--faint);font-size:12px;margin-top:2px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 28px}
 .notice.warn{border-left-color:var(--block);background:color-mix(in srgb,var(--block) 8%,transparent);color:#F6D5D6}
+.inline{display:inline}
+.btn.sm{padding:6px 11px;font-size:13px}
+.newkey{border-left:3px solid var(--signal)}
+.keyval{margin-top:12px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;overflow-x:auto}
+.keyval code{font-size:13px;color:var(--signal);word-break:break-all}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 `;
 
@@ -126,7 +131,7 @@ export interface HostedPageOptions {
   readonly bodyHtml?: string;
   readonly actionsHtml?: string;
   readonly wide?: boolean;
-  readonly active?: "overview" | "payruns" | "policy";
+  readonly active?: "overview" | "payruns" | "policy" | "keys";
 }
 
 export function hostedPage(options: HostedPageOptions): string {
@@ -139,8 +144,8 @@ export function hostedPage(options: HostedPageOptions): string {
   const notice = options.notice
     ? `<p class="notice${options.noticeVariant === "warn" ? " warn" : ""}" role="status">${escapeHtml(options.notice)}</p>`
     : "";
-  const navItem = (id: "overview" | "payruns" | "policy", href: string, label: string) =>
+  const navItem = (id: "overview" | "payruns" | "policy" | "keys", href: string, label: string) =>
     `<a href="${href}"${options.active === id ? ' class="on" aria-current="page"' : ""}>${label}</a>`;
-  const topbar = `<header class="topbar"><div class="${barClass}"><div class="bar-left"><a class="brand" href="/zenfix/workspace">${LOGO} ZenFix <b>PayRun</b></a><nav class="appnav">${navItem("overview", "/zenfix/workspace", "Overview")}${navItem("payruns", "/zenfix/payruns", "Pay Runs")}${navItem("policy", "/zenfix/policy", "Policy")}</nav></div><div class="bar-right"><span class="sandbox-tag">Sandbox · No real funds</span><form action="/zenfix/sign-out" method="post"><button type="submit" class="signout">Sign out</button></form></div></div></header>`;
+  const topbar = `<header class="topbar"><div class="${barClass}"><div class="bar-left"><a class="brand" href="/zenfix/workspace">${LOGO} ZenFix <b>PayRun</b></a><nav class="appnav">${navItem("overview", "/zenfix/workspace", "Overview")}${navItem("payruns", "/zenfix/payruns", "Pay Runs")}${navItem("policy", "/zenfix/policy", "Policy")}${navItem("keys", "/zenfix/keys", "API Keys")}</nav></div><div class="bar-right"><span class="sandbox-tag">Sandbox · No real funds</span><form action="/zenfix/sign-out" method="post"><button type="submit" class="signout">Sign out</button></form></div></div></header>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(options.title)}</title>${FONTS}<style>${STYLE}</style></head><body>${topbar}<main class="${wrapClass}">${crumb}<h1>${escapeHtml(options.heading)}</h1>${lead}${notice}${options.bodyHtml ?? ""}${options.actionsHtml ?? ""}</main></body></html>`;
 }
