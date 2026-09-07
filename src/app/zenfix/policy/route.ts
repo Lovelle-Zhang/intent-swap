@@ -12,11 +12,11 @@ import {
 } from "@/features/payrun/hosted/workspace-policy";
 import {
   parsePolicyForm,
-  renderPolicyForm,
   valuesFromForm,
   valuesFromRules,
   type PolicyFormValues,
 } from "@/features/payrun/hosted/policy-form";
+import { renderPolicyForm } from "@/features/payrun/hosted/policy-form-view";
 import { hostedPage } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     const saved = new URL(request.url).searchParams.get("status") === "saved";
     const notice = saved ? { text: "Policy saved.", variant: "ok" as const } : null;
     return new Response(
-      renderPage(valuesFromRules(view.rules, view.dailyBudgetAtomic), notice),
+      renderPage(valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets), notice),
       { status: 200, headers: HTML_HEADERS },
     );
   } catch (error) {
@@ -88,7 +88,9 @@ export async function POST(request: Request) {
     await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-      return saveWorkspacePolicy(getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic);
+      return saveWorkspacePolicy(
+        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets,
+      );
     });
     const appOrigin = readZenFixAppOrigin();
     return Response.redirect(new URL("/zenfix/policy?status=saved", appOrigin), 303);

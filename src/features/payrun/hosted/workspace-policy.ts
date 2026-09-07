@@ -42,6 +42,7 @@ export interface WorkspacePolicyView {
   readonly version: number; // 0 when the workspace has never saved a policy
   readonly updatedAt: string | null;
   readonly dailyBudgetAtomic: string; // atomic USDC; "0" = unlimited
+  readonly agentBudgets: Record<string, string>; // agentId -> atomic USDC; {} = no per-agent caps
 }
 
 interface PolicyRow extends Record<string, unknown> {
@@ -49,6 +50,7 @@ interface PolicyRow extends Record<string, unknown> {
   readonly version: number;
   readonly updated_at: string;
   readonly daily_budget_atomic: string;
+  readonly agent_budgets: Record<string, string> | null;
 }
 
 function toView(row: PolicyRow): WorkspacePolicyView {
@@ -57,6 +59,7 @@ function toView(row: PolicyRow): WorkspacePolicyView {
     version: row.version,
     updatedAt: new Date(row.updated_at).toISOString(),
     dailyBudgetAtomic: row.daily_budget_atomic,
+    agentBudgets: row.agent_budgets ?? {},
   };
 }
 
@@ -69,13 +72,13 @@ export async function getWorkspacePolicy(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const found = await client.query<PolicyRow>(
-        "SELECT rules, version, updated_at, daily_budget_atomic FROM public.policies WHERE project_id = $1::uuid",
+        "SELECT rules, version, updated_at, daily_budget_atomic, agent_budgets FROM public.policies WHERE project_id = $1::uuid",
         [workspace.projectId],
       );
       const row = found.rows[0];
       return row
         ? toView(row)
-        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0" };
+        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {} };
     },
   );
 }
@@ -85,21 +88,23 @@ export async function saveWorkspacePolicy(
   identity: VerifiedAuthIdentity,
   rules: PolicyRuleSnapshot,
   dailyBudgetAtomic: string,
+  agentBudgets: Record<string, string>,
 ): Promise<WorkspacePolicyView> {
   const workspace = await resolvePersonalWorkspace(pool, identity);
   return withHostedTransaction(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const saved = await client.query<PolicyRow>(
-        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic)
-         VALUES ($1::uuid, 1, $2::jsonb, $3::text)
+        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic, agent_budgets)
+         VALUES ($1::uuid, 1, $2::jsonb, $3::text, $4::jsonb)
          ON CONFLICT (project_id) DO UPDATE
            SET rules = EXCLUDED.rules,
                daily_budget_atomic = EXCLUDED.daily_budget_atomic,
+               agent_budgets = EXCLUDED.agent_budgets,
                version = public.policies.version + 1,
                updated_at = transaction_timestamp()
-         RETURNING rules, version, updated_at, daily_budget_atomic`,
-        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic],
+         RETURNING rules, version, updated_at, daily_budget_atomic, agent_budgets`,
+        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic, JSON.stringify(agentBudgets)],
       );
       return toView(saved.rows[0]);
     },

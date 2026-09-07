@@ -66,6 +66,7 @@ export function buildIntakeEvaluation(
   policyMeta: IntakePolicyMeta,
   now: string,
   projectRemainingAtomic: string,
+  agentRemainingAtomic: string,
 ): IntakeEvaluation {
   const amountAtomic = usdcToAtomic(input.amount);
   if (amountAtomic === null) {
@@ -122,7 +123,7 @@ export function buildIntakeEvaluation(
     policySnapshot,
     budgetSnapshot: {
       projectRemaining: usdcMoney(projectRemainingAtomic),
-      agentRemaining: policyRules.absoluteHardLimit,
+      agentRemaining: usdcMoney(agentRemainingAtomic),
       merchantRemaining: policyRules.absoluteHardLimit,
     },
     paymentQuote, fundingScopeDigest, settlementTarget: USDC_TARGET, rail: RAIL, evaluatedAt: now,

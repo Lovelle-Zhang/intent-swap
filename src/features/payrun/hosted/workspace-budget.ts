@@ -38,6 +38,31 @@ export async function getSpentTodayAtomic(
   );
 }
 
+// Per-agent variant of getSpentTodayAtomic: the same DERIVED, timezone-robust
+// UTC-day sum, narrowed to the runs this agent authorized today.
+export async function getAgentSpentTodayAtomic(
+  pool: SqlPool,
+  identity: VerifiedAuthIdentity,
+  projectId: string,
+  agentId: string,
+): Promise<string> {
+  return withHostedTransaction(
+    { pool, userId: identity.userId, requireProjectId: projectId },
+    async (client) => {
+      const result = await client.query<{ spent: string }>(
+        `SELECT COALESCE(SUM((document->'intent'->'quotedAmount'->>'amountAtomic')::numeric),0)::text AS spent
+           FROM public.pay_runs
+          WHERE project_id = $1::uuid
+            AND document->'intent'->>'agentId' = $2
+            AND status = ANY($3::text[])
+            AND created_at >= (date_trunc('day', now() AT TIME ZONE 'utc') AT TIME ZONE 'utc')`,
+        [projectId, agentId, AUTHORIZED_STATUSES],
+      );
+      return result.rows[0]?.spent ?? "0";
+    },
+  );
+}
+
 export function computeRemainingAtomic(
   dailyBudgetAtomic: string,
   spentAtomic: string,
@@ -46,6 +71,19 @@ export function computeRemainingAtomic(
   if (dailyBudgetAtomic === "0") return hardLimitAtomic;
   const remaining = BigInt(dailyBudgetAtomic) - BigInt(spentAtomic);
   return remaining < 0n ? "0" : remaining.toString();
+}
+
+// An agent with no cap (absent key or "0") never bites: it falls back to the
+// absolute hard limit, exactly as intake did before per-agent budgets existed.
+export function agentRemainingAtomic(
+  agentBudgets: Record<string, string>,
+  agentId: string,
+  spentAtomic: string,
+  hardLimitAtomic: string,
+): string {
+  const budget = agentBudgets[agentId];
+  if (budget === undefined || budget === "0") return hardLimitAtomic;
+  return computeRemainingAtomic(budget, spentAtomic, hardLimitAtomic);
 }
 
 export interface BudgetState {

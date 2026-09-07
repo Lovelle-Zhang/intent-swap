@@ -71,7 +71,7 @@ describe.sequential("workspace policy persistence", () => {
 
   test("a workspace with no saved policy reads the defaults at version 0", async () => {
     const view = await getWorkspacePolicy(pool, identity(USER_A));
-    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0" });
+    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {} });
   });
 
   test("saving persists the rules, advances the version, and reads back", async () => {
@@ -82,7 +82,7 @@ describe.sequential("workspace policy persistence", () => {
       blockedCategories: ["gambling"],
       requireReviewForNewMerchant: false,
     };
-    const saved = await saveWorkspacePolicy(pool, identity(USER_A), edited, "0");
+    const saved = await saveWorkspacePolicy(pool, identity(USER_A), edited, "0", {});
     expect(saved.rules).toEqual(edited);
     expect(saved.version).toBe(1);
     expect(saved.updatedAt).toEqual(expect.any(String));
@@ -92,24 +92,36 @@ describe.sequential("workspace policy persistence", () => {
     expect(reread.rules).toEqual(edited);
     expect(reread.version).toBe(1);
 
-    const again = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0");
+    const again = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {});
     expect(again.version).toBe(2);
     expect(again.rules).toEqual(DEFAULT_POLICY_RULES);
   });
 
   test("a daily budget round-trips through save and read", async () => {
-    const saved = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "100000000");
+    const saved = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "100000000", {});
     expect(saved.dailyBudgetAtomic).toBe("100000000");
 
     const reread = await getWorkspacePolicy(pool, identity(USER_A));
     expect(reread.dailyBudgetAtomic).toBe("100000000");
   });
 
+  test("per-agent budgets round-trip through save and read; default is an empty map", async () => {
+    const agentBudgets = { agent_ops_01: "40000000", agent_ops_02: "5000000" };
+    const saved = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", agentBudgets);
+    expect(saved.agentBudgets).toEqual(agentBudgets);
+
+    const reread = await getWorkspacePolicy(pool, identity(USER_A));
+    expect(reread.agentBudgets).toEqual(agentBudgets);
+
+    const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {});
+    expect(cleared.agentBudgets).toEqual({});
+  });
+
   test("a policy is private to its workspace — another user reads only their own defaults", async () => {
     await saveWorkspacePolicy(pool, identity(USER_A), {
       ...DEFAULT_POLICY_RULES,
       allowedMerchantIds: ["merchant_secret_to_a"],
-    }, "0");
+    }, "0", {});
 
     const bView = await getWorkspacePolicy(pool, identity(USER_B));
     expect(bView.version).toBe(0);

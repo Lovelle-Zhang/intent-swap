@@ -1,6 +1,5 @@
 import type { PolicyRuleSnapshot } from "../domain/types";
 import { usdcMoney } from "./workspace-policy";
-import { escapeHtml } from "./ui";
 
 // Form <-> policy translation for the /zenfix/policy surface. Amounts are edited
 // as decimal USDC and stored as atomic (6-decimal) strings; merchant/category
@@ -37,18 +36,30 @@ export interface PolicyFormValues {
   readonly reviewThreshold: string;
   readonly absoluteHardLimit: string;
   readonly dailyBudget: string; // USDC; "" = unlimited
+  readonly agentBudgets: string; // textarea: one "agentId = usdc" per line
   readonly requireReviewForNewMerchant: boolean;
   readonly allowedMerchantIds: string;
   readonly blockedMerchantIds: string;
   readonly blockedCategories: string;
 }
 
-export function valuesFromRules(rules: PolicyRuleSnapshot, dailyBudgetAtomic: string): PolicyFormValues {
+function agentBudgetsToText(agentBudgets: Record<string, string>): string {
+  return Object.entries(agentBudgets)
+    .map(([agentId, atomic]) => `${agentId} = ${atomicToUsdc(atomic)}`)
+    .join("\n");
+}
+
+export function valuesFromRules(
+  rules: PolicyRuleSnapshot,
+  dailyBudgetAtomic: string,
+  agentBudgets: Record<string, string>,
+): PolicyFormValues {
   return {
     transactionLimit: atomicToUsdc(rules.transactionLimit.amountAtomic),
     reviewThreshold: atomicToUsdc(rules.reviewThreshold.amountAtomic),
     absoluteHardLimit: atomicToUsdc(rules.absoluteHardLimit.amountAtomic),
     dailyBudget: dailyBudgetAtomic === "0" ? "" : atomicToUsdc(dailyBudgetAtomic),
+    agentBudgets: agentBudgetsToText(agentBudgets),
     requireReviewForNewMerchant: rules.requireReviewForNewMerchant,
     allowedMerchantIds: rules.allowedMerchantIds.join("\n"),
     blockedMerchantIds: rules.blockedMerchantIds.join("\n"),
@@ -63,6 +74,7 @@ export function valuesFromForm(form: FormData): PolicyFormValues {
     reviewThreshold: text("reviewThreshold"),
     absoluteHardLimit: text("absoluteHardLimit"),
     dailyBudget: text("dailyBudget"),
+    agentBudgets: text("agentBudgets"),
     requireReviewForNewMerchant: form.get("requireReviewForNewMerchant") === "on",
     allowedMerchantIds: text("allowedMerchantIds"),
     blockedMerchantIds: text("blockedMerchantIds"),
@@ -71,8 +83,34 @@ export function valuesFromForm(form: FormData): PolicyFormValues {
 }
 
 export type PolicyFormResult =
-  | { readonly ok: true; readonly rules: PolicyRuleSnapshot; readonly dailyBudgetAtomic: string }
+  | {
+      readonly ok: true;
+      readonly rules: PolicyRuleSnapshot;
+      readonly dailyBudgetAtomic: string;
+      readonly agentBudgets: Record<string, string>;
+    }
   | { readonly ok: false; readonly error: string };
+
+// Parse the "agentId = usdc" textarea into an atomic-USDC map. Blank lines are
+// skipped; a malformed amount is rejected so the owner sees a clear error rather
+// than a silently-dropped cap.
+function parseAgentBudgets(raw: string): Record<string, string> | { readonly error: string } {
+  const map: Record<string, string> = {};
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
+    const eq = trimmed.indexOf("=");
+    const agentId = (eq === -1 ? trimmed : trimmed.slice(0, eq)).trim();
+    const value = eq === -1 ? "" : trimmed.slice(eq + 1).trim();
+    if (agentId.length === 0) continue;
+    const atomic = usdcToAtomic(value);
+    if (atomic === null) {
+      return { error: `Agent budget for ${agentId} must be a USDC amount with up to 6 decimals (e.g. agent_ops_01 = 50).` };
+    }
+    map[agentId] = atomic;
+  }
+  return map;
+}
 
 export function parsePolicyForm(form: FormData, base: PolicyRuleSnapshot): PolicyFormResult {
   const transactionLimit = usdcToAtomic(String(form.get("transactionLimit") ?? ""));
@@ -89,9 +127,14 @@ export function parsePolicyForm(form: FormData, base: PolicyRuleSnapshot): Polic
   if (BigInt(transactionLimit) > BigInt(absoluteHardLimit)) {
     return { ok: false, error: "The per-transaction limit cannot exceed the absolute hard limit." };
   }
+  const agentBudgets = parseAgentBudgets(String(form.get("agentBudgets") ?? ""));
+  if ("error" in agentBudgets) {
+    return { ok: false, error: agentBudgets.error };
+  }
   return {
     ok: true,
     dailyBudgetAtomic,
+    agentBudgets,
     rules: {
       ...base,
       transactionLimit: usdcMoney(transactionLimit),
@@ -103,31 +146,4 @@ export function parsePolicyForm(form: FormData, base: PolicyRuleSnapshot): Polic
       blockedCategories: parseList(String(form.get("blockedCategories") ?? "")),
     },
   };
-}
-
-function amountField(name: string, label: string, hint: string, value: string): string {
-  return `<div class="field"><label for="${name}">${label}</label><div class="suffix"><input type="number" id="${name}" name="${name}" min="0" step="0.000001" value="${escapeHtml(value)}"><span class="u">USDC</span></div><span class="hint">${hint}</span></div>`;
-}
-
-function listField(name: string, label: string, hint: string, value: string): string {
-  return `<div class="field"><label for="${name}">${label}</label><textarea id="${name}" name="${name}" placeholder="one per line or comma-separated">${escapeHtml(value)}</textarea><span class="hint">${hint}</span></div>`;
-}
-
-export function renderPolicyForm(values: PolicyFormValues): string {
-  const checked = values.requireReviewForNewMerchant ? " checked" : "";
-  return `<form method="post" action="/zenfix/policy">
-    <div class="card"><h2>Spending limits</h2><div class="grid2">
-      ${amountField("transactionLimit", "Per-transaction limit", "A single payment above this is blocked.", values.transactionLimit)}
-      ${amountField("reviewThreshold", "Review threshold", "At or above this, a payment needs review first.", values.reviewThreshold)}
-      ${amountField("absoluteHardLimit", "Absolute hard limit", "The ceiling no payment may ever cross.", values.absoluteHardLimit)}
-      ${amountField("dailyBudget", "Daily budget", "0 or empty = unlimited.", values.dailyBudget)}
-    </div></div>
-    <div class="card"><h2>Merchants</h2>
-      ${listField("allowedMerchantIds", "Allowed merchants", "Merchant IDs that are pre-approved.", values.allowedMerchantIds)}
-      ${listField("blockedMerchantIds", "Blocked merchants", "Merchant IDs that are always denied.", values.blockedMerchantIds)}
-      ${listField("blockedCategories", "Blocked categories", "Merchant categories that are always denied.", values.blockedCategories)}
-      <label class="check"><input type="checkbox" name="requireReviewForNewMerchant"${checked}><span class="ct">Require review for new merchants<small>A merchant not seen before must be reviewed before its first payment.</small></span></label>
-    </div>
-    <div class="actions"><button type="submit" class="btn">Save policy</button><a class="link" href="/zenfix/payruns">← Back to Pay Runs</a></div>
-  </form>`;
 }

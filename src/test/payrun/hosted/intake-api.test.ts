@@ -12,6 +12,7 @@ import { loadHostedMigrationsSql } from "./hosted-migrations";
 const USER = "00000000-0000-4000-8000-00000000000c";
 const USER_BUDGET = "00000000-0000-4000-8000-00000000000d";
 const USER_UNLIMITED = "00000000-0000-4000-8000-00000000000e";
+const USER_AGENT = "00000000-0000-4000-8000-00000000000f";
 
 // The route reads its Postgres pool from getHostedSqlPool(); point it at the
 // PGlite test pool so the real route handler drives the real storage.
@@ -112,13 +113,13 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
         SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
       $$;
       CREATE ROLE zenfix_login LOGIN NOSUPERUSER NOBYPASSRLS;
-      INSERT INTO auth.users VALUES ('${USER}'::uuid), ('${USER_BUDGET}'::uuid), ('${USER_UNLIMITED}'::uuid);
+      INSERT INTO auth.users VALUES ('${USER}'::uuid), ('${USER_BUDGET}'::uuid), ('${USER_UNLIMITED}'::uuid), ('${USER_AGENT}'::uuid);
     `);
     await db.exec(await loadHostedMigrationsSql());
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
     holder.pool = pool;
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0");
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {});
     apiKey = (await createWorkspaceApiKey(pool, identity, "intake agent")).key;
     ({ POST } = await import("@/app/api/v1/payruns/route"));
   }, 60_000);
@@ -201,9 +202,9 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
   let unlimitedKey: string;
 
   beforeAll(async () => {
-    await saveWorkspacePolicy(pool, identityBudget, NO_REVIEW_RULES, "100000000"); // 100 USDC/day
+    await saveWorkspacePolicy(pool, identityBudget, NO_REVIEW_RULES, "100000000", {}); // 100 USDC/day
     budgetKey = (await createWorkspaceApiKey(pool, identityBudget, "budget agent")).key;
-    await saveWorkspacePolicy(pool, identityUnlimited, NO_REVIEW_RULES, "0"); // unlimited
+    await saveWorkspacePolicy(pool, identityUnlimited, NO_REVIEW_RULES, "0", {}); // unlimited
     unlimitedKey = (await createWorkspaceApiKey(pool, identityUnlimited, "unlimited agent")).key;
   });
 
@@ -229,6 +230,47 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
 
   test("with an unlimited daily budget a large within-hard-limit intent stays allowed", async () => {
     const response = await post(`Bearer ${unlimitedKey}`, intent({ idempotencyKey: "unlimited-1", amount: "500" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+  });
+
+  describe.sequential("per-agent daily budget", () => {
+  // Workspace daily budget is unlimited ("0") so only the per-agent cap can bite:
+  // agent_ops_01 gets a 40 USDC/day cap, agent_other gets none.
+  const identityAgent: VerifiedAuthIdentity = { userId: USER_AGENT };
+  let agentKey: string;
+
+  beforeAll(async () => {
+    await saveWorkspacePolicy(pool, identityAgent, NO_REVIEW_RULES, "0", { agent_ops_01: "40000000" });
+    agentKey = (await createWorkspaceApiKey(pool, identityAgent, "per-agent")).key;
+  });
+
+  test("first 30 USDC as agent_ops_01 is allowed (spends 30 of its 40 USDC agent cap)", async () => {
+    const response = await post(`Bearer ${agentKey}`, intent({ idempotencyKey: "agent-1", amount: "30" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+
+  test("second 30 USDC as agent_ops_01 is blocked — agent remaining 10 < 30, though the workspace has room", async () => {
+    const response = await post(`Bearer ${agentKey}`, intent({ idempotencyKey: "agent-2", amount: "30" }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.decision.outcome).toBe("blocked");
+    expect(json.decision.reasonCodes).toContain("budget.agent_limit_exceeded");
+    expect(json.decision.reasonCodes).not.toContain("budget.project_limit_exceeded");
+  });
+
+  test("a different agent with no cap is still allowed — the cap is per-agent", async () => {
+    const response = await post(`Bearer ${agentKey}`, intent({
+      idempotencyKey: "agent-other", amount: "30", agentId: "agent_other",
+    }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+
+  test("the blocked agent run did not consume — a following 10 USDC as agent_ops_01 is still allowed", async () => {
+    const response = await post(`Bearer ${agentKey}`, intent({ idempotencyKey: "agent-3", amount: "10" }));
     expect(response.status).toBe(200);
     expect((await response.json()).decision.outcome).toBe("allowed");
   });

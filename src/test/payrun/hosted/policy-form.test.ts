@@ -100,13 +100,50 @@ describe("daily budget", () => {
   });
 
   test("valuesFromRules round-trips the daily budget (USDC<->atomic, \"0\"<->\"\")", () => {
-    expect(valuesFromRules(DEFAULT_POLICY_RULES, "0").dailyBudget).toBe("");
-    expect(valuesFromRules(DEFAULT_POLICY_RULES, "100000000").dailyBudget).toBe("100");
-    expect(valuesFromRules(DEFAULT_POLICY_RULES, "12500000").dailyBudget).toBe("12.5");
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "0", {}).dailyBudget).toBe("");
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "100000000", {}).dailyBudget).toBe("100");
+    expect(valuesFromRules(DEFAULT_POLICY_RULES, "12500000", {}).dailyBudget).toBe("12.5");
   });
 
   test("valuesFromForm reflects the submitted daily budget verbatim", () => {
     expect(valuesFromForm(form({ ...VALID, dailyBudget: "42.5" })).dailyBudget).toBe("42.5");
+  });
+});
+
+describe("agent budgets", () => {
+  test("parses a \"agentId = usdc\" textarea into an atomic-USDC map, skipping blank lines", () => {
+    const result = parsePolicyForm(
+      form({ ...VALID, agentBudgets: "agent_ops_01 = 50\n\n  agent_ops_02 = 12.5  \n" }),
+      DEFAULT_POLICY_RULES,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.agentBudgets).toEqual({ agent_ops_01: "50000000", agent_ops_02: "12500000" });
+  });
+
+  test("an empty textarea yields an empty map (no per-agent caps)", () => {
+    const result = parsePolicyForm(form({ ...VALID, agentBudgets: "   \n  " }), DEFAULT_POLICY_RULES);
+    expect(result.ok && result.agentBudgets).toEqual({});
+  });
+
+  test("rejects a malformed agent budget amount with a clear per-agent error", () => {
+    const result = parsePolicyForm(form({ ...VALID, agentBudgets: "agent_ops_01 = abc" }), DEFAULT_POLICY_RULES);
+    expect(result).toEqual({ ok: false, error: expect.stringContaining("Agent budget for agent_ops_01") });
+  });
+
+  test("valuesFromRules renders the map back to \"agentId = usdc\" lines", () => {
+    const values = valuesFromRules(DEFAULT_POLICY_RULES, "0", { agent_ops_01: "50000000", agent_ops_02: "12500000" });
+    expect(values.agentBudgets).toBe("agent_ops_01 = 50\nagent_ops_02 = 12.5");
+  });
+
+  test("agent budgets round-trip through render and parse", () => {
+    const text = valuesFromRules(DEFAULT_POLICY_RULES, "0", { agent_ops_01: "50000000" }).agentBudgets;
+    const result = parsePolicyForm(form({ ...VALID, agentBudgets: text }), DEFAULT_POLICY_RULES);
+    expect(result.ok && result.agentBudgets).toEqual({ agent_ops_01: "50000000" });
+  });
+
+  test("valuesFromForm reflects the submitted agent-budgets textarea verbatim", () => {
+    expect(valuesFromForm(form({ ...VALID, agentBudgets: "agent_x = 9" })).agentBudgets).toBe("agent_x = 9");
   });
 });
 
