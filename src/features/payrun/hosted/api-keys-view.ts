@@ -15,7 +15,16 @@ function row(key: ApiKeyView): string {
   return `<tr><td><code>${escapeHtml(key.prefix)}…</code></td><td>${escapeHtml(key.label || "—")}</td><td class="muted">${fmt(key.createdAt)}</td><td class="muted">${fmt(key.lastUsedAt)}</td><td>${status}</td><td>${action}</td></tr>`;
 }
 
-export function renderKeysBody(keys: readonly ApiKeyView[], newKey?: string): string {
+function usageCard(apiUrl: string): string {
+  const curl = `curl -X POST ${apiUrl} \\
+  -H "Authorization: Bearer zfk_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"agentId":"agent_ops_01","purpose":"Buy a verified API result","amount":"12.50",
+       "merchant":{"id":"acme_api","payee":"ACME","category":"api"},"artifactType":"api_result"}'`;
+  return `<div class="card"><h2>Using a key</h2><p class="lead">Your agent submits an intent; ZenFix checks it against your <a class="link" href="/zenfix/policy">Policy</a> and returns an allow / needs-review / block decision. No funds move — the decision and its full trail land in <a class="link" href="/zenfix/payruns">Pay Runs</a>.</p><pre class="curl"><code>${escapeHtml(curl)}</code></pre></div>`;
+}
+
+export function renderKeysBody(keys: readonly ApiKeyView[], apiUrl: string, newKey?: string): string {
   const banner = newKey
     ? `<div class="card newkey"><h2>New key — copy it now</h2><p class="lead">This is the only time the full key is shown. Store it somewhere safe; you can revoke it anytime.</p><div class="keyval"><code>${escapeHtml(newKey)}</code></div></div>`
     : "";
@@ -24,5 +33,5 @@ export function renderKeysBody(keys: readonly ApiKeyView[], newKey?: string): st
     ? `<tr><td colspan="6" class="empty">No API keys yet. Create one to let an agent call the intake API.</td></tr>`
     : keys.map(row).join("");
   const table = `<div class="tablewrap"><table><thead><tr><th>Key</th><th>Label</th><th>Created</th><th>Last used</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  return banner + createForm + table;
+  return banner + createForm + table + usageCard(apiUrl);
 }

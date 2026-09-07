@@ -114,6 +114,8 @@ textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-
 .newkey{border-left:3px solid var(--signal)}
 .keyval{margin-top:12px;padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;overflow-x:auto}
 .keyval code{font-size:13px;color:var(--signal);word-break:break-all}
+pre.curl{margin:14px 0 0;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;overflow-x:auto}
+pre.curl code{font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.6}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 `;
 
