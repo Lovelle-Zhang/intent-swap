@@ -24,6 +24,7 @@ import {
   renderAgentLimitFields,
   type AgentLimitFormValues,
 } from "@/features/payrun/hosted/policy-agent-limits";
+import { parseWebhookUrl, renderWebhookField } from "@/features/payrun/hosted/webhook";
 import { hostedPage } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ const LEAD =
 function renderPage(
   values: PolicyFormValues,
   agentLimits: AgentLimitFormValues,
+  webhookUrl: string,
   notice: { readonly text: string; readonly variant: "ok" | "warn" } | null,
 ): string {
   return hostedPage({
@@ -45,7 +47,7 @@ function renderPage(
     lead: LEAD,
     notice: notice?.text ?? null,
     noticeVariant: notice?.variant,
-    bodyHtml: renderPolicyForm(values, renderAgentLimitFields(agentLimits)),
+    bodyHtml: renderPolicyForm(values, renderAgentLimitFields(agentLimits) + renderWebhookField(webhookUrl || null)),
   });
 }
 
@@ -80,6 +82,7 @@ export async function GET(request: Request) {
       renderPage(
         valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets),
         agentLimitValuesFromLimits(view.agentLimits),
+        view.notifyWebhookUrl ?? "",
         notice,
       ),
       { status: 200, headers: HTML_HEADERS },
@@ -92,21 +95,24 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const form = await request.formData();
   const agentLimitValues = agentLimitValuesFromForm(form);
+  const webhookRaw = String(form.get("notifyWebhookUrl") ?? "");
   const parsed = parsePolicyForm(form, DEFAULT_POLICY_RULES);
   const agentLimits = parseAgentLimits(agentLimitValues);
+  const webhook = parseWebhookUrl(webhookRaw);
   const invalid = (message: string) =>
     new Response(
-      renderPage(valuesFromForm(form), agentLimitValues, { text: message, variant: "warn" }),
+      renderPage(valuesFromForm(form), agentLimitValues, webhookRaw, { text: message, variant: "warn" }),
       { status: 400, headers: HTML_HEADERS },
     );
   if (!parsed.ok) return invalid(parsed.error);
   if (!agentLimits.ok) return invalid(agentLimits.error);
+  if (!webhook.ok) return invalid(webhook.error);
   try {
     await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
       return saveWorkspacePolicy(
-        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits,
+        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits, webhook.url,
       );
     });
     const appOrigin = readZenFixAppOrigin();

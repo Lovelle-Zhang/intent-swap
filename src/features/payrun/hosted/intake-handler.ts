@@ -7,6 +7,7 @@ import { resolveApiKeyIdentity } from "./api-keys";
 import { AuthUnavailableError } from "./errors";
 import { buildIntakeEvaluation, type IntakeInput } from "./intake";
 import { persistIntakeDecision } from "./intake-persist";
+import { sendNeedsReviewWebhook } from "./webhook";
 import { usdcToAtomic } from "./policy-form";
 import { retryOnTransientUnavailable } from "./retry";
 import { getWorkspacePolicy } from "./workspace-policy";
@@ -117,6 +118,14 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
         policy.agentLimits[input.agentId],
       );
       await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
+      // Best-effort needs_review nudge; never blocks or fails the decision.
+      if (evaluation.decision.outcome === "needs_review" && policy.notifyWebhookUrl) {
+        const q = evaluation.intent.quotedAmount;
+        await sendNeedsReviewWebhook(policy.notifyWebhookUrl, {
+          event: "payrun.needs_review", payRunId: evaluation.payRunId, workspaceId: workspace.projectId,
+          agentId: input.agentId, amount: { amountAtomic: q.amountAtomic, asset: q.asset }, createdAt: now,
+        });
+      }
       return json({ payRunId: evaluation.payRunId, decision: toResponseDecision(evaluation.decision) }, 200);
     } finally {
       await persistence.close();

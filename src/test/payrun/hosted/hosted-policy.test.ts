@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {} });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
@@ -100,6 +100,25 @@ describe("hosted policy route", () => {
     expect(store.save.mock.calls[0][5]).toEqual({
       agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api", "data_co"] },
     });
+  });
+
+  test("POST persists a valid notify webhook URL as the seventh save argument", async () => {
+    const { POST } = await loadRoute();
+    await POST(postBody({
+      transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
+      notifyWebhookUrl: "https://hooks.example.com/zenfix",
+    }));
+    expect(store.save.mock.calls[0][6]).toBe("https://hooks.example.com/zenfix");
+  });
+
+  test("POST with an unsafe webhook URL returns 400 and never writes", async () => {
+    const { POST } = await loadRoute();
+    const res = await POST(postBody({
+      transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
+      notifyWebhookUrl: "http://localhost/hook",
+    }));
+    expect(res.status).toBe(400);
+    expect(store.save).not.toHaveBeenCalled();
   });
 
   test("POST with a malformed per-agent limit returns 400 and never writes", async () => {
