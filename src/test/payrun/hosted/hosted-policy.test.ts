@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, merchantAddresses: {} });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
@@ -116,6 +116,25 @@ describe("hosted policy route", () => {
     const res = await POST(postBody({
       transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
       notifyWebhookUrl: "http://localhost/hook",
+    }));
+    expect(res.status).toBe(400);
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  test("POST persists valid merchant payout addresses as the eighth save argument", async () => {
+    const { POST } = await loadRoute();
+    await POST(postBody({
+      transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
+      merchantAddresses: "acme_api = 0x1111111111111111111111111111111111111111",
+    }));
+    expect(store.save.mock.calls[0][7]).toEqual({ acme_api: "0x1111111111111111111111111111111111111111" });
+  });
+
+  test("POST with a malformed merchant address returns 400 and never writes", async () => {
+    const { POST } = await loadRoute();
+    const res = await POST(postBody({
+      transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
+      merchantAddresses: "acme_api = 0xnope",
     }));
     expect(res.status).toBe(400);
     expect(store.save).not.toHaveBeenCalled();
