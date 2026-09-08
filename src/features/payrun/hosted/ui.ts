@@ -104,9 +104,12 @@ input[type=number]{max-width:220px;font-family:var(--font-mono)}
 input[type=text]{max-width:520px}
 /* Render the native date control (edit fields, spinners, and calendar popup) in
    dark mode so it matches the ledger-ink shell instead of the browser default. */
-input[type=date]{color-scheme:dark;width:auto;font-family:var(--font-mono);font-size:13px;padding:8px 11px}
+input[type=date]{color-scheme:dark;width:158px;font-family:var(--font-mono);font-size:13px;padding:8px 11px}
 input[type=date]::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
 input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+/* Keep From/To together as one unit so the labels never split from their
+   inputs and the pair wraps as a whole instead of element by element. */
+.daterange{display:inline-flex;align-items:center;gap:8px}
 textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-mono);font-size:13px}
 .suffix{display:flex;align-items:center;gap:9px}.suffix .u{font-family:var(--font-mono);font-size:12px;color:var(--faint)}
 .check{display:flex;align-items:flex-start;gap:11px;margin-top:20px;max-width:520px}
