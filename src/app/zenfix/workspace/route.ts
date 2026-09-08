@@ -34,7 +34,7 @@ export async function GET(_request: Request) {
       heading: "Overview",
       active: "overview",
       lead: "Your agent payment control layer, in test mode on Base Sepolia. Create Pay Runs and inspect how each one is decided.",
-      bodyHtml: `${renderOnboarding(onboarding)}<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>${renderOverviewDashboard(stats, budget)}`,
+      bodyHtml: `${renderOnboarding(onboarding)}<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode === "sandbox" ? "Test mode · Base Sepolia" : workspace.mode)}</dd></dl></div>${renderOverviewDashboard(stats, budget)}`,
       actionsHtml: `<div class="actions"><a class="btn" href="/zenfix/payruns">Open Pay Runs →</a></div>`,
     });
     return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } });
