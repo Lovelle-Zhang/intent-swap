@@ -14,6 +14,7 @@ import type {
   Project,
 } from "../domain/types";
 import { usdcToAtomic } from "./policy-form";
+import { applyAgentLimits, type AgentLimit } from "./policy-agent-limits";
 import { usdcMoney } from "./workspace-policy";
 
 // 2B-intake: the pure authorization builder. Given a validated external intent,
@@ -67,16 +68,20 @@ export function buildIntakeEvaluation(
   now: string,
   projectRemainingAtomic: string,
   agentRemainingAtomic: string,
+  agentLimit?: AgentLimit,
 ): IntakeEvaluation {
   const amountAtomic = usdcToAtomic(input.amount);
   if (amountAtomic === null) {
     throw new Error("Intake amount must be validated before evaluation");
   }
+  // Overlay this agent's per-agent overrides (tighten-only) onto the workspace
+  // rules; the engine, checksum, and trust state all use the effective rules.
+  const effectiveRules = applyAgentLimits(policyRules, agentLimit);
   const payRunId = deterministicPayRunId(projectId, input.idempotencyKey);
   const policyId = `policy_${projectId}`;
   const expiresAt = new Date(Date.parse(now) + INTENT_TTL_MS).toISOString();
   const trustState: MerchantTrustState =
-    policyRules.allowedMerchantIds.includes(input.merchant.id) ? "known" : "new";
+    effectiveRules.allowedMerchantIds.includes(input.merchant.id) ? "known" : "new";
   const money = usdcMoney(amountAtomic);
 
   const project: Project = {
@@ -106,9 +111,9 @@ export function buildIntakeEvaluation(
 
   const policySnapshot: PolicyEvaluationSnapshot = {
     projectId, policyId, policyVersion: Math.max(policyMeta.version, 1),
-    policyChecksum: `sha256:${sha256Canonical(policyRules)}`,
-    inputSnapshotDigest: sha256Canonical({ projectId, payRunId, rules: policyRules, amountAtomic }),
-    effectiveFrom: EFFECTIVE_FROM, effectiveUntil: null, active: true, rules: policyRules,
+    policyChecksum: `sha256:${sha256Canonical(effectiveRules)}`,
+    inputSnapshotDigest: sha256Canonical({ projectId, payRunId, rules: effectiveRules, amountAtomic }),
+    effectiveFrom: EFFECTIVE_FROM, effectiveUntil: null, active: true, rules: effectiveRules,
   };
   const paymentQuote: PaymentQuote = {
     id: `quote_${payRunId}`, projectId, merchantId: merchant.id, provider: "zenfix_intake",
@@ -124,7 +129,7 @@ export function buildIntakeEvaluation(
     budgetSnapshot: {
       projectRemaining: usdcMoney(projectRemainingAtomic),
       agentRemaining: usdcMoney(agentRemainingAtomic),
-      merchantRemaining: policyRules.absoluteHardLimit,
+      merchantRemaining: effectiveRules.absoluteHardLimit,
     },
     paymentQuote, fundingScopeDigest, settlementTarget: USDC_TARGET, rail: RAIL, evaluatedAt: now,
   };

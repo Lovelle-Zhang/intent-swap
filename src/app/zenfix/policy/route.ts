@@ -17,6 +17,13 @@ import {
   type PolicyFormValues,
 } from "@/features/payrun/hosted/policy-form";
 import { renderPolicyForm } from "@/features/payrun/hosted/policy-form-view";
+import {
+  agentLimitValuesFromForm,
+  agentLimitValuesFromLimits,
+  parseAgentLimits,
+  renderAgentLimitFields,
+  type AgentLimitFormValues,
+} from "@/features/payrun/hosted/policy-agent-limits";
 import { hostedPage } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +35,7 @@ const LEAD =
 
 function renderPage(
   values: PolicyFormValues,
+  agentLimits: AgentLimitFormValues,
   notice: { readonly text: string; readonly variant: "ok" | "warn" } | null,
 ): string {
   return hostedPage({
@@ -37,7 +45,7 @@ function renderPage(
     lead: LEAD,
     notice: notice?.text ?? null,
     noticeVariant: notice?.variant,
-    bodyHtml: renderPolicyForm(values),
+    bodyHtml: renderPolicyForm(values, renderAgentLimitFields(agentLimits)),
   });
 }
 
@@ -69,7 +77,11 @@ export async function GET(request: Request) {
     const saved = new URL(request.url).searchParams.get("status") === "saved";
     const notice = saved ? { text: "Policy saved.", variant: "ok" as const } : null;
     return new Response(
-      renderPage(valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets), notice),
+      renderPage(
+        valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets),
+        agentLimitValuesFromLimits(view.agentLimits),
+        notice,
+      ),
       { status: 200, headers: HTML_HEADERS },
     );
   } catch (error) {
@@ -79,17 +91,22 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const form = await request.formData();
+  const agentLimitValues = agentLimitValuesFromForm(form);
   const parsed = parsePolicyForm(form, DEFAULT_POLICY_RULES);
-  if (!parsed.ok) {
-    const body = renderPage(valuesFromForm(form), { text: parsed.error, variant: "warn" });
-    return new Response(body, { status: 400, headers: HTML_HEADERS });
-  }
+  const agentLimits = parseAgentLimits(agentLimitValues);
+  const invalid = (message: string) =>
+    new Response(
+      renderPage(valuesFromForm(form), agentLimitValues, { text: message, variant: "warn" }),
+      { status: 400, headers: HTML_HEADERS },
+    );
+  if (!parsed.ok) return invalid(parsed.error);
+  if (!agentLimits.ok) return invalid(agentLimits.error);
   try {
     await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
       return saveWorkspacePolicy(
-        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets,
+        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits,
       );
     });
     const appOrigin = readZenFixAppOrigin();

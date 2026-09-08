@@ -14,7 +14,7 @@ function listField(name: string, label: string, hint: string, value: string): st
   return `<div class="field"><label for="${name}">${label}</label><textarea id="${name}" name="${name}" placeholder="one per line or comma-separated">${escapeHtml(value)}</textarea><span class="hint">${hint}</span></div>`;
 }
 
-export function renderPolicyForm(values: PolicyFormValues): string {
+export function renderPolicyForm(values: PolicyFormValues, agentLimitsHtml = ""): string {
   const checked = values.requireReviewForNewMerchant ? " checked" : "";
   return `<form method="post" action="/zenfix/policy">
     <div class="card"><h2>Spending limits</h2><div class="grid2">
@@ -31,6 +31,7 @@ export function renderPolicyForm(values: PolicyFormValues): string {
       ${listField("blockedCategories", "Blocked categories", "Merchant categories that are always denied.", values.blockedCategories)}
       <label class="check"><input type="checkbox" name="requireReviewForNewMerchant"${checked}><span class="ct">Require review for new merchants<small>A merchant not seen before must be reviewed before its first payment.</small></span></label>
     </div>
+    ${agentLimitsHtml}
     <div class="actions"><button type="submit" class="btn">Save policy</button><a class="link" href="/zenfix/payruns">← Back to Pay Runs</a></div>
   </form>`;
 }
