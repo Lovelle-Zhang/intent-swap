@@ -33,6 +33,11 @@ vi.mock("@/features/payrun/hosted/workspace-budget", () => ({
 }));
 // The Overview route also derives control-plane stats from pay_runs; the fake
 // {} pool cannot run SQL, so stub the read model with a small fixture.
+// Overview also renders the onboarding checklist; the fake {} pool cannot run
+// SQL, so stub it with a mid-progress state (key done, policy + first run not).
+vi.mock("@/features/payrun/hosted/onboarding", () => ({
+  getOnboardingState: async () => ({ hasKey: true, hasPolicy: false, hasApiRun: false, complete: false }),
+}));
 vi.mock("@/features/payrun/hosted/workspace-overview", () => ({
   getOverviewStats: async () => ({
     today: { allowed: 2, needsReview: 1, blocked: 0, executed: 3 },
@@ -86,6 +91,8 @@ describe("hosted auth and workspace HTTP boundary", () => {
     expect(first.status).toBe(200);
     const firstBody = await first.text();
     expect(firstBody).toContain("10000000-0000-4000-8000-00000000000a");
+    // The Overview shows the onboarding checklist while activation is incomplete.
+    expect(firstBody).toContain("Get started");
     // The Overview dashboard renders its decisions tiles and review queue.
     expect(firstBody).toContain("Needs your review");
     expect(firstBody).toContain("Needs review");

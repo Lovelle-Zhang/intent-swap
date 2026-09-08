@@ -117,4 +117,11 @@ textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-
 pre.curl{margin:14px 0 0;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;overflow-x:auto}
 pre.curl code{font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.6}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
+.onboard{margin:16px 0 0;list-style:none;padding:0;display:flex;flex-direction:column;gap:14px}
+.onboard li{display:grid;grid-template-columns:28px 1fr;gap:14px;align-items:start}
+.onboard .ob-mk{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--muted);background:var(--surface-2);border:1px solid var(--line)}
+.onboard .ob-mk.done{color:#04201C;background:var(--allow);border-color:var(--allow)}
+.onboard li.done .ob-body b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.onboard .ob-body b{font-size:14px}
+.onboard .ob-body p{margin:3px 0 8px;font-size:13.5px}
 `;
