@@ -14,10 +14,15 @@ import {
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
 import {
+  applyDateRange,
   applyPayRunFilter,
+  paginate,
   parsePayRunFilter,
+  parsePayRunPage,
   renderFilterBar,
+  renderPager,
   type PayRunFilter,
+  type PayRunPage,
 } from "@/features/payrun/hosted/payruns-filter";
 
 export const dynamic = "force-dynamic";
@@ -50,19 +55,21 @@ function renderRow(payRun: HostedPayRunSummary): string {
   return `<tr><td><a class="link" href="/zenfix/payruns/${encodeURIComponent(payRun.payRunId)}"><code>${escapeHtml(payRun.payRunId)}</code></a></td><td class="muted">${escapeHtml(formatCreatedAt(payRun.createdAt))}</td><td>${statusBadge(payRun.status, statusVariant(payRun.status))}</td><td class="purpose">${escapeHtml(payRun.purpose)}</td><td><code>${escapeHtml(payRun.agentId)}</code></td><td class="num">${escapeHtml(amount)}</td><td>${policyCell}</td></tr>`;
 }
 
-function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null, filter: PayRunFilter): string {
+function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null, filter: PayRunFilter, page: PayRunPage): string {
   const options = SANDBOX_SCENARIO_IDS.map((id) => `<option value="${id}">${escapeHtml(id)}</option>`).join("");
   const total = view.payRuns.length;
-  const filtered = applyPayRunFilter(view.payRuns, filter);
+  const filtered = applyDateRange(applyPayRunFilter(view.payRuns, filter), page);
+  const paged = paginate(filtered, page.page);
   const emptyMsg = total === 0
     ? "No Pay Runs yet. Create your first sandbox run above."
     : "No Pay Runs match your filter.";
-  const rows = filtered.length === 0
+  const rows = paged.rows.length === 0
     ? `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`
-    : filtered.map(renderRow).join("");
+    : paged.rows.map(renderRow).join("");
   const form = `<div class="card"><h2>Create a sandbox Pay Run</h2><form class="row" action="/zenfix/payruns/create" method="post"><label for="scenarioId">Scenario</label><select id="scenarioId" name="scenarioId">${options}</select><button type="submit" class="btn">Create Pay Run</button></form></div>`;
-  const filterBar = total === 0 ? "" : renderFilterBar(filter, total, filtered.length);
+  const filterBar = total === 0 ? "" : renderFilterBar(filter, total, filtered.length, page);
   const table = `<div class="tablewrap"><table><thead><tr><th>Pay Run</th><th>Created</th><th>Status</th><th>Purpose</th><th>Agent</th><th class="num">Amount</th><th>Policy</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const pager = renderPager(paged, filter, page);
   return hostedPage({
     title: "ZenFix Pay Runs",
     heading: "Pay Runs",
@@ -70,7 +77,7 @@ function renderHtml(view: HostedWorkspacePayRunsView, notice: string | null, fil
     notice,
     wide: true,
     active: "payruns",
-    bodyHtml: form + filterBar + table,
+    bodyHtml: form + filterBar + table + pager,
   });
 }
 
@@ -85,7 +92,8 @@ export async function GET(request: Request) {
     const status = params.get("status") ?? params.get("error");
     const notice = status ? (NOTICES[status] ?? null) : null;
     const filter = parsePayRunFilter(params);
-    return new Response(renderHtml(view, notice, filter), {
+    const page = parsePayRunPage(params);
+    return new Response(renderHtml(view, notice, filter, page), {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" },
     });
