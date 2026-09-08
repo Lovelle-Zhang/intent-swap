@@ -54,8 +54,11 @@ function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): s
   const ledger = pr.ledgerJournal ? "balanced" : pr.ledgerDraft ? "drafted" : null;
   const stagesCard = `<div class="card"><h2>Execution</h2><div class="stages">${stage("Funding", pr.fundingPreparation?.status)}${stage("Payment", pr.paymentExecution?.status)}${stage("Proof", pr.executionProof?.verificationStatus)}${stage("Ledger", ledger)}</div></div>`;
   const report = pr.executionReport;
+  const verifiedBadge = report && report.rail === "base-sepolia"
+    ? statusBadge("Verified on-chain", "ok")
+    : report ? statusBadge("Self-reported", "neutral") : "";
   const reportCard = report
-    ? `<div class="card"><h2>Execution report</h2><div class="detail-head">${statusBadge(humanize(report.outcome), report.outcome === "executed" ? "ok" : "blocked")}<span class="meta"><span>Rail <b>${escapeHtml(report.rail)}</b></span></span></div><dl><dt>Provider reference</dt><dd><code>${escapeHtml(report.providerReference)}</code></dd><dt>Transaction hash</dt><dd>${report.transactionHash ? `<code>${escapeHtml(report.transactionHash)}</code>` : "—"}</dd><dt>Reported</dt><dd class="mono">${escapeHtml(fmtTime(report.reportedAt))}</dd></dl></div>`
+    ? `<div class="card"><h2>Execution report</h2><div class="detail-head">${statusBadge(humanize(report.outcome), report.outcome === "executed" ? "ok" : "blocked")}${verifiedBadge}<span class="meta"><span>Rail <b>${escapeHtml(report.rail)}</b></span></span></div><dl><dt>Provider reference</dt><dd><code>${escapeHtml(report.providerReference)}</code></dd><dt>Transaction hash</dt><dd>${report.transactionHash ? `<code>${escapeHtml(report.transactionHash)}</code>` : "—"}</dd><dt>Reported</dt><dd class="mono">${escapeHtml(fmtTime(report.reportedAt))}</dd></dl></div>`
     : "";
   const trail = detail.auditEvents.length
     ? `<div class="card"><h2>Audit trail</h2><ol class="trail">${detail.auditEvents.map((e) => `<li><time>${escapeHtml(fmtTime(e.occurredAt))}</time><div class="act">${escapeHtml(humanize(e.actionCode))}<small>${escapeHtml(e.reasonCode)}</small></div></li>`).join("")}</ol></div>`

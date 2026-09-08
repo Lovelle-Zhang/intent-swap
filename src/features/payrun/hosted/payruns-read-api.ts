@@ -51,7 +51,12 @@ function toDetail(pr: PayRun) {
         }
       : null,
     executionReport: rep
-      ? { outcome: rep.outcome, providerReference: rep.providerReference, transactionHash: rep.transactionHash ?? null, rail: rep.rail, reportedAt: rep.reportedAt }
+      ? {
+          outcome: rep.outcome, providerReference: rep.providerReference, transactionHash: rep.transactionHash ?? null,
+          rail: rep.rail, reportedAt: rep.reportedAt,
+          // A base-sepolia report only exists if it passed on-chain verification.
+          verified: rep.rail === "base-sepolia",
+        }
       : null,
     review: rev ? { outcome: rev.outcome, decidedAt: rev.decidedAt } : null,
   };
