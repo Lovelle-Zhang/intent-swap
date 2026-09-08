@@ -102,11 +102,10 @@ a.link:hover{text-decoration:underline}
 input[type=text],input[type=number],input[type=date],textarea{font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);padding:9px 13px;width:100%}
 input[type=number]{max-width:220px;font-family:var(--font-mono)}
 input[type=text]{max-width:520px}
-/* Render the native date control (edit fields, spinners, and calendar popup) in
-   dark mode so it matches the ledger-ink shell instead of the browser default. */
-input[type=date]{color-scheme:dark;width:158px;font-family:var(--font-mono);font-size:13px;padding:8px 11px}
-input[type=date]::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
-input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+/* Date range uses plain YYYY-MM-DD text fields (not native date inputs) so the
+   control is locale-independent and fully themed — the native picker's popup
+   language follows the viewer's browser and can't be styled. */
+input.datefield{width:132px;max-width:132px;font-family:var(--font-mono);font-size:13px;padding:8px 11px}
 /* Keep From/To together as one unit so the labels never split from their
    inputs and the pair wraps as a whole instead of element by element. */
 .daterange{display:inline-flex;align-items:center;gap:8px}
