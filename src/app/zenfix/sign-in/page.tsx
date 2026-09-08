@@ -31,9 +31,9 @@ export default function SignInPage({ searchParams }: { searchParams: { status?: 
     <div className={`zf-auth ${display.variable} ${body.variable} ${mono.variable}`}>
       <div className="card">
         <div className="brand"><Logo /> ZenFix <b>PayRun</b></div>
-        <p className="eyebrow">Sandbox · No real funds</p>
+        <p className="eyebrow">Test mode · Base Sepolia</p>
         <h1>Sign in</h1>
-        <p className="lead">Sign in with Google to reach your persistent sandbox workspace and its Pay Runs.</p>
+        <p className="lead">Sign in with Google to reach your persistent test workspace and its Pay Runs.</p>
         {message ? <p className="notice" role="status">{message}</p> : null}
         <SignInForm />
         <div className="foot">

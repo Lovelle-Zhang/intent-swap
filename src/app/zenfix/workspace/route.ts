@@ -33,7 +33,7 @@ export async function GET(_request: Request) {
       title: "ZenFix — Overview",
       heading: "Overview",
       active: "overview",
-      lead: "Your agent payment control layer, in sandbox. Create Pay Runs and inspect how each one is decided.",
+      lead: "Your agent payment control layer, in test mode on Base Sepolia. Create Pay Runs and inspect how each one is decided.",
       bodyHtml: `${renderOnboarding(onboarding)}<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>${renderOverviewDashboard(stats, budget)}`,
       actionsHtml: `<div class="actions"><a class="btn" href="/zenfix/payruns">Open Pay Runs →</a></div>`,
     });

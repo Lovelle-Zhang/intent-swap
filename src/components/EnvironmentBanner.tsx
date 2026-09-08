@@ -21,7 +21,7 @@ export function EnvironmentBanner() {
   if (isZenfix) {
     return (
       <div className="relative z-[60] text-center py-1.5 text-[11px] tracking-[0.15em] bg-amber-950/40 border-b border-amber-800/40 text-amber-400/90">
-        SANDBOX / NO REAL FUNDS
+        TEST MODE · BASE SEPOLIA · NO MAINNET FUNDS
       </div>
     );
   }
