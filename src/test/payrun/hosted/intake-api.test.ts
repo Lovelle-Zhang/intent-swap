@@ -328,4 +328,57 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
     expect((await response.json()).decision.outcome).toBe("allowed");
   });
   });
+
+  describe.sequential("read API (GET list + by id)", () => {
+  let LIST: (request: Request) => Promise<Response>;
+  let DETAIL: (request: Request, ctx: { params: { id: string } }) => Promise<Response>;
+  let seededId: string;
+
+  beforeAll(async () => {
+    ({ GET: LIST } = await import("@/app/api/v1/payruns/route"));
+    ({ GET: DETAIL } = await import("@/app/api/v1/payruns/[id]/route"));
+    const res = await post(`Bearer ${apiKey}`, intent({ idempotencyKey: "read-api-seed", amount: "30" }));
+    seededId = (await res.json()).payRunId;
+  });
+
+  const get = (path: string, auth: string | null) => {
+    const headers: Record<string, string> = {};
+    if (auth !== null) headers.authorization = auth;
+    return new Request(`https://zenfix.test${path}`, { headers });
+  };
+
+  test("GET /payruns lists the workspace's runs newest-first with a decision summary", async () => {
+    const response = await LIST(get("/api/v1/payruns?limit=100", `Bearer ${apiKey}`));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.count).toBe(body.payRuns.length);
+    const seeded = body.payRuns.find((r: { payRunId: string }) => r.payRunId === seededId);
+    expect(seeded).toMatchObject({ agentId: "agent_ops_01", status: expect.any(String) });
+    expect(seeded.decision.outcome).toBe("allowed");
+  });
+
+  test("GET /payruns?status= and ?agentId= filter the list", async () => {
+    const byAgent = await (await LIST(get("/api/v1/payruns?agentId=agent_ops_01&limit=100", `Bearer ${apiKey}`))).json();
+    expect(byAgent.payRuns.every((r: { agentId: string }) => r.agentId === "agent_ops_01")).toBe(true);
+    const blocked = await (await LIST(get("/api/v1/payruns?status=blocked&limit=100", `Bearer ${apiKey}`))).json();
+    expect(blocked.payRuns.every((r: { status: string }) => r.status === "blocked")).toBe(true);
+  });
+
+  test("GET /payruns/{id} returns the run's decision, review, and execution fields", async () => {
+    const response = await DETAIL(get(`/api/v1/payruns/${seededId}`, `Bearer ${apiKey}`), { params: { id: seededId } });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.payRunId).toBe(seededId);
+    expect(body.decision.outcome).toBe("allowed");
+    expect(body).toHaveProperty("executionReport");
+    expect(body).toHaveProperty("review");
+  });
+
+  test("missing key is 401; an unknown id is 404", async () => {
+    expect((await LIST(get("/api/v1/payruns", null))).status).toBe(401);
+    expect((await DETAIL(get("/api/v1/payruns/payrun_nope", null), { params: { id: "payrun_nope" } })).status).toBe(401);
+    const notFound = await DETAIL(get("/api/v1/payruns/payrun_nope", `Bearer ${apiKey}`), { params: { id: "payrun_nope" } });
+    expect(notFound.status).toBe(404);
+  });
+  });
 });
