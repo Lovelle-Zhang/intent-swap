@@ -40,6 +40,7 @@ vi.mock("@/features/payrun/hosted/workspace-overview", () => ({
       payRunId: "pr_pending_1", agentId: "agent_ci", purpose: "Test invoice",
       amountAtomic: "12500000", asset: "USDC", createdAt: "2026-09-07T00:00:00.000Z",
     }],
+    byAgent: [{ agentId: "agent_ci", authorizedAtomic: "5000000", allowed: 2, needsReview: 1, blocked: 0, executed: 3 }],
   }),
 }));
 

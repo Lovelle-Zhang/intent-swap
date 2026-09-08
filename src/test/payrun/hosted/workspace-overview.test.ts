@@ -126,6 +126,16 @@ describe.sequential("workspace overview read model", () => {
     });
   });
 
+  test("breaks down today's runs per agent: authorized spend and decision counts", async () => {
+    const stats = await getOverviewStats(pool, identity(USER_A));
+    // Sorted by authorized spend desc. agent_a: allowed 1+2 + executed 3 = 6 USDC
+    // authorized; blocked+denied = 2 blocked; the 'completed' run is ignored.
+    expect(stats.byAgent).toEqual([
+      { agentId: "agent_a", authorizedAtomic: "6000000", allowed: 2, needsReview: 0, blocked: 2, executed: 1 },
+      { agentId: "agent_review", authorizedAtomic: "0", allowed: 0, needsReview: 1, blocked: 0, executed: 0 },
+    ]);
+  });
+
   test("another workspace's runs do not leak", async () => {
     const stats = await getOverviewStats(pool, identity(USER_B));
     expect(stats.today).toEqual({ allowed: 1, needsReview: 1, blocked: 0, executed: 0 });

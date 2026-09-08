@@ -46,6 +46,16 @@ function reviewCard(pending: OverviewStats["pendingReview"]): string {
   return `<div class="card"><h2>Needs your review (${pending.length})</h2>${body}</div>`;
 }
 
+function agentRow(a: OverviewStats["byAgent"][number]): string {
+  return `<tr><td><code>${escapeHtml(a.agentId || "—")}</code></td><td class="num">${escapeHtml(atomicToUsdc(a.authorizedAtomic))}</td><td class="num">${a.allowed}</td><td class="num">${a.needsReview}</td><td class="num">${a.blocked}</td><td class="num">${a.executed}</td></tr>`;
+}
+
+function byAgentCard(byAgent: OverviewStats["byAgent"]): string {
+  if (byAgent.length === 0) return "";
+  const rows = byAgent.map(agentRow).join("");
+  return `<div class="card"><h2>By agent today</h2><div class="tablewrap"><table><thead><tr><th>Agent</th><th class="num">Authorized (USDC)</th><th class="num">Allowed</th><th class="num">Needs review</th><th class="num">Blocked</th><th class="num">Executed</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
 export function renderOverviewDashboard(stats: OverviewStats, budget: BudgetState): string {
-  return `${budgetCard(budget)}${decisionsCard(stats.today)}${reviewCard(stats.pendingReview)}`;
+  return `${budgetCard(budget)}${decisionsCard(stats.today)}${byAgentCard(stats.byAgent)}${reviewCard(stats.pendingReview)}`;
 }
