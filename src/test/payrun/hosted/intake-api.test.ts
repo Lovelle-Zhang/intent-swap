@@ -13,6 +13,7 @@ const USER = "00000000-0000-4000-8000-00000000000c";
 const USER_BUDGET = "00000000-0000-4000-8000-00000000000d";
 const USER_UNLIMITED = "00000000-0000-4000-8000-00000000000e";
 const USER_AGENT = "00000000-0000-4000-8000-00000000000f";
+const USER_LIMIT = "00000000-0000-4000-8000-0000000000a0";
 
 // The route reads its Postgres pool from getHostedSqlPool(); point it at the
 // PGlite test pool so the real route handler drives the real storage.
@@ -113,7 +114,7 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
         SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid
       $$;
       CREATE ROLE zenfix_login LOGIN NOSUPERUSER NOBYPASSRLS;
-      INSERT INTO auth.users VALUES ('${USER}'::uuid), ('${USER_BUDGET}'::uuid), ('${USER_UNLIMITED}'::uuid), ('${USER_AGENT}'::uuid);
+      INSERT INTO auth.users VALUES ('${USER}'::uuid), ('${USER_BUDGET}'::uuid), ('${USER_UNLIMITED}'::uuid), ('${USER_AGENT}'::uuid), ('${USER_LIMIT}'::uuid);
     `);
     await db.exec(await loadHostedMigrationsSql());
     await db.exec("GRANT zenfix_app TO zenfix_login");
@@ -271,6 +272,58 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
 
   test("the blocked agent run did not consume — a following 10 USDC as agent_ops_01 is still allowed", async () => {
     const response = await post(`Bearer ${agentKey}`, intent({ idempotencyKey: "agent-3", amount: "10" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+  });
+
+  describe.sequential("per-agent limits (per-transaction cap + merchant allowlist)", () => {
+  // Workspace allows both acme_api and other_co with a high per-tx limit; the
+  // override tightens agent_ops_01 to a 25 USDC single-payment cap AND to only
+  // acme_api. An agent with no override is bound only by the workspace rules.
+  const identityLimit: VerifiedAuthIdentity = { userId: USER_LIMIT };
+  const LIMIT_RULES: PolicyRuleSnapshot = {
+    ...NO_REVIEW_RULES, allowedMerchantIds: ["acme_api", "other_co"],
+  };
+  let limitKey: string;
+
+  beforeAll(async () => {
+    await saveWorkspacePolicy(pool, identityLimit, LIMIT_RULES, "0", {}, {
+      agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api"] },
+    });
+    limitKey = (await createWorkspaceApiKey(pool, identityLimit, "limited agent")).key;
+  });
+
+  test("a 20 USDC payment to acme_api as agent_ops_01 is allowed (under its 25 cap, merchant allowed)", async () => {
+    const response = await post(`Bearer ${limitKey}`, intent({ idempotencyKey: "limit-ok", amount: "20" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).decision.outcome).toBe("allowed");
+  });
+
+  test("a 30 USDC payment as agent_ops_01 is blocked by its per-agent transaction cap, not the workspace limit", async () => {
+    const response = await post(`Bearer ${limitKey}`, intent({ idempotencyKey: "limit-tx", amount: "30" }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.decision.outcome).toBe("blocked");
+    expect(json.decision.reasonCodes).toContain("amount.transaction_limit_exceeded");
+  });
+
+  test("agent_ops_01 paying other_co is blocked — its allowlist narrows the workspace's allowed merchants", async () => {
+    const response = await post(`Bearer ${limitKey}`, intent({
+      idempotencyKey: "limit-merchant", amount: "20",
+      merchant: { id: "other_co", payee: "Other Co", category: "api" },
+    }));
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.decision.outcome).toBe("blocked");
+    expect(json.decision.reasonCodes).toContain("merchant.unknown");
+  });
+
+  test("an agent with no override may pay other_co — the restriction is per-agent", async () => {
+    const response = await post(`Bearer ${limitKey}`, intent({
+      idempotencyKey: "limit-free-agent", amount: "30", agentId: "agent_free",
+      merchant: { id: "other_co", payee: "Other Co", category: "api" },
+    }));
     expect(response.status).toBe(200);
     expect((await response.json()).decision.outcome).toBe("allowed");
   });

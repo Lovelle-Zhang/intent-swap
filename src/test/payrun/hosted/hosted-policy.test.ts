@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {} });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {} });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
@@ -86,6 +86,32 @@ describe("hosted policy route", () => {
       dailyBudget: "250",
     }));
     expect(store.save.mock.calls[0][3]).toBe("250000000");
+  });
+
+  test("POST parses per-agent limits and passes them to save as the sixth argument", async () => {
+    const { POST } = await loadRoute();
+    await POST(postBody({
+      transactionLimit: "100",
+      reviewThreshold: "50",
+      absoluteHardLimit: "1000",
+      agentTxLimits: "agent_ops_01 = 25",
+      agentMerchants: "agent_ops_01 = acme_api, data_co",
+    }));
+    expect(store.save.mock.calls[0][5]).toEqual({
+      agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api", "data_co"] },
+    });
+  });
+
+  test("POST with a malformed per-agent limit returns 400 and never writes", async () => {
+    const { POST } = await loadRoute();
+    const res = await POST(postBody({
+      transactionLimit: "100",
+      reviewThreshold: "50",
+      absoluteHardLimit: "1000",
+      agentTxLimits: "agent_ops_01 = lots",
+    }));
+    expect(res.status).toBe(400);
+    expect(store.save).not.toHaveBeenCalled();
   });
 
   test("POST with a malformed amount returns 400, preserves input, and never writes", async () => {

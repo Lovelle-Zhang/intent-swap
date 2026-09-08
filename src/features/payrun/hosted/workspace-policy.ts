@@ -2,6 +2,7 @@ import type { LogicalSettlementTarget, Money, PolicyRuleSnapshot } from "../doma
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import { withHostedTransaction } from "../adapters/storage/postgres/transaction";
 import { resolvePersonalWorkspace, type VerifiedAuthIdentity } from "./workspace";
+import type { AgentLimits } from "./policy-agent-limits";
 
 // 2B-policy: the workspace's editable policy — the budget caps, merchant
 // allow/block lists and review thresholds the real policy engine consumes
@@ -43,6 +44,7 @@ export interface WorkspacePolicyView {
   readonly updatedAt: string | null;
   readonly dailyBudgetAtomic: string; // atomic USDC; "0" = unlimited
   readonly agentBudgets: Record<string, string>; // agentId -> atomic USDC; {} = no per-agent caps
+  readonly agentLimits: AgentLimits; // agentId -> {perTxAtomic?, merchants?}; {} = no per-agent overrides
 }
 
 interface PolicyRow extends Record<string, unknown> {
@@ -51,6 +53,7 @@ interface PolicyRow extends Record<string, unknown> {
   readonly updated_at: string;
   readonly daily_budget_atomic: string;
   readonly agent_budgets: Record<string, string> | null;
+  readonly agent_limits: AgentLimits | null;
 }
 
 function toView(row: PolicyRow): WorkspacePolicyView {
@@ -60,6 +63,7 @@ function toView(row: PolicyRow): WorkspacePolicyView {
     updatedAt: new Date(row.updated_at).toISOString(),
     dailyBudgetAtomic: row.daily_budget_atomic,
     agentBudgets: row.agent_budgets ?? {},
+    agentLimits: row.agent_limits ?? {},
   };
 }
 
@@ -72,13 +76,13 @@ export async function getWorkspacePolicy(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const found = await client.query<PolicyRow>(
-        "SELECT rules, version, updated_at, daily_budget_atomic, agent_budgets FROM public.policies WHERE project_id = $1::uuid",
+        "SELECT rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits FROM public.policies WHERE project_id = $1::uuid",
         [workspace.projectId],
       );
       const row = found.rows[0];
       return row
         ? toView(row)
-        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {} };
+        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {} };
     },
   );
 }
@@ -89,22 +93,24 @@ export async function saveWorkspacePolicy(
   rules: PolicyRuleSnapshot,
   dailyBudgetAtomic: string,
   agentBudgets: Record<string, string>,
+  agentLimits: AgentLimits = {},
 ): Promise<WorkspacePolicyView> {
   const workspace = await resolvePersonalWorkspace(pool, identity);
   return withHostedTransaction(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const saved = await client.query<PolicyRow>(
-        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic, agent_budgets)
-         VALUES ($1::uuid, 1, $2::jsonb, $3::text, $4::jsonb)
+        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic, agent_budgets, agent_limits)
+         VALUES ($1::uuid, 1, $2::jsonb, $3::text, $4::jsonb, $5::jsonb)
          ON CONFLICT (project_id) DO UPDATE
            SET rules = EXCLUDED.rules,
                daily_budget_atomic = EXCLUDED.daily_budget_atomic,
                agent_budgets = EXCLUDED.agent_budgets,
+               agent_limits = EXCLUDED.agent_limits,
                version = public.policies.version + 1,
                updated_at = transaction_timestamp()
-         RETURNING rules, version, updated_at, daily_budget_atomic, agent_budgets`,
-        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic, JSON.stringify(agentBudgets)],
+         RETURNING rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits`,
+        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic, JSON.stringify(agentBudgets), JSON.stringify(agentLimits)],
       );
       return toView(saved.rows[0]);
     },

@@ -114,6 +114,7 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
       );
       const evaluation = buildIntakeEvaluation(
         input, workspace.projectId, policy.rules, { version: policy.version }, now, remaining, agentRemaining,
+        policy.agentLimits[input.agentId],
       );
       await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
       return json({ payRunId: evaluation.payRunId, decision: toResponseDecision(evaluation.decision) }, 200);
