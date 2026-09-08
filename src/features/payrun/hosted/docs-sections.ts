@@ -37,7 +37,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
     <p>Then branch on <span class="mono">decision.outcome</span>:</p>
     <ul>
       <li><b>allowed</b> — execute the payment on your own rail, then report it back (below).</li>
-      <li><b>needs_review</b> — a workspace owner approves or denies it on the Pay Run's page; once approved, report execution.</li>
+      <li><b>needs_review</b> — a workspace owner approves or denies it on the Pay Run's page; poll <span class="mono">GET /api/v1/payruns/{id}</span> for the outcome, then report execution once approved.</li>
       <li><b>blocked</b> — do not pay; <span class="mono">reasonCodes</span> explain why.</li>
     </ul>`,
   },
@@ -89,6 +89,23 @@ export const DOC_SECTIONS: readonly DocSection[] = [
     <p class="muted">Response</p>
     ${pre(`{ "payRunId": "payrun_...", "status": "execution_reported",
   "report": { "outcome": "executed", "providerReference": "...", "transactionHash": "0x...", "rail": "base", "reportedAt": "..." } }`)}`,
+  },
+  {
+    id: "poll",
+    title: "Check a Pay Run's status",
+    html: `<p><span class="verb">GET</span> <span class="mono">/api/v1/payruns/{payRunId}</span> · <span class="verb">GET</span> <span class="mono">/api/v1/payruns</span></p>
+    <p>Read back a run to see the human review outcome and execution state — this closes the <b>needs_review</b> loop, letting an agent poll for the owner's approve/deny before it pays.</p>
+    ${pre(`curl https://intent-swap.app/api/v1/payruns/payrun_... \\
+  -H "Authorization: Bearer zfk_live_..."`)}
+    <p class="muted">Response</p>
+    ${pre(`{
+  "payRunId": "payrun_...",
+  "status": "approved",            // policy_allowed | pending_review | approved | denied | blocked | execution_reported
+  "decision": { "outcome": "needs_review", "reasonCodes": [ ... ], "riskLevel": "medium", "checks": [ ... ] },
+  "review":   { "outcome": "approved", "decidedAt": "..." },   // null until a human decides
+  "executionReport": null          // set once you report execution
+}`)}
+    <p>List runs with <span class="mono">GET /api/v1/payruns</span> (newest first). Optional query: <span class="mono">?status=</span>, <span class="mono">?agentId=</span>, <span class="mono">?limit=</span> (default 50, max 100). Both are scoped to your workspace; an id in another workspace returns <span class="mono">404</span>.</p>`,
   },
   {
     id: "errors",
