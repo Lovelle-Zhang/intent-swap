@@ -71,7 +71,7 @@ describe.sequential("workspace policy persistence", () => {
 
   test("a workspace with no saved policy reads the defaults at version 0", async () => {
     const view = await getWorkspacePolicy(pool, identity(USER_A));
-    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null });
+    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, merchantAddresses: {} });
   });
 
   test("saving persists the rules, advances the version, and reads back", async () => {
@@ -138,6 +138,15 @@ describe.sequential("workspace policy persistence", () => {
     expect((await getWorkspacePolicy(pool, identity(USER_A))).notifyWebhookUrl).toBe("https://hooks.example.com/zenfix");
     const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null);
     expect(cleared.notifyWebhookUrl).toBeNull();
+  });
+
+  test("merchant payout addresses round-trip through save and read; default is an empty map", async () => {
+    const addresses = { acme_api: "0x1111111111111111111111111111111111111111" };
+    const saved = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null, addresses);
+    expect(saved.merchantAddresses).toEqual(addresses);
+    expect((await getWorkspacePolicy(pool, identity(USER_A))).merchantAddresses).toEqual(addresses);
+    const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null, {});
+    expect(cleared.merchantAddresses).toEqual({});
   });
 
   test("a policy is private to its workspace — another user reads only their own defaults", async () => {

@@ -187,9 +187,9 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   const TX = `0x${"a".repeat(64)}`;
   const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
   const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-  const transferReceipt = (atomic: bigint) => ({
+  const transferReceipt = (atomic: bigint, to = "b".repeat(40)) => ({
     status: "0x1",
-    logs: [{ address: USDC, topics: [TRANSFER, `0x${"0".repeat(63)}1`, `0x${"0".repeat(24)}${"b".repeat(40)}`], data: `0x${atomic.toString(16).padStart(64, "0")}` }],
+    logs: [{ address: USDC, topics: [TRANSFER, `0x${"0".repeat(63)}1`, `0x${"0".repeat(24)}${to}`], data: `0x${atomic.toString(16).padStart(64, "0")}` }],
   });
   const stubRpc = (result: unknown) =>
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ result }), { status: 200 })));
@@ -203,7 +203,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
       });
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.verification).toEqual({ verified: true, chain: "base-sepolia", amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}` });
+      expect(body.verification).toEqual({ verified: true, chain: "base-sepolia", amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}`, pinnedMerchant: false });
     } finally {
       vi.unstubAllGlobals();
     }
@@ -219,6 +219,40 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
       });
       expect(res.status).toBe(422);
       expect((await res.json()).reason).toContain("not found");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("policy_allowed");
+  });
+
+  // With a pinned merchant address, the transfer must have gone to THAT address —
+  // not merely one the agent names. This is the "paid the approved merchant" check.
+  const PINNED = "a".repeat(40);
+  test("a pinned merchant address is authoritative: a transfer to it verifies", async () => {
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
+    const payRunId = await createRun({ idempotencyKey: "exec-pinned-ok", amount: "30" });
+    stubRpc(transferReceipt(30_000_000n, PINNED)); // paid the pinned address
+    try {
+      const res = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX,
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json()).verification).toMatchObject({ verified: true, recipient: `0x${PINNED}`, pinnedMerchant: true });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("a transfer to a different address is rejected (422) even if the agent claims that recipient", async () => {
+    const payRunId = await createRun({ idempotencyKey: "exec-pinned-mismatch", amount: "30" });
+    // The tx paid some OTHER address; the agent even claims that other address —
+    // but the owner pinned acme_api to PINNED, so verification must fail.
+    stubRpc(transferReceipt(30_000_000n, "c".repeat(40)));
+    try {
+      const res = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX, recipient: `0x${"c".repeat(40)}`,
+      });
+      expect(res.status).toBe(422);
     } finally {
       vi.unstubAllGlobals();
     }
