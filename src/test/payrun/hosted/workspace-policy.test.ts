@@ -71,7 +71,7 @@ describe.sequential("workspace policy persistence", () => {
 
   test("a workspace with no saved policy reads the defaults at version 0", async () => {
     const view = await getWorkspacePolicy(pool, identity(USER_A));
-    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {} });
+    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null });
   });
 
   test("saving persists the rules, advances the version, and reads back", async () => {
@@ -130,6 +130,14 @@ describe.sequential("workspace policy persistence", () => {
 
     const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {});
     expect(cleared.agentLimits).toEqual({});
+  });
+
+  test("the notify webhook URL round-trips through save and read; default is null", async () => {
+    const saved = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, "https://hooks.example.com/zenfix");
+    expect(saved.notifyWebhookUrl).toBe("https://hooks.example.com/zenfix");
+    expect((await getWorkspacePolicy(pool, identity(USER_A))).notifyWebhookUrl).toBe("https://hooks.example.com/zenfix");
+    const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null);
+    expect(cleared.notifyWebhookUrl).toBeNull();
   });
 
   test("a policy is private to its workspace — another user reads only their own defaults", async () => {
