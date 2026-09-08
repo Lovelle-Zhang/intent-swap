@@ -33,10 +33,15 @@ function formatCreatedAt(iso: string): string {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
 }
 
+function reviewButton(payRunId: string, action: string, label: string, cls: string): string {
+  return `<form class="inline" method="post" action="/zenfix/payruns/${escapeHtml(payRunId)}/review"><input type="hidden" name="action" value="${action}"><input type="hidden" name="return" value="overview"><button class="btn sm${cls}" type="submit">${label}</button></form>`;
+}
+
 function reviewRow(item: OverviewStats["pendingReview"][number]): string {
   const amount = `${escapeHtml(atomicToUsdc(item.amountAtomic))} ${escapeHtml(item.asset || "USDC")}`;
   const href = `/zenfix/payruns/${encodeURIComponent(item.payRunId)}`;
-  return `<div class="row"><a class="link" href="${href}"><code>${escapeHtml(item.agentId)}</code></a> <span class="muted">${escapeHtml(item.purpose)}</span> <span class="muted">${amount}</span> <span class="muted">${escapeHtml(formatCreatedAt(item.createdAt))}</span></div>`;
+  const actions = `${reviewButton(item.payRunId, "approve", "Approve", "")}${reviewButton(item.payRunId, "deny", "Deny", " ghost")}`;
+  return `<div class="row"><a class="link" href="${href}"><code>${escapeHtml(item.agentId)}</code></a> <span class="muted">${escapeHtml(item.purpose)}</span> <span class="muted">${amount}</span> <span class="muted">${escapeHtml(formatCreatedAt(item.createdAt))}</span> <span style="margin-left:auto;display:inline-flex;gap:8px">${actions}</span></div>`;
 }
 
 function reviewCard(pending: OverviewStats["pendingReview"]): string {

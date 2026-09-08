@@ -12,7 +12,9 @@ import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import { escapeHtml, hostedPage } from "@/features/payrun/hosted/ui";
 
-export async function GET(request: Request) {
+// Next always invokes this with the Request; the Overview intentionally reads
+// nothing from it (workspace authorization must not depend on request inputs).
+export async function GET(_request: Request) {
   try {
     const { workspace, budget, stats } = await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();

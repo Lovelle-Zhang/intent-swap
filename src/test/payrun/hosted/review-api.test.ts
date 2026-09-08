@@ -99,9 +99,10 @@ async function createRun(overrides: Record<string, unknown>): Promise<string> {
   return (await response.json()).payRunId as string;
 }
 
-function review(id: string, action: string | null): Promise<Response> {
+function review(id: string, action: string | null, returnTo?: string): Promise<Response> {
   const form = new FormData();
   if (action !== null) form.set("action", action);
+  if (returnTo !== undefined) form.set("return", returnTo);
   return REVIEW_POST(
     new Request(`https://zenfix.test/zenfix/payruns/${id}/review`, { method: "POST", body: form }),
     { params: { id } },
@@ -204,6 +205,14 @@ describe.sequential("POST /zenfix/payruns/:id/review (human approval loop)", () 
     expect(response.status).toBe(303);
     expect(response.headers.get("location")).toBe("https://zenfix.test/zenfix/sign-in");
     expect((await getWorkspacePayRun(pool, identity, id))!.payRun.status).toBe("pending_review");
+  });
+
+  test("an inline review from the Overview queue redirects back to Overview", async () => {
+    const id = await createRun({ idempotencyKey: "review-return-overview", amount: "70" });
+    const decided = await review(id, "approve", "overview");
+    expect(decided.status).toBe(303);
+    expect(decided.headers.get("location")).toBe("https://zenfix.test/zenfix/workspace");
+    expect((await getWorkspacePayRun(pool, identity, id))!.payRun.status).toBe("approved");
   });
 
   test("an invalid action is rejected with 400", async () => {

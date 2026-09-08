@@ -28,13 +28,20 @@ export async function POST(request: Request, { params }: { params: { id: string 
   } catch {
     return new Response("ZenFix Hosted Sandbox is temporarily unavailable.", { status: 503 });
   }
-  const detailUrl = (status: string) =>
-    new URL(`/zenfix/payruns/${encodeURIComponent(id)}?status=${status}`, appOrigin);
-
   try {
     const form = await request.formData();
     const action = toAction(form.get("action"));
     if (!action) return new Response("action must be approve or deny", { status: 400 });
+    // Owners can review inline from the Overview queue; a `return=overview` field
+    // sends the redirect back there instead of to the Pay Run detail page. The
+    // Overview route intentionally reads nothing from the request URL (workspace
+    // authorization must not depend on request-supplied inputs), so the redirect
+    // carries no status param — the decided run simply leaves the review queue.
+    const backToOverview = form.get("return") === "overview";
+    const backUrl = (status: string) =>
+      backToOverview
+        ? new URL(`/zenfix/workspace`, appOrigin)
+        : new URL(`/zenfix/payruns/${encodeURIComponent(id)}?status=${status}`, appOrigin);
 
     const pool = getHostedSqlPool();
     const status = await retryOnTransientUnavailable(async () => {
@@ -53,10 +60,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
     });
 
     if (status === null) {
-      const notFound = new URL("/zenfix/payruns?error=not_found", appOrigin);
+      const notFound = backToOverview
+        ? new URL("/zenfix/workspace", appOrigin)
+        : new URL("/zenfix/payruns?error=not_found", appOrigin);
       return Response.redirect(notFound, 303);
     }
-    return Response.redirect(detailUrl(status), 303);
+    return Response.redirect(backUrl(status), 303);
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
       return Response.redirect(new URL("/zenfix/sign-in", appOrigin), 303);
