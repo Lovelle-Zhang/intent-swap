@@ -99,9 +99,14 @@ a.link{color:var(--signal);text-decoration:none;font-size:14px}
 a.link:hover{text-decoration:underline}
 .field{display:flex;flex-direction:column;gap:6px;margin-top:18px}
 .field .hint{color:var(--faint);font-size:12px}
-input[type=text],input[type=number],textarea{font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);padding:9px 13px;width:100%}
+input[type=text],input[type=number],input[type=date],textarea{font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);padding:9px 13px;width:100%}
 input[type=number]{max-width:220px;font-family:var(--font-mono)}
 input[type=text]{max-width:520px}
+/* Render the native date control (edit fields, spinners, and calendar popup) in
+   dark mode so it matches the ledger-ink shell instead of the browser default. */
+input[type=date]{color-scheme:dark;width:auto;font-family:var(--font-mono);font-size:13px;padding:8px 11px}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
+input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
 textarea{max-width:520px;min-height:62px;resize:vertical;font-family:var(--font-mono);font-size:13px}
 .suffix{display:flex;align-items:center;gap:9px}.suffix .u{font-family:var(--font-mono);font-size:12px;color:var(--faint)}
 .check{display:flex;align-items:flex-start;gap:11px;margin-top:20px;max-width:520px}
