@@ -8,6 +8,8 @@ import { resolvePersonalWorkspace } from "@/features/payrun/hosted/workspace";
 import { getBudgetState } from "@/features/payrun/hosted/workspace-budget";
 import { getOverviewStats } from "@/features/payrun/hosted/workspace-overview";
 import { renderOverviewDashboard } from "@/features/payrun/hosted/workspace-overview-view";
+import { getOnboardingState } from "@/features/payrun/hosted/onboarding";
+import { renderOnboarding } from "@/features/payrun/hosted/onboarding-view";
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import { escapeHtml, hostedPage } from "@/features/payrun/hosted/ui";
@@ -16,7 +18,7 @@ import { escapeHtml, hostedPage } from "@/features/payrun/hosted/ui";
 // nothing from it (workspace authorization must not depend on request inputs).
 export async function GET(_request: Request) {
   try {
-    const { workspace, budget, stats } = await retryOnTransientUnavailable(async () => {
+    const { workspace, budget, stats, onboarding } = await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
       const pool = getHostedSqlPool();
@@ -24,6 +26,7 @@ export async function GET(_request: Request) {
         workspace: await resolvePersonalWorkspace(pool, identity),
         budget: await getBudgetState(pool, identity),
         stats: await getOverviewStats(pool, identity),
+        onboarding: await getOnboardingState(pool, identity),
       };
     });
     const body = hostedPage({
@@ -31,7 +34,7 @@ export async function GET(_request: Request) {
       heading: "Overview",
       active: "overview",
       lead: "Your agent payment control layer, in sandbox. Create Pay Runs and inspect how each one is decided.",
-      bodyHtml: `<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>${renderOverviewDashboard(stats, budget)}`,
+      bodyHtml: `${renderOnboarding(onboarding)}<div class="card"><h2>Personal workspace</h2><dl><dt>Workspace ID</dt><dd><code>${escapeHtml(workspace.projectId)}</code></dd><dt>Mode</dt><dd>${escapeHtml(workspace.mode)}</dd></dl></div>${renderOverviewDashboard(stats, budget)}`,
       actionsHtml: `<div class="actions"><a class="btn" href="/zenfix/payruns">Open Pay Runs →</a></div>`,
     });
     return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" } });
