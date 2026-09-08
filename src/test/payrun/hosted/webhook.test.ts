@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
-  isSafeWebhookUrl, parseWebhookUrl, sendNeedsReviewWebhook, type NeedsReviewPayload,
+  isSafeWebhookUrl, isSlackWebhook, parseWebhookUrl, sendNeedsReviewWebhook, slackText, type NeedsReviewPayload,
 } from "@/features/payrun/hosted/webhook";
 
 const payload: NeedsReviewPayload = {
@@ -26,6 +26,20 @@ describe("isSafeWebhookUrl", () => {
   });
 });
 
+describe("isSlackWebhook + slackText", () => {
+  test("detects hooks.slack.com only", () => {
+    expect(isSlackWebhook("https://hooks.slack.com/services/T/B/x")).toBe(true);
+    expect(isSlackWebhook("https://hooks.example.com/x")).toBe(false);
+    expect(isSlackWebhook("not a url")).toBe(false);
+  });
+  test("renders a mrkdwn nudge with agent, amount, and a review link", () => {
+    const t = slackText({ ...payload, agentId: "aria", amount: { amountAtomic: "70000000", asset: "USDC" } });
+    expect(t).toContain("aria");
+    expect(t).toContain("70 USDC");
+    expect(t).toContain("https://intent-swap.app/zenfix/payruns/payrun_1");
+  });
+});
+
 describe("parseWebhookUrl", () => {
   test("empty = disabled (null); a safe URL passes; an unsafe one errors", () => {
     expect(parseWebhookUrl("   ")).toEqual({ ok: true, url: null });
@@ -47,6 +61,24 @@ describe("sendNeedsReviewWebhook", () => {
     expect(url).toBe("https://hooks.example.com/x");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toMatchObject({ event: "payrun.needs_review", payRunId: "payrun_1" });
+  });
+
+  test("formats a Slack incoming webhook as a Slack {text} message", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await sendNeedsReviewWebhook("https://hooks.slack.com/services/T00/B00/xyz", { ...payload, agentId: "aria", amount: { amountAtomic: "70000000", asset: "USDC" } });
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(Object.keys(sent)).toEqual(["text"]); // Slack shape, not our generic JSON
+    expect(sent.text).toContain("aria");
+    expect(sent.text).toContain("70 USDC");
+    expect(sent.text).toContain("/zenfix/payruns/payrun_1");
+  });
+
+  test("sends the generic JSON payload to a non-Slack URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await sendNeedsReviewWebhook("https://hooks.example.com/x", payload);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ event: "payrun.needs_review", payRunId: "payrun_1" });
   });
 
   test("does nothing for a null or unsafe URL", async () => {

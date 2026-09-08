@@ -1,4 +1,7 @@
+import { atomicToUsdc } from "./policy-form";
 import { escapeHtml } from "./ui";
+
+const APP_ORIGIN = "https://intent-swap.app";
 
 // Optional per-workspace needs_review notification webhook. It is an advisory
 // nudge only (no secret / no signature) — the receiver authenticates the truth
@@ -52,7 +55,7 @@ export function renderWebhookField(value: string | null): string {
   return `<div class="card"><h2>Notifications</h2>
     <div class="field"><label for="notifyWebhookUrl">Needs-review webhook</label>
     <input type="text" id="notifyWebhookUrl" name="notifyWebhookUrl" placeholder="https://your-app.example.com/zenfix/hook" value="${escapeHtml(v)}">
-    <span class="hint">Optional. When a Pay Run needs review, ZenFix POSTs an advisory nudge here (no secret) — your receiver confirms via <code>GET /api/v1/payruns/{id}</code>. Leave empty to disable.</span></div>
+    <span class="hint">Optional. When a Pay Run needs review, ZenFix POSTs an advisory nudge here (no secret) — your receiver confirms via <code>GET /api/v1/payruns/{id}</code>. Paste a <b>Slack incoming webhook</b> (<code>hooks.slack.com/…</code>) and it&rsquo;s formatted as a Slack message automatically. Leave empty to disable.</span></div>
   </div>`;
 }
 
@@ -65,17 +68,32 @@ export interface NeedsReviewPayload {
   readonly createdAt: string;
 }
 
+// A Slack incoming webhook expects {text}; anything else gets our generic JSON.
+export function isSlackWebhook(url: string): boolean {
+  try { return new URL(url).hostname === "hooks.slack.com"; } catch { return false; }
+}
+
+// Slack mrkdwn nudge — human-readable, with a link to review the run. Slack
+// renders {text} with mrkdwn by default; the receiver still confirms the truth
+// via the read API, so no secret is carried.
+export function slackText(payload: NeedsReviewPayload): string {
+  const usdc = `${atomicToUsdc(payload.amount.amountAtomic)} ${payload.amount.asset}`;
+  const link = `${APP_ORIGIN}/zenfix/payruns/${encodeURIComponent(payload.payRunId)}`;
+  return `:rotating_light: *ZenFix — a Pay Run needs your review*\nAgent \`${payload.agentId}\` wants to pay *${usdc}*.\n<${link}|Review it in ZenFix →>`;
+}
+
 // Fire-and-verify-safe: never throws, resolves whether or not delivery worked.
 // Re-checks the URL at send time (config may predate a stricter guard).
 export async function sendNeedsReviewWebhook(url: string | null, payload: NeedsReviewPayload): Promise<void> {
   if (!url || !isSafeWebhookUrl(url)) return;
+  const body = isSlackWebhook(url) ? JSON.stringify({ text: slackText(payload) }) : JSON.stringify(payload);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
   try {
     await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", "user-agent": "ZenFix-PayRun/1.0" },
-      body: JSON.stringify(payload),
+      body,
       redirect: "error",
       signal: controller.signal,
     });

@@ -108,7 +108,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
   "executionReport": null          // set once you report execution
 }`)}
     <p>List runs with <span class="mono">GET /api/v1/payruns</span> (newest first). Optional query: <span class="mono">?status=</span>, <span class="mono">?agentId=</span>, <span class="mono">?limit=</span> (default 50, max 100). Both are scoped to your workspace; an id in another workspace returns <span class="mono">404</span>.</p>
-    <p class="muted">Prefer push over polling? Set a <b>needs-review webhook</b> on the <a class="link" href="/zenfix/policy">Policy</a> page — ZenFix nudges it when a run needs a decision, and you confirm with this endpoint.</p>`,
+    <p class="muted">Prefer push over polling? Set a <b>needs-review webhook</b> on the <a class="link" href="/zenfix/policy">Policy</a> page — ZenFix nudges it when a run needs a decision, and you confirm with this endpoint. Paste a Slack incoming webhook and the nudge arrives as a Slack message.</p>`,
   },
   {
     id: "errors",
