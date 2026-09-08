@@ -9,8 +9,13 @@ import {
   parseExecutionReportBody,
 } from "./execution-report";
 import { retryOnTransientUnavailable } from "./retry";
+import { verifyBaseSepoliaUsdcTransfer } from "./onchain-verify";
 import { getWorkspacePayRun } from "./workspace-payruns";
 import { openWorkspacePersistence } from "./workspace";
+
+// When an agent claims a base-sepolia execution, ZenFix requires and verifies a
+// real on-chain USDC transfer — the outcome can no longer be merely self-reported.
+const VERIFIED_RAIL = "base-sepolia";
 
 // Execution-report webhook: ZenFix never executes payments. After an agent
 // executes an allowed payment ON ITS OWN RAIL, it reports the outcome + proof
@@ -58,6 +63,19 @@ export async function handleExecutionReport(
       if (current.status !== "policy_allowed" && current.status !== "approved") {
         return json({ error: "Pay Run is not awaiting execution", status: current.status }, 409);
       }
+      // On-chain proof: a base-sepolia "executed" claim must carry a real USDC
+      // transfer tx that we can verify (success, right token, amount >= authorized).
+      // An unverifiable claim is rejected (422) — it is never recorded as executed.
+      let verified: { amountAtomic: string; recipient: string } | null = null;
+      if (input.outcome === "executed" && input.rail === VERIFIED_RAIL) {
+        const result = await verifyBaseSepoliaUsdcTransfer(
+          input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, input.recipient,
+        );
+        if (!result.ok) {
+          return json({ error: "On-chain verification failed", reason: result.reason }, 422);
+        }
+        verified = { amountAtomic: result.amountAtomic, recipient: result.recipient };
+      }
       // The persisted run's updatedAt may be ahead of wall clock (intake stamps
       // its transitions forward), and the state machine forbids moving time
       // backwards, so clamp the report time to at least the current updatedAt.
@@ -81,6 +99,9 @@ export async function handleExecutionReport(
           outcome: report.outcome, providerReference: report.providerReference,
           transactionHash: report.transactionHash, rail: report.rail, reportedAt: report.reportedAt,
         },
+        verification: verified
+          ? { verified: true, chain: "base-sepolia", amountAtomic: verified.amountAtomic, recipient: verified.recipient }
+          : { verified: false },
       }, 200);
     } finally {
       await persistence.close();

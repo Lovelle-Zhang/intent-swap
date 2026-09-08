@@ -182,4 +182,46 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     expect((await report(payRunId, `Bearer ${apiKey}`, { providerReference: "r" })).status).toBe(400);
     expect((await report(payRunId, `Bearer ${apiKey}`, { outcome: "executed" })).status).toBe(400);
   });
+
+  // base-sepolia executions are verified on-chain (RPC is stubbed here).
+  const TX = `0x${"a".repeat(64)}`;
+  const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+  const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+  const transferReceipt = (atomic: bigint) => ({
+    status: "0x1",
+    logs: [{ address: USDC, topics: [TRANSFER, `0x${"0".repeat(63)}1`, `0x${"0".repeat(24)}${"b".repeat(40)}`], data: `0x${atomic.toString(16).padStart(64, "0")}` }],
+  });
+  const stubRpc = (result: unknown) =>
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ result }), { status: 200 })));
+
+  test("a base-sepolia executed claim is accepted only after the on-chain transfer verifies", async () => {
+    const payRunId = await createRun({ idempotencyKey: "exec-verified", amount: "30" });
+    stubRpc(transferReceipt(30_000_000n));
+    try {
+      const res = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX,
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.verification).toEqual({ verified: true, chain: "base-sepolia", amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}` });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("execution_reported");
+  });
+
+  test("a base-sepolia claim whose tx cannot be verified is rejected (422) and stays awaiting execution", async () => {
+    const payRunId = await createRun({ idempotencyKey: "exec-unverified", amount: "30" });
+    stubRpc(null); // tx not found / not yet confirmed
+    try {
+      const res = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX,
+      });
+      expect(res.status).toBe(422);
+      expect((await res.json()).reason).toContain("not found");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("policy_allowed");
+  });
 });

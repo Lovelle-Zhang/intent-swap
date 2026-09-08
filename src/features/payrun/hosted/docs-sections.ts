@@ -85,6 +85,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
     title: "Report execution back",
     html: `<p><span class="verb">POST</span> <span class="mono">/api/v1/payruns/{payRunId}/execution</span></p>
     <p>After your agent executes an <b>allowed</b> (or human-approved) payment on its own rail, report the outcome and proof. ZenFix records it and closes the run at <span class="mono">execution_reported</span>. Only a run awaiting execution accepts a report; anything else returns <span class="mono">409</span>.</p>
+    <p><b>Verified execution (recommended).</b> Report <span class="mono">rail: "base-sepolia"</span> with the real <span class="mono">transactionHash</span> (and optionally the <span class="mono">recipient</span> address). ZenFix reads the public chain and confirms the transaction succeeded, moved Base Sepolia USDC, and paid at least the authorized amount — a claim it can't verify is rejected with <span class="mono">422</span>, so an executed run on this rail is proof-backed, not self-reported. Other rails are recorded as self-reported.</p>
     ${trio(EXECUTION_CURL, EXECUTION_PY, EXECUTION_JS)}
     <p class="muted">Response</p>
     ${pre(`{ "payRunId": "payrun_...", "status": "execution_reported",
@@ -117,6 +118,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
       <li><span class="mono">401</span> — missing, malformed, unknown, or revoked API key.</li>
       <li><span class="mono">404</span> — no such Pay Run in your workspace.</li>
       <li><span class="mono">409</span> — the Pay Run is not awaiting execution (already reported, blocked, or under review).</li>
+      <li><span class="mono">422</span> — a base-sepolia execution whose on-chain transfer could not be verified (not found, reverted, wrong token, or under the authorized amount).</li>
       <li><span class="mono">503</span> — temporarily unavailable; retry with the same <span class="mono">idempotencyKey</span>.</li>
     </ul>`,
   },
