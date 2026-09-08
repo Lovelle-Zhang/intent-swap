@@ -9,6 +9,11 @@ const ZENFIX_PREFIXES = ["/sandbox", "/command-center", "/payruns", "/pilot-vali
 
 export function EnvironmentBanner() {
   const pathname = usePathname() ?? "/";
+
+  // The root is the ZenFix PayRun marketing landing — it frames its own test-mode
+  // status, so the legacy-DEX disclaimer here would only confuse. Show nothing.
+  if (pathname === "/") return null;
+
   const isZenfix = ZENFIX_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
