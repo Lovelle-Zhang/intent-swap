@@ -10,7 +10,7 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variabl
 export const metadata: Metadata = {
   title: "ZenFix PayRun — Agent Payment Control Layer",
   description:
-    "ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules, then recorded as an auditable Pay Run. Sandbox — no real funds.",
+    "ZenFix authorizes and audits every payment your AI agents attempt — checked against your rules, then verified on-chain that it really happened, to the address you approved. It never holds your funds or keys. Test mode on Base Sepolia.",
 };
 
 const CHECKS = ["Within daily budget", "Recipient allow-listed", "Policy: purchase ≤ $1"];
@@ -23,6 +23,16 @@ const STATES = [
   { c: "a", label: "Allowed", p: "Cleared every rule and executed inside budget.", rc: "reason: within_budget, recipient_ok" },
   { c: "h", label: "Held", p: "Needs a human. Parked for review, nothing moved.", rc: "reason: over_soft_limit" },
   { c: "b", label: "Blocked", p: "Violated a hard rule and was stopped cold.", rc: "reason: recipient_not_listed" },
+];
+const VERIFY = [
+  { n: "not just decided", t: "The agent pays on its own rail", d: "ZenFix never holds your funds or private keys. Your agent executes the payment itself and reports the transaction back." },
+  { n: "read the chain", t: "We confirm it really happened", d: "On Base Sepolia, ZenFix reads the public chain and checks the transaction succeeded, moved USDC, and paid at least the amount you authorized." },
+  { n: "to the right party", t: "…to the address you approved", d: "Pin a payout address per merchant and verification requires the transfer to have gone there — a claim the chain doesn't back is rejected, not recorded." },
+];
+const TRUST = [
+  { n: "isolated", t: "Your workspace, only yours", d: "Every workspace is row-level isolated in the database. One tenant can never read another's Pay Runs, policy, or keys." },
+  { n: "no custody", t: "We hold no funds, no keys", d: "ZenFix decides and verifies — it never moves money. API keys are stored only as hashes; the full key is shown once and can only be revoked." },
+  { n: "on the record", t: "Every decision is auditable", d: "Each Pay Run keeps its intent, the rule-by-rule decision, the human review, and the execution proof — an append-only trail you can read end to end." },
 ];
 
 function Logo() {
@@ -44,7 +54,7 @@ export default function HomePage() {
     <div className={`zf-home ${display.variable} ${body.variable} ${mono.variable}`}>
       <header className="bar">
         <div className="wrap">
-          <Link className="brand" href="/"><Logo /> ZenFix <span className="tag">Sandbox</span></Link>
+          <Link className="brand" href="/"><Logo /> ZenFix <span className="tag">Test mode</span></Link>
           <nav className="navlinks">
             <a href="#how">How it works</a>
             <a href="#states">Pay Runs</a>
@@ -59,15 +69,15 @@ export default function HomePage() {
           <div>
             <span className="kicker"><span className="dot" /><span className="eyebrow">Agent Payment Control Layer</span></span>
             <h1>Let agents pay.<br />On <em>your</em> terms.</h1>
-            <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then recorded as a Pay Run you can read.</p>
+            <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then <em>verified on-chain</em> that it really happened, to the address you approved. It never holds your funds or keys.</p>
             <div className="cta">
               <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
-              <a className="btn btn-ghost" href="#how">See how it works</a>
+              <a className="btn btn-ghost" href="#verify">See how it works</a>
             </div>
             <div className="trust">
-              <span><b>No real funds</b> — simulated</span>
-              <span><b>One-click</b> Google sign-in</span>
-              <span><b>Every run</b> auditable</span>
+              <span><b>Test mode</b> on Base Sepolia</span>
+              <span><b>Verified</b> on-chain, not self-reported</span>
+              <span><b>Never</b> holds funds or keys</span>
             </div>
           </div>
           <div className="payrun" role="img" aria-label="A sandbox Pay Run evaluated and allowed by policy">
@@ -102,6 +112,19 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="block" id="verify">
+        <div className="wrap">
+          <span className="eyebrow">Verified, not self-reported</span>
+          <h2 className="lead-h">&ldquo;Executed&rdquo; is a fact, not a claim.</h2>
+          <p className="lead-p">Most tools take an agent&rsquo;s word that a payment went through. ZenFix reads the chain and checks — before a Pay Run is marked done.</p>
+          <div className="flow">
+            {VERIFY.map((s, i) => (
+              <div className="step" key={s.n}>{i < 2 && <span className="wire" />}<div className="n">{s.n}</div><h3>{s.t}</h3><p>{s.d}</p></div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="block" id="states">
         <div className="wrap">
           <span className="eyebrow">Three outcomes · one vocabulary</span>
@@ -115,20 +138,33 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="block" id="trust">
+        <div className="wrap">
+          <span className="eyebrow">Built to be trusted with the decision</span>
+          <h2 className="lead-h">You keep the money. We keep the record.</h2>
+          <p className="lead-p">ZenFix is the authorization and audit layer — deliberately never the custodian.</p>
+          <div className="flow">
+            {TRUST.map((s, i) => (
+              <div className="step" key={s.n}>{i < 2 && <span className="wire" />}<div className="n">{s.n}</div><h3>{s.t}</h3><p>{s.d}</p></div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="close">
         <div className="wrap">
           <h2>Give your agents a budget,<br />not the keys.</h2>
-          <p>One click with Google. It&rsquo;s a sandbox — no real funds ever move.</p>
+          <p>One click with Google. Free while in test mode on Base Sepolia — production access on request.</p>
           <div className="cta">
             <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
-            <a className="btn btn-ghost" href="#how">See how it works</a>
+            <a className="btn btn-ghost" href="/api-docs">Read the API</a>
           </div>
         </div>
       </section>
 
       <footer className="foot">
         <div className="wrap">
-          <span>ZenFix PayRun · Sandbox — no real funds</span>
+          <span>ZenFix PayRun · Test mode — verified on Base Sepolia, no mainnet funds</span>
           <nav>
             <a href="/api-docs">API docs</a>
             <Link href="/privacy">Privacy</Link>
