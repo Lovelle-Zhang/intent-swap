@@ -5,18 +5,12 @@ import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { CanonicalPolicyDecision } from "../domain/types";
 import { resolveApiKeyIdentity } from "./api-keys";
 import { AuthUnavailableError } from "./errors";
-import { buildIntakeEvaluation, type IntakeInput } from "./intake";
+import type { IntakeInput } from "./intake";
+import { evaluateWorkspaceIntent } from "./intake-evaluate";
 import { persistIntakeDecision } from "./intake-persist";
 import { sendNeedsReviewWebhook } from "./webhook";
 import { usdcToAtomic } from "./policy-form";
 import { retryOnTransientUnavailable } from "./retry";
-import { getWorkspacePolicy } from "./workspace-policy";
-import {
-  agentRemainingAtomic,
-  computeRemainingAtomic,
-  getAgentSpentTodayAtomic,
-  getSpentTodayAtomic,
-} from "./workspace-budget";
 import { openWorkspacePersistence } from "./workspace";
 
 // 2B-intake HTTP boundary: authenticate a real external agent by bearer API key,
@@ -102,21 +96,7 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
       () => openWorkspacePersistence(pool, identity),
     );
     try {
-      const policy = await getWorkspacePolicy(pool, identity);
-      const spent = await getSpentTodayAtomic(pool, identity, workspace.projectId);
-      const remaining = computeRemainingAtomic(
-        policy.dailyBudgetAtomic, spent, policy.rules.absoluteHardLimit.amountAtomic,
-      );
-      const agentSpent = await getAgentSpentTodayAtomic(
-        pool, identity, workspace.projectId, input.agentId,
-      );
-      const agentRemaining = agentRemainingAtomic(
-        policy.agentBudgets, input.agentId, agentSpent, policy.rules.absoluteHardLimit.amountAtomic,
-      );
-      const evaluation = buildIntakeEvaluation(
-        input, workspace.projectId, policy.rules, { version: policy.version }, now, remaining, agentRemaining,
-        policy.agentLimits[input.agentId],
-      );
+      const { evaluation, policy } = await evaluateWorkspaceIntent(pool, identity, workspace.projectId, input, now);
       await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
       // Best-effort needs_review nudge; never blocks or fails the decision.
       if (evaluation.decision.outcome === "needs_review" && policy.notifyWebhookUrl) {

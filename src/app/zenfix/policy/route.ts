@@ -30,6 +30,7 @@ import {
   parseMerchantAddresses,
   renderMerchantAddressField,
 } from "@/features/payrun/hosted/merchant-registry";
+import { renderSimulateForm } from "@/features/payrun/hosted/policy-simulate";
 import { hostedPage } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ function renderPage(
     bodyHtml: renderPolicyForm(
       values,
       renderMerchantAddressField(merchantAddresses) + renderAgentLimitFields(agentLimits) + renderWebhookField(webhookUrl || null),
-    ),
+    ) + renderSimulateForm(),
   });
 }
 
