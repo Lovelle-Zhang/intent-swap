@@ -137,8 +137,10 @@ export function renderFilterBar(filter: PayRunFilter, total: number, shown: numb
   const count = active
     ? `<span class="hint">${shown} of ${total}</span><a class="link" href="/zenfix/payruns">Clear</a>`
     : `<span class="hint">${total} total</span>`;
+  const dateField = (id: string, value: string) =>
+    `<input class="datefield" type="text" inputmode="numeric" pattern="\\d{4}-\\d{2}-\\d{2}" title="Use YYYY-MM-DD" placeholder="YYYY-MM-DD" id="${id}" name="${id}" value="${escapeHtml(value)}">`;
   const dates = page
-    ? `<span class="daterange"><label for="from">From</label><input type="date" id="from" name="from" value="${escapeHtml(page.from)}"><label for="to">To</label><input type="date" id="to" name="to" value="${escapeHtml(page.to)}"></span>`
+    ? `<span class="daterange"><label for="from">From</label>${dateField("from", page.from)}<label for="to">To</label>${dateField("to", page.to)}</span>`
     : "";
   return `<div class="card"><h2>Filter</h2><form class="row" method="get" action="/zenfix/payruns"><label for="state">Status</label><select id="state" name="state">${options}</select><input type="text" name="q" value="${escapeHtml(filter.q)}" placeholder="Search agent, purpose, or ID">${dates}<button type="submit" class="btn">Filter</button>${count}</form></div>`;
 }

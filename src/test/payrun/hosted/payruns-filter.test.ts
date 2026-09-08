@@ -90,6 +90,9 @@ describe("renderFilterBar", () => {
     expect(html).toContain('name="from"');
     expect(html).toContain('value="2026-09-01"');
     expect(html).toContain("3 of 7");
+    // Locale-independent text fields, not the native (browser-localized) date picker.
+    expect(html).toContain('placeholder="YYYY-MM-DD"');
+    expect(html).not.toContain('type="date"');
   });
 });
 
