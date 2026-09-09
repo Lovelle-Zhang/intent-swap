@@ -38,6 +38,11 @@ vi.mock("@/features/payrun/hosted/workspace-budget", () => ({
 vi.mock("@/features/payrun/hosted/onboarding", () => ({
   getOnboardingState: async () => ({ hasKey: true, hasPolicy: false, hasApiRun: false, complete: false }),
 }));
+// Overview also renders spend history; stub it against the fake {} pool.
+vi.mock("@/features/payrun/hosted/spend-history", async (importActual) => {
+  const actual = await importActual<typeof import("@/features/payrun/hosted/spend-history")>();
+  return { ...actual, getSpendHistory: async () => [{ day: "2026-09-09", authorizedAtomic: "20000000", count: 1 }] };
+});
 vi.mock("@/features/payrun/hosted/workspace-overview", () => ({
   getOverviewStats: async () => ({
     today: { allowed: 2, needsReview: 1, blocked: 0, executed: 3 },

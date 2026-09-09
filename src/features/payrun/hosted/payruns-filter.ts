@@ -128,6 +128,17 @@ export function renderPager(paged: Paged<unknown>, filter: PayRunFilter, page: P
   return `<div class="row" style="margin-top:14px">${prev}<span class="hint">Page ${paged.page} of ${paged.pageCount}</span>${next}</div>`;
 }
 
+// The current filter/date as a query string for the CSV export route (no page).
+function exportHref(filter: PayRunFilter, page?: PayRunPage): string {
+  const p = new URLSearchParams();
+  if (filter.state !== "all") p.set("state", filter.state);
+  if (filter.q) p.set("q", filter.q);
+  if (page?.from) p.set("from", page.from);
+  if (page?.to) p.set("to", page.to);
+  const qs = p.toString();
+  return qs ? `/zenfix/payruns/export?${qs}` : "/zenfix/payruns/export";
+}
+
 export function renderFilterBar(filter: PayRunFilter, total: number, shown: number, page?: PayRunPage): string {
   const options = (Object.keys(STATE_LABELS) as StateFilter[])
     .map((s) => `<option value="${s}"${s === filter.state ? " selected" : ""}>${escapeHtml(STATE_LABELS[s])}</option>`)
@@ -142,5 +153,6 @@ export function renderFilterBar(filter: PayRunFilter, total: number, shown: numb
   const dates = page
     ? `<span class="daterange"><label for="from">From</label>${dateField("from", page.from)}<label for="to">To</label>${dateField("to", page.to)}</span>`
     : "";
-  return `<div class="card"><h2>Filter</h2><form class="row" method="get" action="/zenfix/payruns"><label for="state">Status</label><select id="state" name="state">${options}</select><input type="text" name="q" value="${escapeHtml(filter.q)}" placeholder="Search agent, purpose, or ID">${dates}<button type="submit" class="btn">Filter</button>${count}</form></div>`;
+  const exportLink = `<a class="link" href="${escapeHtml(exportHref(filter, page))}">Export CSV ↓</a>`;
+  return `<div class="card"><h2>Filter</h2><form class="row" method="get" action="/zenfix/payruns"><label for="state">Status</label><select id="state" name="state">${options}</select><input type="text" name="q" value="${escapeHtml(filter.q)}" placeholder="Search agent, purpose, or ID">${dates}<button type="submit" class="btn">Filter</button>${count}<span style="margin-left:auto">${exportLink}</span></form></div>`;
 }

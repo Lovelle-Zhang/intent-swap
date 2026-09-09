@@ -5,6 +5,7 @@ import type { SqlClient, SqlPool, SqlQueryResult } from "@/features/payrun/adapt
 import type { VerifiedAuthIdentity } from "@/features/payrun/hosted/workspace";
 import { resolvePersonalWorkspace } from "@/features/payrun/hosted/workspace";
 import { getOverviewStats } from "@/features/payrun/hosted/workspace-overview";
+import { getSpendHistory } from "@/features/payrun/hosted/spend-history";
 import { loadHostedMigrationsSql } from "./hosted-migrations";
 
 const USER_A = "00000000-0000-4000-8000-00000000000a";
@@ -134,6 +135,18 @@ describe.sequential("workspace overview read model", () => {
       { agentId: "agent_a", authorizedAtomic: "6000000", allowed: 2, needsReview: 0, blocked: 2, executed: 1 },
       { agentId: "agent_review", authorizedAtomic: "0", allowed: 0, needsReview: 1, blocked: 0, executed: 0 },
     ]);
+  });
+
+  test("spend history sums only authorized runs per day, scoped to the workspace", async () => {
+    // All seeded rows land on today's created_at (now()). Authorized = the two
+    // policy_allowed (1+2) + the execution_reported (3) = 6 USDC over 3 runs;
+    // pending/blocked/denied/completed do not count.
+    const history = await getSpendHistory(pool, identity(USER_A), 7);
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ authorizedAtomic: "6000000", count: 3 });
+    // Another workspace sees only its own authorized spend (5 USDC, 1 run).
+    const other = await getSpendHistory(pool, identity(USER_B), 7);
+    expect(other[0]).toMatchObject({ authorizedAtomic: "5000000", count: 1 });
   });
 
   test("another workspace's runs do not leak", async () => {
