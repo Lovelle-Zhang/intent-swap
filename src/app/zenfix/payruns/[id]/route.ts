@@ -6,6 +6,7 @@ import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
 import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import { getWorkspacePayRun, type HostedPayRunDetail } from "@/features/payrun/hosted/workspace-payruns";
+import { isVerifiedRail } from "@/features/payrun/hosted/onchain-verify";
 import { renderReview, reviewNotice } from "@/features/payrun/hosted/review-view";
 import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
@@ -54,7 +55,7 @@ function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): s
   const ledger = pr.ledgerJournal ? "balanced" : pr.ledgerDraft ? "drafted" : null;
   const stagesCard = `<div class="card"><h2>Execution</h2><div class="stages">${stage("Funding", pr.fundingPreparation?.status)}${stage("Payment", pr.paymentExecution?.status)}${stage("Proof", pr.executionProof?.verificationStatus)}${stage("Ledger", ledger)}</div></div>`;
   const report = pr.executionReport;
-  const verifiedBadge = report && report.rail === "base-sepolia"
+  const verifiedBadge = report && isVerifiedRail(report.rail)
     ? statusBadge("Verified on-chain", "ok")
     : report ? statusBadge("Self-reported", "neutral") : "";
   const reportCard = report

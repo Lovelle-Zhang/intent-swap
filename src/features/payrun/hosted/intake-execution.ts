@@ -9,15 +9,15 @@ import {
   parseExecutionReportBody,
 } from "./execution-report";
 import { retryOnTransientUnavailable } from "./retry";
-import { verifyBaseSepoliaUsdcTransfer } from "./onchain-verify";
+import { isVerifiedRail, verifyUsdcTransfer } from "./onchain-verify";
 import { lookupMerchantAddress } from "./merchant-registry";
 import { getWorkspacePolicy } from "./workspace-policy";
 import { getWorkspacePayRun } from "./workspace-payruns";
 import { openWorkspacePersistence } from "./workspace";
 
-// When an agent claims a base-sepolia execution, ZenFix requires and verifies a
-// real on-chain USDC transfer — the outcome can no longer be merely self-reported.
-const VERIFIED_RAIL = "base-sepolia";
+// When an agent claims an execution on a verified rail (base-sepolia / base-mainnet),
+// ZenFix requires and verifies a real on-chain USDC transfer — the outcome can no
+// longer be merely self-reported.
 
 // Execution-report webhook: ZenFix never executes payments. After an agent
 // executes an allowed payment ON ITS OWN RAIL, it reports the outcome + proof
@@ -68,21 +68,21 @@ export async function handleExecutionReport(
       // On-chain proof: a base-sepolia "executed" claim must carry a real USDC
       // transfer tx that we can verify (success, right token, amount >= authorized).
       // An unverifiable claim is rejected (422) — it is never recorded as executed.
-      let verified: { amountAtomic: string; recipient: string; pinnedMerchant: boolean } | null = null;
-      if (input.outcome === "executed" && input.rail === VERIFIED_RAIL) {
+      let verified: { chain: string; amountAtomic: string; recipient: string; pinnedMerchant: boolean } | null = null;
+      if (input.outcome === "executed" && isVerifiedRail(input.rail)) {
         // If the owner pinned a payout address for this merchant, that address is
         // authoritative — the transfer must have gone there, not merely to an
         // address the agent named. Otherwise fall back to the claimed recipient.
         const policy = await getWorkspacePolicy(pool, identity);
         const pinned = lookupMerchantAddress(policy.merchantAddresses, current.intent.merchant.merchantId);
         const expectedRecipient = pinned ?? input.recipient;
-        const result = await verifyBaseSepoliaUsdcTransfer(
-          input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient,
+        const result = await verifyUsdcTransfer(
+          input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient,
         );
         if (!result.ok) {
           return json({ error: "On-chain verification failed", reason: result.reason }, 422);
         }
-        verified = { amountAtomic: result.amountAtomic, recipient: result.recipient, pinnedMerchant: Boolean(pinned) };
+        verified = { chain: input.rail, amountAtomic: result.amountAtomic, recipient: result.recipient, pinnedMerchant: Boolean(pinned) };
       }
       // The persisted run's updatedAt may be ahead of wall clock (intake stamps
       // its transitions forward), and the state machine forbids moving time
@@ -108,7 +108,7 @@ export async function handleExecutionReport(
           transactionHash: report.transactionHash, rail: report.rail, reportedAt: report.reportedAt,
         },
         verification: verified
-          ? { verified: true, chain: "base-sepolia", amountAtomic: verified.amountAtomic, recipient: verified.recipient, pinnedMerchant: verified.pinnedMerchant }
+          ? { verified: true, chain: verified.chain, amountAtomic: verified.amountAtomic, recipient: verified.recipient, pinnedMerchant: verified.pinnedMerchant }
           : { verified: false },
       }, 200);
     } finally {

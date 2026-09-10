@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { isTxHash, verifyBaseSepoliaUsdcTransfer } from "@/features/payrun/hosted/onchain-verify";
+import { isTxHash, isVerifiedRail, verifyBaseSepoliaUsdcTransfer, verifyUsdcTransfer } from "@/features/payrun/hosted/onchain-verify";
 
 const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
+const USDC_MAINNET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const TX = `0x${"a".repeat(64)}`;
 const RECIPIENT = `0x${"b".repeat(40)}`;
@@ -17,6 +18,28 @@ function transferLog(to: string, atomic: bigint, token = USDC) {
 function mockReceipt(receipt: unknown) {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ result: receipt }), { status: 200 })));
 }
+
+describe("isVerifiedRail", () => {
+  test("base-sepolia and base-mainnet are verified rails; base (self-report) is not", () => {
+    expect(isVerifiedRail("base-sepolia")).toBe(true);
+    expect(isVerifiedRail("base-mainnet")).toBe(true);
+    expect(isVerifiedRail("base")).toBe(false);
+    expect(isVerifiedRail("stripe")).toBe(false);
+  });
+});
+
+describe("verifyUsdcTransfer on base-mainnet", () => {
+  afterEach(() => vi.restoreAllMocks());
+  test("verifies a transfer of the Base mainnet USDC token", async () => {
+    mockReceipt({ status: "0x1", logs: [transferLog(RECIPIENT, 20_000_000n, USDC_MAINNET)] });
+    const r = await verifyUsdcTransfer("base-mainnet", TX, "20000000");
+    expect(r).toEqual({ ok: true, amountAtomic: "20000000", recipient: RECIPIENT.toLowerCase() });
+  });
+  test("rejects a transfer of the testnet USDC token on the mainnet rail (wrong token)", async () => {
+    mockReceipt({ status: "0x1", logs: [transferLog(RECIPIENT, 20_000_000n, USDC)] }); // testnet token
+    expect((await verifyUsdcTransfer("base-mainnet", TX, "20000000")).ok).toBe(false);
+  });
+});
 
 describe("isTxHash", () => {
   test("accepts a 32-byte hex hash, rejects the rest", () => {
