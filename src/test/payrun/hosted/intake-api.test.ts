@@ -7,6 +7,7 @@ import type { VerifiedAuthIdentity } from "@/features/payrun/hosted/workspace";
 import { createWorkspaceApiKey } from "@/features/payrun/hosted/api-keys";
 import { saveWorkspacePolicy, usdcMoney } from "@/features/payrun/hosted/workspace-policy";
 import { getWorkspacePayRun, listWorkspacePayRuns } from "@/features/payrun/hosted/workspace-payruns";
+import { getWorkspaceAuditChain, verifyAuditChain } from "@/features/payrun/hosted/audit-chain";
 import { loadHostedMigrationsSql } from "./hosted-migrations";
 
 const USER = "00000000-0000-4000-8000-00000000000c";
@@ -139,6 +140,17 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
     expect(detail!.payRun.status).toBe("policy_allowed");
     expect(detail!.payRun.policyDecisions.at(-1)?.outcome).toBe("allowed");
     expect(detail!.auditEvents.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test("the persisted audit trail is a hash chain that verifies end to end", async () => {
+    const response = await post(`Bearer ${apiKey}`, intent({ idempotencyKey: "audit-chain" }));
+    const { payRunId } = await response.json();
+    const chain = await getWorkspaceAuditChain(pool, identity, payRunId);
+    expect(chain.events.length).toBeGreaterThanOrEqual(3);
+    expect(chain.headHash).toBe(chain.events[chain.events.length - 1].entryHash);
+    // Round-trips: the write-time hashes match a fresh recompute over the read-back events.
+    expect(verifyAuditChain(chain)).toEqual({ ok: true, brokenAt: null });
+    expect(chain.events[0].prevHash).toBe(chain.genesis);
   });
 
   test("an unknown merchant matches the real engine and the persisted status agrees", async () => {

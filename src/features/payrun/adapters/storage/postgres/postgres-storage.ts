@@ -21,6 +21,7 @@ import {
   VersionConflictError,
 } from "../../../domain/errors";
 import { appendAuditEvent, appendDomainOutboxEvent } from "../../../domain/invariants";
+import { AUDIT_GENESIS_HASH, hashAuditEntry } from "../audit-hash";
 import {
   approvalSchema,
   auditEventSchema,
@@ -92,6 +93,8 @@ interface AuditRow extends Record<string, unknown> {
   readonly correlation_id: string;
   readonly occurred_at: Date | string;
   readonly details: unknown;
+  readonly prev_hash: string | null;
+  readonly entry_hash: string | null;
 }
 
 interface OutboxRow extends Record<string, unknown> {
@@ -500,23 +503,28 @@ function createRepositorySet(execute: TransactionExecutor, boundProjectId: strin
       const parsed = auditEventSchema.parse(record);
       try {
         await execute(async (client) => {
-          const existing = (await client.query<AuditRow>(
+          const rows = (await client.query<AuditRow>(
             `SELECT * FROM public.audit_events
              WHERE project_id = $1::uuid AND pay_run_id = $2 ORDER BY sequence`,
             [projectId, parsed.payRunId],
-          )).rows.map(auditFromRow);
-          appendAuditEvent(existing, parsed);
+          )).rows;
+          appendAuditEvent(rows.map(auditFromRow), parsed);
+          // Chain from the prior event's entry_hash (genesis for the first).
+          const prevHash = rows.length > 0 ? (rows[rows.length - 1].entry_hash ?? AUDIT_GENESIS_HASH) : AUDIT_GENESIS_HASH;
+          const entryHash = hashAuditEntry(prevHash, parsed);
           await client.query(
             `INSERT INTO public.audit_events
               (project_id, id, pay_run_id, aggregate_type, aggregate_id, sequence,
                before_version, after_version, actor_id, actor_type, action_code,
-               reason_code, idempotency_key, correlation_id, occurred_at, details)
+               reason_code, idempotency_key, correlation_id, occurred_at, details,
+               prev_hash, entry_hash)
              VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                     $12, $13, $14, $15, $16::jsonb)`,
+                     $12, $13, $14, $15, $16::jsonb, $17, $18)`,
             [projectId, parsed.id, parsed.payRunId, parsed.aggregateType, parsed.aggregateId,
               parsed.sequence, parsed.beforeVersion, parsed.afterVersion, parsed.actor.actorId,
               parsed.actor.actorType, parsed.actionCode, parsed.reasonCode, parsed.idempotencyKey,
-              parsed.correlationId, parsed.occurredAt, JSON.stringify(parsed.details)],
+              parsed.correlationId, parsed.occurredAt, JSON.stringify(parsed.details),
+              prevHash, entryHash],
           );
         });
       } catch (error) {

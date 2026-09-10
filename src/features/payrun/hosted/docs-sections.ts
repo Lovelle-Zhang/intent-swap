@@ -124,6 +124,23 @@ export const DOC_SECTIONS: readonly DocSection[] = [
     <p class="muted">Prefer push over polling? Set a <b>needs-review webhook</b> on the <a class="link" href="/zenfix/policy">Policy</a> page — ZenFix nudges it when a run needs a decision, and you confirm with this endpoint. Paste a Slack incoming webhook and the nudge arrives as a Slack message.</p>`,
   },
   {
+    id: "audit",
+    title: "Tamper-evident audit",
+    html: `<p><span class="verb">GET</span> <span class="mono">/api/v1/payruns/{payRunId}/audit</span></p>
+    <p>Returns the run&rsquo;s full audit trail as a <b>hash chain</b> — each event carries <span class="mono">entryHash = sha256(prevHash + canonical(event))</span>, linked to the one before it. Anyone can re-derive the chain from the returned JSON and detect any altered, inserted, reordered, or dropped event — without trusting ZenFix.</p>
+    ${pre(`{
+  "payRunId": "payrun_...",
+  "genesis": "0000…",
+  "headHash": "9f2c…",
+  "events": [
+    { "sequence": 1, "actionCode": "payrun.created", "occurredAt": "...", "details": { ... },
+      "prevHash": "0000…", "entryHash": "1a7b…" },
+    { "sequence": 2, "actionCode": "payrun.transition", "prevHash": "1a7b…", "entryHash": "9f2c…" }
+  ]
+}`)}
+    <p class="muted">A zero-dependency verifier is in the repo at <span class="mono">examples/verify-audit</span>. The table is already append-only; the chain is what lets you check it independently. (Absolute non-repudiation against a full database rewrite needs the head hash anchored externally — on the roadmap.)</p>`,
+  },
+  {
     id: "errors",
     title: "Status codes",
     html: `<ul class="codes">
