@@ -2,6 +2,7 @@ import { PersistenceUnavailableError } from "../adapters/storage";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { PayRun } from "../domain/types";
 import { resolveApiKeyIdentity } from "./api-keys";
+import { isVerifiedRail } from "./onchain-verify";
 import { AuthUnavailableError } from "./errors";
 import { retryOnTransientUnavailable } from "./retry";
 import { getWorkspacePayRun, listWorkspacePayRuns, type HostedPayRunSummary } from "./workspace-payruns";
@@ -54,8 +55,8 @@ function toDetail(pr: PayRun) {
       ? {
           outcome: rep.outcome, providerReference: rep.providerReference, transactionHash: rep.transactionHash ?? null,
           rail: rep.rail, reportedAt: rep.reportedAt,
-          // A base-sepolia report only exists if it passed on-chain verification.
-          verified: rep.rail === "base-sepolia",
+          // A verified-rail report only exists if it passed on-chain verification.
+          verified: isVerifiedRail(rep.rail),
         }
       : null,
     review: rev ? { outcome: rev.outcome, decidedAt: rev.decidedAt } : null,
