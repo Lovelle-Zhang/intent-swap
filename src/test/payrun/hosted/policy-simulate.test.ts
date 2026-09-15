@@ -46,6 +46,11 @@ describe("renderSimulateForm / renderSimulateResult", () => {
     expect(html).toContain('method="get" action="/zenfix/policy/simulate"');
     expect(html).toContain('name="agentId"');
     expect(html).toContain('name="amount"');
+    // All fields the engine requires must be on the form, including payee —
+    // otherwise a plain Dry-run submits without it and always errors.
+    expect(html).toContain('name="merchantId"');
+    expect(html).toContain('name="payee"');
+    expect(html).toContain('name="category"');
   });
   test("result shows the outcome, is clearly a dry run, and lists the checks", () => {
     const html = renderSimulateResult(VALID, {
