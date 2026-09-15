@@ -71,6 +71,10 @@ export function buildExecutionReport(
 export async function commitExecutionReport(
   persistence: PayRunPersistence, projectId: string, current: PayRun,
   report: ExecutionReport, idempotencyKey: string, now: string,
+  // When set (a verified-rail executed report with a real tx), bind that
+  // transaction to this Pay Run so no other run can claim the same transfer.
+  // A reuse throws DuplicateRecordError, rolling the whole report back.
+  bindTransaction?: { readonly rail: string; readonly transactionHash: string },
 ): Promise<boolean> {
   const retention = new Date(Date.parse(now) + 365 * 24 * 60 * 60 * 1000).toISOString();
   const actor: DomainActor = report.reportedBy;
@@ -89,6 +93,15 @@ export async function commitExecutionReport(
       projectId, current.id, current.version, current.status, result.payRun,
     );
     if (cas.kind === "conflict") return false;
+    if (bindTransaction) {
+      await context.verifiedTxClaims.claim(projectId, {
+        projectId,
+        rail: bindTransaction.rail,
+        transactionHash: bindTransaction.transactionHash.toLowerCase(),
+        payRunId: current.id,
+        claimedAt: now,
+      });
+    }
     await context.idempotency.insert(projectId, result.idempotencyRecord);
     await context.auditEvents.append(projectId, result.auditEvent);
     await context.domainOutbox.append(projectId, result.outboxEvent);

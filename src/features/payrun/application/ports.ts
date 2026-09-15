@@ -130,6 +130,21 @@ export interface IdempotencyRepository {
   ): Promise<CompareAndSetResult<IdempotencyRecord>>;
 }
 
+// Binds a verified on-chain transaction to exactly one Pay Run within a project,
+// so the same transfer can't be reported to satisfy several Pay Runs. `claim`
+// throws DuplicateRecordError when (rail, transactionHash) is already bound.
+export interface VerifiedTxClaim {
+  readonly projectId: string;
+  readonly rail: string;
+  readonly transactionHash: string;
+  readonly payRunId: string;
+  readonly claimedAt: string;
+}
+
+export interface VerifiedTxClaimRepository {
+  claim(projectId: string, claim: VerifiedTxClaim): Promise<void>;
+}
+
 export interface PayRunUnitOfWorkContext {
   readonly payRuns: PayRunRepository;
   readonly approvals: ApprovalRepository;
@@ -140,6 +155,7 @@ export interface PayRunUnitOfWorkContext {
   readonly auditEvents: AuditEventRepository;
   readonly domainOutbox: DomainOutboxRepository;
   readonly idempotency: IdempotencyRepository;
+  readonly verifiedTxClaims: VerifiedTxClaimRepository;
   readonly inbox?: InboxEventRepository;
 }
 

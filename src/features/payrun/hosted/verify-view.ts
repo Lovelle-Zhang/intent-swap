@@ -8,9 +8,11 @@ import { escapeHtml } from "./ui";
 // an `executed` outcome only reaches the ledger AFTER we matched the claim to a
 // real USDC transfer (right token, amount >= authorized, receipt success). This
 // panel makes that load-bearing fact legible and links the public explorer so a
-// reader can re-check it without trusting us. What it must NOT claim: L1 finality
-// (we read the receipt, not a finalized block) or replay protection (a tx is not
-// yet bound one-to-one to this Pay Run) — see the receipt copy, kept honest.
+// reader can re-check it without trusting us. The transfer is also bound one-to-one
+// to this Pay Run (a UNIQUE (rail, transactionHash) claim recorded in the report's
+// unit of work), so the same transfer can't be reused to satisfy another run. What
+// it must still NOT claim: L1 finality — we read the receipt, not a finalized
+// block. See the receipt copy, kept honest.
 
 const SEAL = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 // Self-reported gets a clock, not a check: the outcome is claimed and awaiting
@@ -81,6 +83,12 @@ export function renderVerificationCard(
     points.push({ html: `<b>Amount ≥ authorized.</b> The on-chain transfer was at least the authorized <b>${amt}</b>.` });
   }
   points.push({ html: `<b>Confirmed on-chain.</b> The transaction receipt shows it succeeded on ${chain}.` });
+  if (v) {
+    // The one-to-one binding is enforced only for reports recorded through the
+    // verified path (which is exactly when verification is persisted), so claim
+    // it only when that proof is present.
+    points.push({ html: `<b>Bound to this Pay Run.</b> This transfer is recorded against this Pay Run alone — the same transaction can't be reused to verify another.` });
+  }
   points.push({ html: `<b>Independently checkable.</b> You don't have to trust ZenFix — open the transaction on the public explorer.` });
 
   const explore = url

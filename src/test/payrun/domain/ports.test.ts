@@ -196,6 +196,7 @@ describe("project-scoped application ports", () => {
       auditEvents: auditEventRepository,
       domainOutbox: domainOutboxRepository,
       idempotency: idempotencyRepository,
+      verifiedTxClaims: { claim: async () => undefined },
     } satisfies PayRunUnitOfWorkContext;
     const executedProjects: string[] = [];
     const unitOfWork: PayRunUnitOfWork = {
