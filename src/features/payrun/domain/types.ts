@@ -476,6 +476,17 @@ export interface ExecutionProof extends ProjectScopedRecord {
   readonly capturedAt: ISO8601;
 }
 
+// What ZenFix proved on-chain about a verified-rail execution, captured at
+// intake so the receipt can show it later. Present only when an `executed`
+// outcome on a verified rail passed on-chain verification; absent for
+// self-reported rails and for reports written before this was recorded.
+export interface ExecutionVerification {
+  readonly amountAtomic: string; // on-chain transfer amount we matched (>= authorized)
+  readonly recipient: string; // on-chain recipient the transfer went to
+  readonly sender: string | null; // payer wallet bound to the proof (null if unbound)
+  readonly pinnedMerchant: boolean; // recipient matched the owner's pinned payout address
+}
+
 export interface ExecutionReport extends ProjectScopedRecord {
   readonly payRunId: string;
   readonly outcome: "executed" | "failed";
@@ -485,6 +496,7 @@ export interface ExecutionReport extends ProjectScopedRecord {
   readonly artifactReference: string | null;
   readonly reportedAt: ISO8601;
   readonly reportedBy: DomainActor;
+  readonly verification?: ExecutionVerification;
 }
 
 export interface ArtifactProof {

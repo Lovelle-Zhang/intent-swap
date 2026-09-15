@@ -64,6 +64,24 @@ describe("hosted PayRun detail", () => {
     expect(read.get).toHaveBeenCalledWith(expect.anything(), { userId: "00000000-0000-4000-8000-00000000000a" }, "payrun_abc");
   });
 
+  test("a completed pay run on a verified rail shows the on-chain verification panel + explorer link", async () => {
+    const fixture = detailFixture();
+    const tx = `0x${"a".repeat(64)}`;
+    (fixture.payRun as Record<string, unknown>).executionReport = {
+      payRunId: "payrun_abc", outcome: "executed", providerReference: "ref_1",
+      rail: "base-mainnet", transactionHash: tx, artifactReference: null,
+      reportedAt: "2026-07-13T10:00:02.000Z", reportedBy: { kind: "agent", id: "agent_1" },
+    };
+    read.get.mockResolvedValue(fixture);
+    const { GET } = await import("@/app/zenfix/payruns/[id]/route");
+    const res = await GET(new Request("https://zenfix.test/zenfix/payruns/payrun_abc"), { params: { id: "payrun_abc" } });
+    const html = await res.text();
+    expect(html).toContain("Verified on-chain");
+    expect(html).toContain(`https://basescan.org/tx/${tx}`);
+    // Authorized amount (420000 atomic / 6 decimals) is surfaced as the honored floor.
+    expect(html).toContain("0.42");
+  });
+
   test("returns 404 when the pay run is not in the workspace", async () => {
     read.get.mockResolvedValue(null);
     const { GET } = await import("@/app/zenfix/payruns/[id]/route");

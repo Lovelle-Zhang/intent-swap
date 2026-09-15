@@ -91,7 +91,17 @@ export async function handleExecutionReport(
       // its transitions forward), and the state machine forbids moving time
       // backwards, so clamp the report time to at least the current updatedAt.
       const now = new Date(Math.max(Date.now(), Date.parse(current.updatedAt))).toISOString();
-      const report = buildExecutionReport(current, workspace.projectId, input, now);
+      const report = buildExecutionReport(
+        current, workspace.projectId, input, now,
+        // Persist what we proved on-chain (recipient, bound payer wallet, pinned
+        // match) so the receipt can show it later — verification runs only here.
+        verified
+          ? {
+              amountAtomic: verified.amountAtomic, recipient: verified.recipient,
+              sender: input.sender, pinnedMerchant: verified.pinnedMerchant,
+            }
+          : undefined,
+      );
       let committed: boolean;
       try {
         committed = await commitExecutionReport(

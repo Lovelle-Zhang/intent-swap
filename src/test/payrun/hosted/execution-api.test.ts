@@ -207,7 +207,12 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     } finally {
       vi.unstubAllGlobals();
     }
-    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("execution_reported");
+    const persisted = (await getWorkspacePayRun(pool, identity, payRunId))!.payRun;
+    expect(persisted.status).toBe("execution_reported");
+    // Tier 2: what we proved on-chain is persisted on the report for the receipt.
+    expect(persisted.executionReport?.verification).toEqual({
+      amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}`, sender: null, pinnedMerchant: false,
+    });
   });
 
   test("a base-sepolia claim whose tx cannot be verified is rejected (422) and stays awaiting execution", async () => {
@@ -279,6 +284,11 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     } finally {
       vi.unstubAllGlobals();
     }
-    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("execution_reported");
+    const persisted = (await getWorkspacePayRun(pool, identity, payRunId))!.payRun;
+    expect(persisted.status).toBe("execution_reported");
+    // The bound payer wallet and the pinned-address match are persisted for the receipt.
+    expect(persisted.executionReport?.verification).toEqual({
+      amountAtomic: "30000000", recipient: `0x${PINNED}`, sender: SENDER, pinnedMerchant: true,
+    });
   });
 });

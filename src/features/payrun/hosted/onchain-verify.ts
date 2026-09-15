@@ -40,6 +40,21 @@ export function isTxHash(value: string): boolean {
   return /^0x[0-9a-fA-F]{64}$/.test(value);
 }
 
+// Human label for a rail (the chain's display name for verified rails).
+export function railLabel(rail: string): string {
+  return isVerifiedRail(rail) ? chainFor(rail).label : rail;
+}
+
+// Public block-explorer URL for a verified rail's transaction, so anyone can
+// independently re-check the transfer we verified — credible neutrality: the
+// proof is the chain, not our word. Null for unverified rails or missing hashes.
+export function explorerTxUrl(rail: string, txHash: string | null): string | null {
+  if (!txHash || !isTxHash(txHash)) return null;
+  if (rail === "base-mainnet") return `https://basescan.org/tx/${txHash}`;
+  if (rail === "base-sepolia") return `https://sepolia.basescan.org/tx/${txHash}`;
+  return null;
+}
+
 function normalizeAddress(value: string): string {
   return value.trim().toLowerCase();
 }

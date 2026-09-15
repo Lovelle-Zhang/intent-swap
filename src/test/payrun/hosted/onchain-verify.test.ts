@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { isTxHash, isVerifiedRail, verifyBaseSepoliaUsdcTransfer, verifyUsdcTransfer } from "@/features/payrun/hosted/onchain-verify";
+import { explorerTxUrl, isTxHash, isVerifiedRail, railLabel, verifyBaseSepoliaUsdcTransfer, verifyUsdcTransfer } from "@/features/payrun/hosted/onchain-verify";
 
 const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 const USDC_MAINNET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -101,5 +101,25 @@ describe("verifyBaseSepoliaUsdcTransfer", () => {
     const r = await verifyBaseSepoliaUsdcTransfer(TX, "20000000");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toContain("RPC");
+  });
+});
+
+describe("railLabel", () => {
+  test("verified rails get a chain display name; others pass through unchanged", () => {
+    expect(railLabel("base-mainnet")).toBe("Base mainnet");
+    expect(railLabel("base-sepolia")).toBe("Base Sepolia");
+    expect(railLabel("stripe")).toBe("stripe");
+  });
+});
+
+describe("explorerTxUrl", () => {
+  test("maps each verified rail to its public Basescan transaction URL", () => {
+    expect(explorerTxUrl("base-mainnet", TX)).toBe(`https://basescan.org/tx/${TX}`);
+    expect(explorerTxUrl("base-sepolia", TX)).toBe(`https://sepolia.basescan.org/tx/${TX}`);
+  });
+  test("returns null for unverified rails, missing, or malformed hashes", () => {
+    expect(explorerTxUrl("stripe", TX)).toBeNull();
+    expect(explorerTxUrl("base-mainnet", null)).toBeNull();
+    expect(explorerTxUrl("base-mainnet", "0xnothex")).toBeNull();
   });
 });
