@@ -76,8 +76,11 @@ export async function handleExecutionReport(
         const policy = await getWorkspacePolicy(pool, identity);
         const pinned = lookupMerchantAddress(policy.merchantAddresses, current.intent.merchant.merchantId);
         const expectedRecipient = pinned ?? input.recipient;
+        // If the agent names the paying wallet, bind the proof to it too: the
+        // on-chain transfer must be FROM that wallet (x402/EIP-3009 exposes the
+        // authorizing wallet as `from` even when a facilitator submits the tx).
         const result = await verifyUsdcTransfer(
-          input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient,
+          input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient, input.sender,
         );
         if (!result.ok) {
           return json({ error: "On-chain verification failed", reason: result.reason }, 422);

@@ -70,6 +70,16 @@ describe("verifyBaseSepoliaUsdcTransfer", () => {
     expect(other.ok).toBe(false);
   });
 
+  test("binds to the paying wallet when expectedSender is given (the transfer must be FROM it)", async () => {
+    const SENDER = `0x${"1".repeat(40)}`; // transferLog's from
+    mockReceipt({ status: "0x1", logs: [transferLog(RECIPIENT, 20_000_000n)] });
+    expect((await verifyBaseSepoliaUsdcTransfer(TX, "20000000", null, SENDER)).ok).toBe(true);
+
+    mockReceipt({ status: "0x1", logs: [transferLog(RECIPIENT, 20_000_000n)] });
+    const wrongSender = await verifyBaseSepoliaUsdcTransfer(TX, "20000000", null, `0x${"9".repeat(40)}`);
+    expect(wrongSender.ok).toBe(false);
+  });
+
   test("rejects a bad hash, a reverted tx, a missing tx, an under-payment, and the wrong token", async () => {
     expect((await verifyBaseSepoliaUsdcTransfer("0xshort", "1")).ok).toBe(false);
 
