@@ -124,4 +124,25 @@ pre.curl code{font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.
 .onboard li.done .ob-body b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .onboard .ob-body b{font-size:14px}
 .onboard .ob-body p{margin:3px 0 8px;font-size:13.5px}
+.verify{position:relative;border-color:color-mix(in srgb,var(--allow) 34%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--allow) 7%,var(--surface)),var(--surface))}
+.verify.plain{border-color:color-mix(in srgb,var(--sandbox) 30%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--sandbox) 6%,var(--surface)),var(--surface))}
+.verify-head{display:flex;align-items:center;gap:13px}
+.verify-seal{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#04201C;background:var(--allow)}
+.verify.plain .verify-seal{color:#2A1E02;background:var(--sandbox)}
+.verify-seal svg{width:19px;height:19px;display:block}
+.verify-title{font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--text);line-height:1.15}
+.verify-title small{display:block;margin-top:2px;font-family:var(--font-mono);font-size:11px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.verify-lead{margin:14px 0 0;font-size:13.5px;color:var(--muted);line-height:1.55}
+.verify-points{margin:16px 0 0;list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
+.verify-points li{display:grid;grid-template-columns:16px 1fr;gap:11px;align-items:start;font-size:13.5px;color:var(--text)}
+.verify-points li b{color:var(--text);font-weight:600}
+.verify-points code{font-family:var(--font-mono);font-size:12px;color:var(--allow);background:color-mix(in srgb,var(--allow) 11%,transparent);padding:1px 5px;border-radius:5px}
+.verify.plain .verify-points li{color:var(--muted)}
+.verify-tick{margin-top:3px;width:16px;height:16px}
+.verify-tick svg{width:16px;height:16px;display:block;color:var(--allow)}
+.verify-verifyself{margin:18px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.verify-explore{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:12.5px;font-weight:500;letter-spacing:.02em;color:#04201C;background:var(--allow);border-radius:9px;padding:8px 13px;text-decoration:none;transition:filter .12s}
+.verify-explore:hover{filter:brightness(1.08)}
+.verify-explore svg{width:13px;height:13px}
+.verify-hash{font-family:var(--font-mono);font-size:12px;color:var(--faint);word-break:break-all}
 `;

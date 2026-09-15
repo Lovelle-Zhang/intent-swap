@@ -1,7 +1,7 @@
 import { sha256Canonical } from "../adapters/storage/canonical-json";
 import type { PayRunPersistence } from "../application/ports";
 import { transitionPayRun } from "../domain/state-machine";
-import type { DomainActor, ExecutionReport, PayRun } from "../domain/types";
+import type { DomainActor, ExecutionReport, ExecutionVerification, PayRun } from "../domain/types";
 
 // Execution-report input mapping + persistence. Kept apart from the HTTP handler
 // so the request/response orchestration stays small. Building and committing an
@@ -48,6 +48,7 @@ export function parseExecutionReportBody(body: unknown): ReportInput | null {
 
 export function buildExecutionReport(
   current: PayRun, projectId: string, input: ReportInput, now: string,
+  verification?: ExecutionVerification,
 ): ExecutionReport {
   return {
     id: `report_${current.id}`,
@@ -60,6 +61,7 @@ export function buildExecutionReport(
     artifactReference: input.artifactReference,
     reportedAt: now,
     reportedBy: { actorId: current.intent.agentId || "api", actorType: "agent" },
+    ...(verification ? { verification } : {}),
   };
 }
 

@@ -32,6 +32,7 @@ import {
   type ExecutionProof,
   type ExecutionProofRequest,
   type ExecutionReport,
+  type ExecutionVerification,
   type ExpiryRecord,
   type FailureRecord,
   type FundingAttempt,
@@ -1363,6 +1364,16 @@ function parseExecutionProof(
   };
 }
 
+function parseExecutionVerification(value: unknown, path: string): ExecutionVerification {
+  const record = object(value, path, ["amountAtomic", "recipient", "sender", "pinnedMerchant"]);
+  return {
+    amountAtomic: string(record.amountAtomic, `${path}.amountAtomic`),
+    recipient: string(record.recipient, `${path}.recipient`),
+    sender: nullableString(record.sender, `${path}.sender`),
+    pinnedMerchant: boolean(record.pinnedMerchant, `${path}.pinnedMerchant`),
+  };
+}
+
 function parseExecutionReport(value: unknown, path: string): ExecutionReport {
   const record = object(value, path, [
     "id",
@@ -1375,8 +1386,10 @@ function parseExecutionReport(value: unknown, path: string): ExecutionReport {
     "artifactReference",
     "reportedAt",
     "reportedBy",
+    "verification",
   ]);
   const reportedBy = object(record.reportedBy, `${path}.reportedBy`, ["actorId", "actorType"]);
+  const verification = optional(record, "verification", path, parseExecutionVerification);
   return {
     id: string(record.id, `${path}.id`),
     projectId: string(record.projectId, `${path}.projectId`),
@@ -1396,6 +1409,7 @@ function parseExecutionReport(value: unknown, path: string): ExecutionReport {
         "worker",
       ] as const),
     },
+    ...(verification ? { verification } : {}),
   };
 }
 

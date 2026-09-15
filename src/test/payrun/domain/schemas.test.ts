@@ -4,6 +4,7 @@ import {
   approvalSchema,
   evidenceReferenceSchema,
   executionProofSchema,
+  executionReportSchema,
   fundingPreparationSchema,
   moneySchema,
   payIntentSchema,
@@ -22,6 +23,7 @@ import {
   UPDATED_AT,
   buildApproval,
   buildExecutionProof,
+  buildExecutionReport,
   buildFundingPreparation,
   buildIntent,
   buildPaymentExecution,
@@ -208,6 +210,25 @@ describe("canonical runtime schemas", () => {
     expect(parsed.executionReport?.payRunId).toBe(PAY_RUN_ID);
     expect(parsed.executionReport?.outcome).toBe("executed");
     expect(JSON.parse(JSON.stringify(parsed))).toEqual(JSON.parse(JSON.stringify(payRun)));
+  });
+
+  it("parses an execution report with and without persisted on-chain verification", () => {
+    // Legacy reports (written before verification was captured) must still parse.
+    const legacy = executionReportSchema.parse(buildExecutionReport());
+    expect(legacy.verification).toBeUndefined();
+
+    const verified = executionReportSchema.parse(buildExecutionReport({
+      rail: "base-mainnet", transactionHash: `0x${"a".repeat(64)}`,
+      verification: { amountAtomic: "20000000", recipient: `0x${"c".repeat(40)}`, sender: `0x${"d".repeat(40)}`, pinnedMerchant: true },
+    }));
+    expect(verified.verification).toEqual({
+      amountAtomic: "20000000", recipient: `0x${"c".repeat(40)}`, sender: `0x${"d".repeat(40)}`, pinnedMerchant: true,
+    });
+  });
+
+  it("rejects an execution report whose verification carries an unknown field", () => {
+    const bad = { ...buildExecutionReport(), verification: { amountAtomic: "1", recipient: "0xabc", sender: null, pinnedMerchant: false, spoofed: true } };
+    expect(() => executionReportSchema.parse(bad)).toThrowError(SchemaValidationError);
   });
 
   it("rejects a nested artifact from another project", () => {
