@@ -258,4 +258,27 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     }
     expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("policy_allowed");
   });
+
+  test("binds to the paying wallet: a mismatched sender is rejected (422), the claimed one verifies", async () => {
+    const SENDER = `0x${"0".repeat(39)}1`; // transferReceipt's from
+    // Self-contained: pin acme_api, and pay to the pinned address so only the
+    // sender constraint is under test here.
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
+    const payRunId = await createRun({ idempotencyKey: "exec-payer", amount: "30" });
+    try {
+      stubRpc(transferReceipt(30_000_000n, PINNED)); // fresh Response per call (body is single-read)
+      const wrong = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX, sender: `0x${"d".repeat(40)}`,
+      });
+      expect(wrong.status).toBe(422);
+      stubRpc(transferReceipt(30_000_000n, PINNED));
+      const ok = await report(payRunId, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX, sender: SENDER,
+      });
+      expect(ok.status).toBe(200);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect((await getWorkspacePayRun(pool, identity, payRunId))!.payRun.status).toBe("execution_reported");
+  });
 });

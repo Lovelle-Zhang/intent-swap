@@ -14,7 +14,8 @@ export interface ReportInput {
   readonly transactionHash: string | null;
   readonly rail: string;
   readonly artifactReference: string | null;
-  readonly recipient: string | null; // claimed on-chain recipient (for base-sepolia verification)
+  readonly recipient: string | null; // claimed on-chain recipient (for verified-rail checks)
+  readonly sender: string | null; // claimed on-chain payer wallet (for verified-rail checks)
   readonly idempotencyKey: string | null;
 }
 
@@ -28,6 +29,7 @@ export function parseExecutionReportBody(body: unknown): ReportInput | null {
     (b.rail !== undefined && (typeof b.rail !== "string" || b.rail.length === 0)) ||
     (b.artifactReference !== undefined && typeof b.artifactReference !== "string") ||
     (b.recipient !== undefined && typeof b.recipient !== "string") ||
+    (b.sender !== undefined && typeof b.sender !== "string") ||
     (b.idempotencyKey !== undefined && typeof b.idempotencyKey !== "string")
   ) {
     return null;
@@ -39,6 +41,7 @@ export function parseExecutionReportBody(body: unknown): ReportInput | null {
     rail: typeof b.rail === "string" ? b.rail : "base",
     artifactReference: typeof b.artifactReference === "string" ? b.artifactReference : null,
     recipient: typeof b.recipient === "string" && b.recipient.length > 0 ? b.recipient : null,
+    sender: typeof b.sender === "string" && b.sender.length > 0 ? b.sender : null,
     idempotencyKey: typeof b.idempotencyKey === "string" && b.idempotencyKey.length > 0 ? b.idempotencyKey : null,
   };
 }

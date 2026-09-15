@@ -72,12 +72,16 @@ async function getReceipt(rpc: string, txHash: string): Promise<Receipt | null |
 }
 
 // Verify a USDC transfer of at least minAmountAtomic on the rail's chain. When
-// expectedRecipient is given, a qualifying transfer must be TO that address.
+// expectedRecipient is given, a qualifying transfer must be TO that address; when
+// expectedSender is given, it must also be FROM that address. (For x402/EIP-3009
+// settlements the on-chain `from` is the authorizing agent wallet even though a
+// facilitator submits the tx, so this binds the proof to the paying wallet.)
 export async function verifyUsdcTransfer(
   rail: VerifiedRail,
   txHash: string,
   minAmountAtomic: string,
   expectedRecipient?: string | null,
+  expectedSender?: string | null,
 ): Promise<VerifyResult> {
   const chain = chainFor(rail);
   if (!isTxHash(txHash)) return { ok: false, reason: "transactionHash is not a 32-byte hex hash" };
@@ -88,25 +92,32 @@ export async function verifyUsdcTransfer(
 
   const usdc = chain.usdc;
   const want = expectedRecipient ? normalizeAddress(expectedRecipient) : null;
+  const wantFrom = expectedSender ? normalizeAddress(expectedSender) : null;
   const min = BigInt(minAmountAtomic);
   for (const log of receipt.logs) {
     if (normalizeAddress(log.address) !== usdc) continue;
     if ((log.topics[0] ?? "").toLowerCase() !== TRANSFER_TOPIC) continue;
+    const from = `0x${(log.topics[1] ?? "").slice(-40)}`.toLowerCase();
     const to = `0x${(log.topics[2] ?? "").slice(-40)}`.toLowerCase();
     if (want && to !== want) continue;
+    if (wantFrom && from !== wantFrom) continue;
     let amount: bigint;
     try { amount = BigInt(log.data); } catch { continue; }
     if (amount >= min) return { ok: true, amountAtomic: amount.toString(), recipient: to };
   }
+  const constraint = [
+    wantFrom ? "from the claimed payer" : null,
+    want ? "to the claimed recipient" : null,
+  ].filter(Boolean).join(" ");
   return {
     ok: false,
-    reason: want
-      ? "no USDC transfer to the claimed recipient for at least the authorized amount was found"
+    reason: constraint
+      ? `no USDC transfer ${constraint} for at least the authorized amount was found`
       : "no USDC transfer of at least the authorized amount was found in the transaction",
   };
 }
 
 // Back-compat convenience for the Base Sepolia rail.
 export const verifyBaseSepoliaUsdcTransfer = (
-  txHash: string, minAmountAtomic: string, expectedRecipient?: string | null,
-): Promise<VerifyResult> => verifyUsdcTransfer("base-sepolia", txHash, minAmountAtomic, expectedRecipient);
+  txHash: string, minAmountAtomic: string, expectedRecipient?: string | null, expectedSender?: string | null,
+): Promise<VerifyResult> => verifyUsdcTransfer("base-sepolia", txHash, minAmountAtomic, expectedRecipient, expectedSender);
