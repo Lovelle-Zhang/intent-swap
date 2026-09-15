@@ -64,6 +64,7 @@ export function renderSimulateForm(v: SimulateValues = DEFAULTS): string {
       ${field("agentId", "Agent", v.agentId)}
       ${field("amount", "Amount", v.amount, "number")}
       ${field("merchantId", "Merchant", v.merchantId)}
+      ${field("payee", "Payee", v.payee)}
       ${field("category", "Category", v.category)}
       <button type="submit" class="btn">Dry-run</button>
     </form></div>`;
