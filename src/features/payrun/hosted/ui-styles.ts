@@ -145,4 +145,11 @@ pre.curl code{font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.
 .verify-explore:hover{filter:brightness(1.08)}
 .verify-explore svg{width:13px;height:13px}
 .verify-hash{font-family:var(--font-mono);font-size:12px;color:var(--faint);word-break:break-all}
+.verify-stamp{font-family:var(--font-mono);font-size:11px;color:var(--faint);white-space:nowrap}
+.verify-points li.warn .verify-tick svg{color:var(--sandbox)}
+.verify-points li.warn b{color:var(--sandbox)}
+.verify.plain .verify-seal{width:24px;height:24px;background:none;border:1.5px solid color-mix(in srgb,var(--sandbox) 50%,transparent);color:var(--sandbox)}
+.verify.plain .verify-seal svg{width:13px;height:13px}
+.verify.plain .verify-title{font-size:15px}
+.verify.plain .verify-lead{font-size:13px}
 `;
