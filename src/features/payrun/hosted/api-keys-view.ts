@@ -26,7 +26,7 @@ function usageCard(apiUrl: string): string {
 
 export function renderKeysBody(keys: readonly ApiKeyView[], apiUrl: string, newKey?: string): string {
   const banner = newKey
-    ? `<div class="card newkey"><h2>New key — copy it now</h2><p class="lead">This is the only time the full key is shown. Store it somewhere safe; you can revoke it anytime.</p><div class="keyval"><code>${escapeHtml(newKey)}</code></div></div>`
+    ? `<div class="card newkey"><h2>New key — copy it now</h2><p class="lead">This is the only time the full key is shown. Store it somewhere safe; you can revoke it anytime.</p><div class="keyval"><code id="new-api-key">${escapeHtml(newKey)}</code><button type="button" class="btn ghost sm copykey" onclick="navigator.clipboard.writeText(document.getElementById('new-api-key').textContent).then(()=>{this.textContent='Copied'}).catch(()=>{this.textContent='Copy failed'})">Copy</button></div></div>`
     : "";
   const createForm = `<div class="card"><h2>Create a key</h2><form class="row" method="post" action="/zenfix/keys"><input type="hidden" name="action" value="create"><label for="label">Label</label><input type="text" id="label" name="label" placeholder="e.g. production agent" maxlength="80"><button type="submit" class="btn">Create key</button></form></div>`;
   const rows = keys.length === 0

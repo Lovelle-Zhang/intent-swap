@@ -77,6 +77,9 @@ describe("hosted API keys route", () => {
     const html = await res.text();
     expect(html).toContain("New key");
     expect(html).toContain("zfk_live_PLAINTEXTSECRETvalue123456");
+    // The shown-once key gets a one-click Copy control.
+    expect(html).toContain('id="new-api-key"');
+    expect(html).toContain("navigator.clipboard.writeText");
     expect(keys.create).toHaveBeenCalledWith(expect.anything(), { userId: auth.user!.id }, "prod agent");
   });
 
