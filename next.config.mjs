@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The ZenFix home is /zenfix/workspace (the Overview). The bare /zenfix and a
+  // natural /zenfix/overview guess both 404'd with no way back in — send them to
+  // the Overview instead of a dead end. (workspace itself redirects to sign-in
+  // when unauthenticated, so this is safe pre-auth.)
+  async redirects() {
+    return [
+      { source: "/zenfix", destination: "/zenfix/workspace", permanent: false },
+      { source: "/zenfix/overview", destination: "/zenfix/workspace", permanent: false },
+    ];
+  },
   experimental: {
     // The pilot read-only surfaces read the frozen sandbox snapshot from
     // .zenfix-data/pilot-validation/ at request time via fs. Those files are
