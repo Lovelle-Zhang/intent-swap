@@ -35,9 +35,11 @@ export const API_SECTIONS: readonly DocSection[] = [
     <p><b>Verified execution (recommended).</b> Report <span class="mono">rail: "base-sepolia"</span> (testnet) or <span class="mono">rail: "base-mainnet"</span> (real USDC on Base) with the real <span class="mono">transactionHash</span> (and optionally the <span class="mono">recipient</span> address). ZenFix reads the public chain and confirms the transaction succeeded, moved that chain&rsquo;s USDC, and paid at least the authorized amount — a claim it can't verify is rejected with <span class="mono">422</span>, so an executed run on this rail is proof-backed, not self-reported. If you pin a payout address for the merchant on the <a class="link" href="/zenfix/policy">Policy</a> page, verification additionally requires the transfer to have gone to <b>that</b> address (the agent's claimed recipient can't override it). You may also pass the paying wallet as <span class="mono">sender</span>; the on-chain transfer must then also have come <b>from</b> it (for x402/EIP-3009 the authorizing wallet is the transfer's <span class="mono">from</span> even when a facilitator submits the tx). Other rails are recorded as self-reported.</p>
     <p class="muted">Trying the verified path? Fund a wallet with Base Sepolia test USDC from a faucet (e.g. Circle&rsquo;s), send the payment to your merchant&rsquo;s address using the test USDC token <span class="mono">0x036CbD53842c5426634e7929541eC2318f3dCF7e</span>, then report that transaction hash with <span class="mono">rail: "base-sepolia"</span>.</p>
     ${trio(EXECUTION_CURL, EXECUTION_PY, EXECUTION_JS)}
-    <p class="muted">Response</p>
+    <p class="muted">Response (verified rail) — the <span class="mono">verification</span> block is what makes the outcome proof-backed</p>
     ${pre(`{ "payRunId": "payrun_...", "status": "execution_reported",
-  "report": { "outcome": "executed", "providerReference": "...", "transactionHash": "0x...", "rail": "base", "reportedAt": "..." } }`)}`,
+  "report": { "outcome": "executed", "providerReference": "agent-run-42", "transactionHash": "0x...", "rail": "base-sepolia", "reportedAt": "..." },
+  "verification": { "verified": true, "chain": "base-sepolia", "amountAtomic": "20000000", "recipient": "0x...", "pinnedMerchant": true } }`)}
+    <p class="muted">On a self-reported rail (no verified transfer), <span class="mono">verification</span> is <span class="mono">{ "verified": false }</span>.</p>`,
   },
   {
     id: "poll",
