@@ -30,7 +30,10 @@ export function renderOnboarding(state: OnboardingState): string {
       `<p class="muted">Decide the limits, allowed merchants, and budgets every payment is checked against.</p><a class="link" href="/zenfix/policy">Open Policy →</a>`),
     step(state.hasApiRun, 3, "Send your agent's first intent",
       `<p class="muted">Have your agent POST an intent — ZenFix decides allow / needs&#8209;review / block and logs it. The run appears below.</p><pre class="curl"><code>${escapeHtml(FIRST_INTENT_CURL)}</code></pre><a class="link" href="/api-docs">Full API reference →</a>`),
+    step(state.hasVerifiedPayment, 4, "See a verified payment",
+      `<p class="muted">Have your agent pay on Base and report the on-chain <code>transactionHash</code> with <code>rail: "base-sepolia"</code>. ZenFix reads the chain and the run closes <b>Verified on&#8209;chain</b> — proof&#8209;backed, not self&#8209;reported. Test USDC is free from a faucet.</p><a class="link" href="/api-docs#execution">Report a verified payment →</a>`),
   ].join("");
-  const doneCount = [state.hasKey, state.hasPolicy, state.hasApiRun].filter(Boolean).length;
-  return `<div class="card"><h2>Get started · ${doneCount}/3</h2><p class="lead">Three steps to gate your first real agent payment.</p><ol class="onboard">${items}</ol></div>`;
+  const flags = [state.hasKey, state.hasPolicy, state.hasApiRun, state.hasVerifiedPayment];
+  const doneCount = flags.filter(Boolean).length;
+  return `<div class="card"><h2>Get started · ${doneCount}/${flags.length}</h2><p class="lead">Four steps from zero to a verified agent payment.</p><ol class="onboard">${items}</ol></div>`;
 }

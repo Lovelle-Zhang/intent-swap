@@ -36,7 +36,7 @@ vi.mock("@/features/payrun/hosted/workspace-budget", () => ({
 // Overview also renders the onboarding checklist; the fake {} pool cannot run
 // SQL, so stub it with a mid-progress state (key done, policy + first run not).
 vi.mock("@/features/payrun/hosted/onboarding", () => ({
-  getOnboardingState: async () => ({ hasKey: true, hasPolicy: false, hasApiRun: false, complete: false }),
+  getOnboardingState: async () => ({ hasKey: true, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false }),
 }));
 // Overview also renders spend history; stub it against the fake {} pool.
 vi.mock("@/features/payrun/hosted/spend-history", async (importActual) => {
