@@ -1,4 +1,5 @@
 import { PersistenceUnavailableError } from "../adapters/storage";
+import { DuplicateRecordError } from "../adapters/storage/errors";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import { TerminalStateError, VersionConflictError } from "../domain/errors";
 import { resolveApiKeyIdentity } from "./api-keys";
@@ -8,10 +9,8 @@ import {
   commitExecutionReport,
   parseExecutionReportBody,
 } from "./execution-report";
+import { resolveOnchainProof } from "./execution-onchain";
 import { retryOnTransientUnavailable } from "./retry";
-import { isVerifiedRail, verifyUsdcTransfer } from "./onchain-verify";
-import { lookupMerchantAddress } from "./merchant-registry";
-import { getWorkspacePolicy } from "./workspace-policy";
 import { getWorkspacePayRun } from "./workspace-payruns";
 import { openWorkspacePersistence } from "./workspace";
 
@@ -65,28 +64,14 @@ export async function handleExecutionReport(
       if (current.status !== "policy_allowed" && current.status !== "approved") {
         return json({ error: "Pay Run is not awaiting execution", status: current.status }, 409);
       }
-      // On-chain proof: a base-sepolia "executed" claim must carry a real USDC
-      // transfer tx that we can verify (success, right token, amount >= authorized).
-      // An unverifiable claim is rejected (422) — it is never recorded as executed.
-      let verified: { chain: string; amountAtomic: string; recipient: string; pinnedMerchant: boolean } | null = null;
-      if (input.outcome === "executed" && isVerifiedRail(input.rail)) {
-        // If the owner pinned a payout address for this merchant, that address is
-        // authoritative — the transfer must have gone there, not merely to an
-        // address the agent named. Otherwise fall back to the claimed recipient.
-        const policy = await getWorkspacePolicy(pool, identity);
-        const pinned = lookupMerchantAddress(policy.merchantAddresses, current.intent.merchant.merchantId);
-        const expectedRecipient = pinned ?? input.recipient;
-        // If the agent names the paying wallet, bind the proof to it too: the
-        // on-chain transfer must be FROM that wallet (x402/EIP-3009 exposes the
-        // authorizing wallet as `from` even when a facilitator submits the tx).
-        const result = await verifyUsdcTransfer(
-          input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient, input.sender,
-        );
-        if (!result.ok) {
-          return json({ error: "On-chain verification failed", reason: result.reason }, 422);
-        }
-        verified = { chain: input.rail, amountAtomic: result.amountAtomic, recipient: result.recipient, pinnedMerchant: Boolean(pinned) };
+      // On-chain proof: a verified-rail "executed" claim must carry a real USDC
+      // transfer we can verify. An unverifiable claim is rejected (422) — it is
+      // never recorded as executed. Null `verified` = a self-reported outcome.
+      const proof = await resolveOnchainProof(pool, identity, current, input);
+      if (!proof.ok) {
+        return json({ error: "On-chain verification failed", reason: proof.reason }, 422);
       }
+      const verified = proof.verified;
       // The persisted run's updatedAt may be ahead of wall clock (intake stamps
       // its transitions forward), and the state machine forbids moving time
       // backwards, so clamp the report time to at least the current updatedAt.
@@ -106,10 +91,19 @@ export async function handleExecutionReport(
       try {
         committed = await commitExecutionReport(
           persistence, workspace.projectId, current, report, input.idempotencyKey ?? payRunId, now,
+          // Bind the verified transfer to this run only when we proved it on-chain.
+          verified && input.transactionHash
+            ? { rail: input.rail, transactionHash: input.transactionHash }
+            : undefined,
         );
       } catch (error) {
         if (error instanceof TerminalStateError || error instanceof VersionConflictError) {
           return json(CONFLICT, 409);
+        }
+        // The verified transfer is already bound to another Pay Run — a reused
+        // proof. The report rolled back; this run stays awaiting execution.
+        if (error instanceof DuplicateRecordError) {
+          return json({ error: "This transaction was already used to verify another Pay Run" }, 409);
         }
         throw error;
       }

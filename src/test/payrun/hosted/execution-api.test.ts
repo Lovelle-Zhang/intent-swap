@@ -236,10 +236,12 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   test("a pinned merchant address is authoritative: a transfer to it verifies", async () => {
     await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
     const payRunId = await createRun({ idempotencyKey: "exec-pinned-ok", amount: "30" });
+    // A distinct tx per committing test: a verified transfer binds to one run only.
+    const txPinned = `0x${"1".repeat(64)}`;
     stubRpc(transferReceipt(30_000_000n, PINNED)); // paid the pinned address
     try {
       const res = await report(payRunId, `Bearer ${apiKey}`, {
-        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX,
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: txPinned,
       });
       expect(res.status).toBe(200);
       expect((await res.json()).verification).toMatchObject({ verified: true, recipient: `0x${PINNED}`, pinnedMerchant: true });
@@ -270,15 +272,16 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     // sender constraint is under test here.
     await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
     const payRunId = await createRun({ idempotencyKey: "exec-payer", amount: "30" });
+    const txPayer = `0x${"2".repeat(64)}`; // distinct tx: bound to this run only
     try {
       stubRpc(transferReceipt(30_000_000n, PINNED)); // fresh Response per call (body is single-read)
       const wrong = await report(payRunId, `Bearer ${apiKey}`, {
-        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX, sender: `0x${"d".repeat(40)}`,
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: txPayer, sender: `0x${"d".repeat(40)}`,
       });
       expect(wrong.status).toBe(422);
       stubRpc(transferReceipt(30_000_000n, PINNED));
       const ok = await report(payRunId, `Bearer ${apiKey}`, {
-        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX, sender: SENDER,
+        outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: txPayer, sender: SENDER,
       });
       expect(ok.status).toBe(200);
     } finally {
@@ -290,5 +293,55 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     expect(persisted.executionReport?.verification).toEqual({
       amountAtomic: "30000000", recipient: `0x${PINNED}`, sender: SENDER, pinnedMerchant: true,
     });
+  });
+
+  // Replay protection: a verified transfer binds to exactly one Pay Run. The same
+  // tx reported against a second run is rejected and that run stays awaiting.
+  test("a verified transaction can be claimed by only one Pay Run (reuse is 409)", async () => {
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, {}); // clear pinned
+    const reuseTx = `0x${"e".repeat(64)}`;
+    const runA = await createRun({ idempotencyKey: "reuse-a", amount: "30" });
+    const runB = await createRun({ idempotencyKey: "reuse-b", amount: "30" });
+    try {
+      stubRpc(transferReceipt(30_000_000n));
+      const first = await report(runA, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: reuseTx, rail: "base-sepolia", transactionHash: reuseTx,
+      });
+      expect(first.status).toBe(200);
+      stubRpc(transferReceipt(30_000_000n));
+      const second = await report(runB, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: reuseTx, rail: "base-sepolia", transactionHash: reuseTx,
+      });
+      expect(second.status).toBe(409);
+      expect((await second.json()).error).toContain("already used");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    // Run A keeps its report; run B rolled back atomically and stays executable.
+    expect((await getWorkspacePayRun(pool, identity, runA))!.payRun.status).toBe("execution_reported");
+    const bAfter = (await getWorkspacePayRun(pool, identity, runB))!.payRun;
+    expect(bAfter.status).toBe("policy_allowed");
+    expect(bAfter.executionReport).toBeUndefined();
+  });
+
+  // Case-insensitive binding: the same tx in different hex casing is still one claim.
+  test("transaction-hash reuse is case-insensitive", async () => {
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, {});
+    const lower = `0x${"f".repeat(64)}`;
+    const upper = `0x${"F".repeat(64)}`;
+    const runA = await createRun({ idempotencyKey: "reuse-case-a", amount: "30" });
+    const runB = await createRun({ idempotencyKey: "reuse-case-b", amount: "30" });
+    try {
+      stubRpc(transferReceipt(30_000_000n));
+      expect((await report(runA, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: lower, rail: "base-sepolia", transactionHash: lower,
+      })).status).toBe(200);
+      stubRpc(transferReceipt(30_000_000n));
+      expect((await report(runB, `Bearer ${apiKey}`, {
+        outcome: "executed", providerReference: upper, rail: "base-sepolia", transactionHash: upper,
+      })).status).toBe(409);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

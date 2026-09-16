@@ -11,6 +11,7 @@ import type {
   PayRunRepository,
   PayRunUnitOfWorkContext,
   PaymentExecutionRepository,
+  VerifiedTxClaimRepository,
 } from "../../application/ports";
 import { InvariantViolationError, ProjectScopeError, VersionConflictError } from "../../domain/errors";
 import { appendAuditEvent, appendDomainOutboxEvent } from "../../domain/invariants";
@@ -446,6 +447,27 @@ export function createRepositorySet(options: RepositoryFactoryOptions): Reposito
       }),
   };
 
+  const verifiedTxClaims: VerifiedTxClaimRepository = {
+    // Postgres enforces this with a UNIQUE (project_id, rail, transaction_hash)
+    // constraint; here the authority is the Pay Runs' own executed reports, and
+    // the coordinator serializes units of work, so scanning committed runs (bar
+    // this one) for the same verified transaction is an equivalent guard.
+    async claim(projectId, claim) {
+      assertProject(projectId, claim.projectId);
+      await guardedMutation((payload) => {
+        const reused = (payload.payRuns as unknown as PayRun[]).some(
+          (run) =>
+            run.projectId === projectId &&
+            run.id !== claim.payRunId &&
+            run.executionReport?.outcome === "executed" &&
+            run.executionReport.rail === claim.rail &&
+            (run.executionReport.transactionHash ?? "").toLowerCase() === claim.transactionHash,
+        );
+        if (reused) throw new DuplicateRecordError("verifiedTxClaims");
+      });
+    },
+  };
+
   const inbox: InboxEventRepository = {
     get(projectId, source, sourceEventId) {
       return guardedRead((envelope) =>
@@ -502,6 +524,7 @@ export function createRepositorySet(options: RepositoryFactoryOptions): Reposito
     auditEvents,
     domainOutbox,
     idempotency,
+    verifiedTxClaims,
     inbox,
   };
 }

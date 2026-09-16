@@ -12,6 +12,7 @@ import type {
   PayRunRepository,
   PayRunUnitOfWorkContext,
   PaymentExecutionRepository,
+  VerifiedTxClaimRepository,
 } from "../../../application/ports";
 import {
   AuditAppendError,
@@ -604,6 +605,25 @@ function createRepositorySet(execute: TransactionExecutor, boundProjectId: strin
     }),
   };
 
+  const verifiedTxClaims: VerifiedTxClaimRepository = {
+    async claim(projectId, claim) {
+      scoped(projectId);
+      assertProject(projectId, claim.projectId);
+      try {
+        await execute((client) =>
+          client.query(
+            `INSERT INTO public.verified_tx_claims
+              (project_id, rail, transaction_hash, pay_run_id, claimed_at)
+             VALUES ($1::uuid, $2, $3, $4, $5)`,
+            [projectId, claim.rail, claim.transactionHash, claim.payRunId, claim.claimedAt],
+          ).then(() => undefined),
+        );
+      } catch (error) {
+        mapSqlError(error, "verifiedTxClaims");
+      }
+    },
+  };
+
   const inbox: InboxEventRepository = {
     async get(projectId, source, sourceEventId) {
       scoped(projectId);
@@ -638,6 +658,7 @@ function createRepositorySet(execute: TransactionExecutor, boundProjectId: strin
     auditEvents,
     domainOutbox,
     idempotency,
+    verifiedTxClaims,
     inbox,
   };
 }

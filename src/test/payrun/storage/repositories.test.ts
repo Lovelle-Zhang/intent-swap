@@ -18,6 +18,7 @@ import type { LedgerJournal, PayRun } from "@/features/payrun/domain/types";
 import {
   buildApproval,
   buildAuditEvent,
+  buildExecutionReport,
   buildFundingPreparation,
   buildIdempotencyRecord,
   buildLedgerJournal,
@@ -558,5 +559,51 @@ describe("repository business-key uniqueness", () => {
     await expect(storage.inbox.get(PROJECT_ID, inbox.source, inbox.sourceEventId)).resolves.toEqual(
       inbox,
     );
+  });
+});
+
+describe("verifiedTxClaims (Local JSON)", () => {
+  const TX = `0x${"a".repeat(64)}`;
+
+  // A run in execution_reported whose report binds a verified transfer. The
+  // fixture's intent binds to PAY_RUN_ID, so only the report's rail/tx vary.
+  async function withBoundRun() {
+    const { storePath } = await tempStore();
+    const storage = await openStorage(storePath);
+    await storage.payRuns.insert(PROJECT_ID, {
+      ...buildPayRunAt("execution_reported"),
+      executionReport: buildExecutionReport({ rail: "base-sepolia", transactionHash: TX }),
+    });
+    return storage;
+  }
+
+  it("rejects reusing a transaction already bound to another executed run", async () => {
+    const storage = await withBoundRun();
+    await expect(
+      storage.verifiedTxClaims.claim(PROJECT_ID, {
+        projectId: PROJECT_ID, rail: "base-sepolia", transactionHash: TX.toLowerCase(),
+        payRunId: "payrun_other", claimedAt: UPDATED_AT,
+      }),
+    ).rejects.toBeInstanceOf(DuplicateRecordError);
+  });
+
+  it("allows a fresh transaction and ignores the claiming run's own report", async () => {
+    const storage = await withBoundRun();
+
+    // A different transaction is free to bind.
+    await expect(
+      storage.verifiedTxClaims.claim(PROJECT_ID, {
+        projectId: PROJECT_ID, rail: "base-sepolia", transactionHash: `0x${"b".repeat(64)}`,
+        payRunId: "payrun_new", claimedAt: UPDATED_AT,
+      }),
+    ).resolves.toBeUndefined();
+
+    // The run re-binding its OWN transaction is not a reuse.
+    await expect(
+      storage.verifiedTxClaims.claim(PROJECT_ID, {
+        projectId: PROJECT_ID, rail: "base-sepolia", transactionHash: TX.toLowerCase(),
+        payRunId: PAY_RUN_ID, claimedAt: UPDATED_AT,
+      }),
+    ).resolves.toBeUndefined();
   });
 });
