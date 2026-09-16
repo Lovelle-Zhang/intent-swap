@@ -19,6 +19,12 @@ describe("public API docs page", () => {
     expect(html).toContain("/api/v1/payruns/{payRunId}/execution");
     expect(html).toContain("Authorization: Bearer zfk_live_");
     expect(html).toContain("execution_reported");
+    // the recommended verified path is copy-pasteable and its proof-backed
+    // response (the verification block) is shown, not just the self-reported one
+    expect(html).toContain("base-sepolia");
+    expect(html).toContain("sender");
+    expect(html).toContain("verification");
+    expect(html).toContain("pinnedMerchant");
     // decision outcomes + a couple of status codes
     for (const token of ["allowed", "needs_review", "blocked", "401", "409"]) {
       expect(html).toContain(token);

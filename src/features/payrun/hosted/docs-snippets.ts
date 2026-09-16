@@ -48,17 +48,23 @@ export const DECISION_JS = `const res = await fetch("${BASE}/api/v1/payruns", {
 });
 const { payRunId, decision } = await res.json();`;
 
+// The recommended, verified path: report the real on-chain transfer so the run
+// closes proof-backed, not self-reported. `sender` binds the proof to the paying
+// wallet (x402/EIP-3009). Drop rail/transactionHash/sender to record a plain
+// self-reported outcome instead.
 export const EXECUTION_CURL = `curl -X POST ${BASE}/api/v1/payruns/PAYRUN_ID/execution \\
   -H "Authorization: Bearer zfk_live_..." \\
   -H "Content-Type: application/json" \\
-  -d '{ "outcome": "executed", "providerReference": "stripe_pi_3Q...",
-        "transactionHash": "0x...", "rail": "base" }'`;
+  -d '{ "outcome": "executed", "providerReference": "agent-run-42",
+        "rail": "base-sepolia", "transactionHash": "0x...",
+        "sender": "0xYourAgentWallet" }'`;
 
 export const EXECUTION_PY = `requests.post(
     f"${BASE}/api/v1/payruns/{pay_run_id}/execution",
     headers={"Authorization": "Bearer zfk_live_..."},
-    json={"outcome": "executed", "providerReference": "stripe_pi_3Q...",
-          "transactionHash": "0x...", "rail": "base"},
+    json={"outcome": "executed", "providerReference": "agent-run-42",
+          "rail": "base-sepolia", "transactionHash": "0x...",
+          "sender": "0xYourAgentWallet"},
 )`;
 
 export const EXECUTION_JS = `await fetch(\`${BASE}/api/v1/payruns/\${payRunId}/execution\`, {
@@ -69,8 +75,9 @@ export const EXECUTION_JS = `await fetch(\`${BASE}/api/v1/payruns/\${payRunId}/e
   },
   body: JSON.stringify({
     outcome: "executed",
-    providerReference: "stripe_pi_3Q...",
+    providerReference: "agent-run-42",
+    rail: "base-sepolia",
     transactionHash: "0x...",
-    rail: "base",
+    sender: "0xYourAgentWallet",
   }),
 });`;
