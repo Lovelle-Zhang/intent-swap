@@ -63,6 +63,28 @@ async function seedApiRun(projectId: string, id: string): Promise<void> {
   );
 }
 
+// A run closed with an on-chain-verified payment: the executionReport carries a
+// `verification` object (what the onboarding query looks for).
+async function seedVerifiedRun(projectId: string, id: string): Promise<void> {
+  const document = {
+    projectId, id, version: 2, status: "execution_reported",
+    intent: {
+      agentId: "agent_ops_01", purpose: "verified pay", source: "api",
+      quotedAmount: { amountAtomic: "20000000", asset: "USDC" }, createdAt: "2026-09-08T00:00:00.000Z",
+    },
+    executionReport: {
+      outcome: "executed", rail: "base-sepolia", transactionHash: "0xabc",
+      verification: { amountAtomic: "20000000", recipient: "0xrecipient", sender: null, pinnedMerchant: false },
+    },
+  };
+  await db.exec("RESET ROLE;");
+  await db.query(
+    `INSERT INTO public.pay_runs (project_id, id, version, status, document)
+     VALUES ($1::uuid, $2, 2, 'execution_reported', $3::jsonb)`,
+    [projectId, id, JSON.stringify(document)],
+  );
+}
+
 describe.sequential("onboarding activation state", () => {
   let project: string;
 
@@ -85,34 +107,44 @@ describe.sequential("onboarding activation state", () => {
 
   afterAll(async () => db?.close());
 
-  test("a fresh workspace has all three steps incomplete", async () => {
+  test("a fresh workspace has all four steps incomplete", async () => {
     expect(await getOnboardingState(pool, identity)).toEqual({
-      hasKey: false, hasPolicy: false, hasApiRun: false, complete: false,
+      hasKey: false, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false,
     });
   });
 
-  test("creating a key, saving a policy, and an api-source run each flip a step; then it completes", async () => {
+  test("key, policy, api-run, and a verified payment each flip a step; only all four complete it", async () => {
     await createWorkspaceApiKey(pool, identity, "first key");
-    expect(await getOnboardingState(pool, identity)).toMatchObject({ hasKey: true, hasPolicy: false, hasApiRun: false, complete: false });
+    expect(await getOnboardingState(pool, identity)).toMatchObject({ hasKey: true, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false });
 
     await saveWorkspacePolicy(pool, identity, DEFAULT_POLICY_RULES, "0", {});
     expect(await getOnboardingState(pool, identity)).toMatchObject({ hasKey: true, hasPolicy: true, hasApiRun: false, complete: false });
 
+    // An api-source intent flips step 3 but the checklist is NOT complete — the
+    // finish line is a verified payment, not merely a decided intent.
     await seedApiRun(project, "pr_api_1");
-    expect(await getOnboardingState(pool, identity)).toEqual({ hasKey: true, hasPolicy: true, hasApiRun: true, complete: true });
+    expect(await getOnboardingState(pool, identity)).toMatchObject({ hasApiRun: true, hasVerifiedPayment: false, complete: false });
+
+    await seedVerifiedRun(project, "pr_verified_1");
+    expect(await getOnboardingState(pool, identity)).toEqual({
+      hasKey: true, hasPolicy: true, hasApiRun: true, hasVerifiedPayment: true, complete: true,
+    });
   });
 });
 
 describe("renderOnboarding", () => {
-  test("renders a 3-step checklist with progress while incomplete", () => {
-    const html = renderOnboarding({ hasKey: true, hasPolicy: false, hasApiRun: false, complete: false });
-    expect(html).toContain("Get started · 1/3");
+  test("renders a 4-step checklist with progress while incomplete", () => {
+    const html = renderOnboarding({ hasKey: true, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false });
+    expect(html).toContain("Get started · 1/4");
     expect(html).toContain("Create an API key");
     expect(html).toContain("Set your policy");
     expect(html).toContain("first intent"); // title has an apostrophe → escaped in HTML
     expect(html).toContain("/api/v1/payruns"); // the copy-paste curl
+    // the finish line: a verified on-chain payment
+    expect(html).toContain("See a verified payment");
+    expect(html).toContain("/api-docs#execution");
   });
   test("is empty once complete", () => {
-    expect(renderOnboarding({ hasKey: true, hasPolicy: true, hasApiRun: true, complete: true })).toBe("");
+    expect(renderOnboarding({ hasKey: true, hasPolicy: true, hasApiRun: true, hasVerifiedPayment: true, complete: true })).toBe("");
   });
 });
