@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import type { EmailMessage } from "@/features/payrun/hosted/email";
 import {
   deliverVerifiedPayment,
   type VerifiedNotification,
@@ -30,7 +31,7 @@ function deps(over: Partial<VerifiedNotifyDeps>): VerifiedNotifyDeps {
 
 describe("deliverVerifiedPayment", () => {
   test("sends the rendered receipt to the owner when enabled and address known", async () => {
-    const send = vi.fn(async () => true);
+    const send = vi.fn(async (_message: EmailMessage) => true);
     const result = await deliverVerifiedPayment(INPUT, deps({ send }));
     expect(result).toBe(true);
     expect(send).toHaveBeenCalledTimes(1);
