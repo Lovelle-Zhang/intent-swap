@@ -71,7 +71,7 @@ describe.sequential("workspace policy persistence", () => {
 
   test("a workspace with no saved policy reads the defaults at version 0", async () => {
     const view = await getWorkspacePolicy(pool, identity(USER_A));
-    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, merchantAddresses: {} });
+    expect(view).toEqual({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, notifyEmailEnabled: true, merchantAddresses: {} });
   });
 
   test("saving persists the rules, advances the version, and reads back", async () => {
@@ -138,6 +138,16 @@ describe.sequential("workspace policy persistence", () => {
     expect((await getWorkspacePolicy(pool, identity(USER_A))).notifyWebhookUrl).toBe("https://hooks.example.com/zenfix");
     const cleared = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null);
     expect(cleared.notifyWebhookUrl).toBeNull();
+  });
+
+  test("the verified-payment email flag round-trips; default is on (opt-out)", async () => {
+    // Unsaved workspaces default to on, so the receipt fires without setup.
+    expect((await getWorkspacePolicy(pool, identity(USER_A))).notifyEmailEnabled).toBe(true);
+    const off = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null, {}, false);
+    expect(off.notifyEmailEnabled).toBe(false);
+    expect((await getWorkspacePolicy(pool, identity(USER_A))).notifyEmailEnabled).toBe(false);
+    const back = await saveWorkspacePolicy(pool, identity(USER_A), DEFAULT_POLICY_RULES, "0", {}, {}, null, {}, true);
+    expect(back.notifyEmailEnabled).toBe(true);
   });
 
   test("merchant payout addresses round-trip through save and read; default is an empty map", async () => {

@@ -47,6 +47,7 @@ export interface WorkspacePolicyView {
   readonly agentBudgets: Record<string, string>; // agentId -> atomic USDC; {} = no per-agent caps
   readonly agentLimits: AgentLimits; // agentId -> {perTxAtomic?, merchants?}; {} = no per-agent overrides
   readonly notifyWebhookUrl: string | null; // needs_review notification target; null = disabled
+  readonly notifyEmailEnabled: boolean; // owner email for a verified on-chain payment; opt-out (default true)
   readonly merchantAddresses: MerchantAddresses; // merchantId -> pinned payout address; {} = none
 }
 
@@ -58,6 +59,7 @@ interface PolicyRow extends Record<string, unknown> {
   readonly agent_budgets: Record<string, string> | null;
   readonly agent_limits: AgentLimits | null;
   readonly notify_webhook_url: string | null;
+  readonly notify_email_enabled: boolean | null;
   readonly merchant_addresses: MerchantAddresses | null;
 }
 
@@ -70,6 +72,7 @@ function toView(row: PolicyRow): WorkspacePolicyView {
     agentBudgets: row.agent_budgets ?? {},
     agentLimits: row.agent_limits ?? {},
     notifyWebhookUrl: row.notify_webhook_url ?? null,
+    notifyEmailEnabled: row.notify_email_enabled ?? true,
     merchantAddresses: row.merchant_addresses ?? {},
   };
 }
@@ -83,13 +86,13 @@ export async function getWorkspacePolicy(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const found = await client.query<PolicyRow>(
-        "SELECT rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, merchant_addresses FROM public.policies WHERE project_id = $1::uuid",
+        "SELECT rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, notify_email_enabled, merchant_addresses FROM public.policies WHERE project_id = $1::uuid",
         [workspace.projectId],
       );
       const row = found.rows[0];
       return row
         ? toView(row)
-        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, merchantAddresses: {} };
+        : { rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, notifyEmailEnabled: true, merchantAddresses: {} };
     },
   );
 }
@@ -103,14 +106,15 @@ export async function saveWorkspacePolicy(
   agentLimits: AgentLimits = {},
   notifyWebhookUrl: string | null = null,
   merchantAddresses: MerchantAddresses = {},
+  notifyEmailEnabled: boolean = true,
 ): Promise<WorkspacePolicyView> {
   const workspace = await resolvePersonalWorkspace(pool, identity);
   return withHostedTransaction(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
     async (client) => {
       const saved = await client.query<PolicyRow>(
-        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, merchant_addresses)
-         VALUES ($1::uuid, 1, $2::jsonb, $3::text, $4::jsonb, $5::jsonb, $6::text, $7::jsonb)
+        `INSERT INTO public.policies (project_id, version, rules, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, merchant_addresses, notify_email_enabled)
+         VALUES ($1::uuid, 1, $2::jsonb, $3::text, $4::jsonb, $5::jsonb, $6::text, $7::jsonb, $8::boolean)
          ON CONFLICT (project_id) DO UPDATE
            SET rules = EXCLUDED.rules,
                daily_budget_atomic = EXCLUDED.daily_budget_atomic,
@@ -118,10 +122,11 @@ export async function saveWorkspacePolicy(
                agent_limits = EXCLUDED.agent_limits,
                notify_webhook_url = EXCLUDED.notify_webhook_url,
                merchant_addresses = EXCLUDED.merchant_addresses,
+               notify_email_enabled = EXCLUDED.notify_email_enabled,
                version = public.policies.version + 1,
                updated_at = transaction_timestamp()
-         RETURNING rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, merchant_addresses`,
-        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic, JSON.stringify(agentBudgets), JSON.stringify(agentLimits), notifyWebhookUrl, JSON.stringify(merchantAddresses)],
+         RETURNING rules, version, updated_at, daily_budget_atomic, agent_budgets, agent_limits, notify_webhook_url, notify_email_enabled, merchant_addresses`,
+        [workspace.projectId, JSON.stringify(rules), dailyBudgetAtomic, JSON.stringify(agentBudgets), JSON.stringify(agentLimits), notifyWebhookUrl, JSON.stringify(merchantAddresses), notifyEmailEnabled],
       );
       return toView(saved.rows[0]);
     },

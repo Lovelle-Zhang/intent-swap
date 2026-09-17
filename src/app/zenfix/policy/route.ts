@@ -51,6 +51,7 @@ function renderPage(
   values: PolicyFormValues,
   agentLimits: AgentLimitFormValues,
   webhookUrl: string,
+  emailEnabled: boolean,
   merchantAddresses: string,
   opts: { readonly saved?: boolean; readonly error?: string },
 ): string {
@@ -63,7 +64,7 @@ function renderPage(
     noticeVariant: opts.error ? "warn" : undefined,
     bodyHtml: renderPolicyForm(
       values,
-      renderMerchantAddressField(merchantAddresses) + renderAgentLimitFields(agentLimits) + renderWebhookField(webhookUrl || null),
+      renderMerchantAddressField(merchantAddresses) + renderAgentLimitFields(agentLimits) + renderWebhookField(webhookUrl || null, emailEnabled),
     ) + renderSimulateForm() + (opts.saved ? SAVED_TOAST : "") + POLICY_SCROLL_SCRIPT,
   });
 }
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
         valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets),
         agentLimitValuesFromLimits(view.agentLimits),
         view.notifyWebhookUrl ?? "",
+        view.notifyEmailEnabled,
         merchantAddressesToText(view.merchantAddresses),
         { saved },
       ),
@@ -113,6 +115,7 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const agentLimitValues = agentLimitValuesFromForm(form);
   const webhookRaw = String(form.get("notifyWebhookUrl") ?? "");
+  const emailEnabled = form.get("notifyEmailEnabled") !== null; // unchecked box = absent
   const merchantRaw = String(form.get("merchantAddresses") ?? "");
   const parsed = parsePolicyForm(form, DEFAULT_POLICY_RULES);
   const agentLimits = parseAgentLimits(agentLimitValues);
@@ -120,7 +123,7 @@ export async function POST(request: Request) {
   const merchants = parseMerchantAddresses(merchantRaw);
   const invalid = (message: string) =>
     new Response(
-      renderPage(valuesFromForm(form), agentLimitValues, webhookRaw, merchantRaw, { error: message }),
+      renderPage(valuesFromForm(form), agentLimitValues, webhookRaw, emailEnabled, merchantRaw, { error: message }),
       { status: 400, headers: HTML_HEADERS },
     );
   if (!parsed.ok) return invalid(parsed.error);
@@ -132,7 +135,7 @@ export async function POST(request: Request) {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
       return saveWorkspacePolicy(
-        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits, webhook.url, merchants.addresses,
+        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits, webhook.url, merchants.addresses, emailEnabled,
       );
     });
     const appOrigin = readZenFixAppOrigin();

@@ -10,6 +10,7 @@ import {
   parseExecutionReportBody,
 } from "./execution-report";
 import { resolveOnchainProof } from "./execution-onchain";
+import { notifyVerifiedPayment } from "./notify-verified";
 import { retryOnTransientUnavailable } from "./retry";
 import { getWorkspacePayRun } from "./workspace-payruns";
 import { openWorkspacePersistence } from "./workspace";
@@ -108,6 +109,21 @@ export async function handleExecutionReport(
         throw error;
       }
       if (!committed) return json(CONFLICT, 409);
+      // Owner-facing "verified on-chain" receipt — best-effort, never blocks or
+      // fails this response (notifyVerifiedPayment swallows its own errors).
+      if (verified && report.transactionHash) {
+        await notifyVerifiedPayment(pool, identity, {
+          payRunId,
+          agentId: current.intent.agentId,
+          purpose: current.intent.purpose,
+          amountAtomic: verified.amountAtomic,
+          asset: current.intent.quotedAmount.asset,
+          rail: report.rail,
+          transactionHash: report.transactionHash,
+          recipient: verified.recipient,
+          pinnedMerchant: verified.pinnedMerchant,
+        });
+      }
       return json({
         payRunId, status: "execution_reported",
         report: {

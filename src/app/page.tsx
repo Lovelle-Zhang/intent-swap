@@ -68,10 +68,10 @@ export default function HomePage() {
         <div className="wrap">
           <div>
             <span className="kicker"><span className="dot" /><span className="eyebrow">Agent Payment Control Layer</span></span>
-            <h1>Let agents pay.<br />On <em>your</em> terms.</h1>
+            <h1>Your agents are spending.<br /><em>Prove</em> every payment.</h1>
             <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then <em>verified on-chain</em> that it really happened, to the address you approved. It never holds your funds or keys.</p>
             <div className="cta">
-              <Link className="btn btn-primary" href="/zenfix/sign-in">Sign in with Google</Link>
+              <Link className="btn btn-primary" href="/zenfix/sign-in">Start free on testnet →</Link>
               <a className="btn btn-ghost" href="#verify">See how it works</a>
             </div>
             <div className="trust">
