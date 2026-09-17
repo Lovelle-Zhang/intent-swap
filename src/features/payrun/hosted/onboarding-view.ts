@@ -21,6 +21,16 @@ function step(done: boolean, n: number, title: string, bodyHtml: string): string
   return `<li class="${done ? "done" : ""}">${marker}<div class="ob-body"><b>${escapeHtml(title)}</b>${bodyHtml}</div></li>`;
 }
 
+// A zero-setup "aha": before the four real steps (which need a key, a policy, an
+// agent, and — the finish line — a funded wallet), let a brand-new user watch the
+// control layer decide a Pay Run in one click. It runs the real hosted loop into
+// THEIR workspace via /zenfix/payruns/create, so the run lands in their own ledger
+// with the full decision and trail — value seen before any wallet is opened. It
+// stops showing once they've sent a real agent intent (step 3), where it'd be noise.
+function tryItLead(): string {
+  return `<form class="ob-try" action="/zenfix/payruns/create" method="post"><input type="hidden" name="scenarioId" value="allowed" /><p class="muted">New here? <b>Run a sample Pay Run</b> — one click, in this workspace, no key or wallet needed. It lands in your ledger with the full decision and audit trail, so you can see the layer work before wiring up your agent below.</p><button type="submit" class="btn">Run a sample Pay Run →</button></form>`;
+}
+
 export function renderOnboarding(state: OnboardingState): string {
   if (state.complete) return "";
   const items = [
@@ -35,5 +45,6 @@ export function renderOnboarding(state: OnboardingState): string {
   ].join("");
   const flags = [state.hasKey, state.hasPolicy, state.hasApiRun, state.hasVerifiedPayment];
   const doneCount = flags.filter(Boolean).length;
-  return `<div class="card"><h2>Get started · ${doneCount}/${flags.length}</h2><p class="lead">Four steps from zero to a verified agent payment.</p><ol class="onboard">${items}</ol></div>`;
+  const tryIt = state.hasApiRun ? "" : tryItLead();
+  return `<div class="card"><h2>Get started · ${doneCount}/${flags.length}</h2><p class="lead">Four steps from zero to a verified agent payment.</p>${tryIt}<ol class="onboard">${items}</ol></div>`;
 }

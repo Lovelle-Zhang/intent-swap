@@ -144,6 +144,17 @@ describe("renderOnboarding", () => {
     expect(html).toContain("See a verified payment");
     expect(html).toContain("/api-docs#execution");
   });
+  test("offers a one-click sample Pay Run until a real agent intent has arrived", () => {
+    // Before step 3 (a real api-source intent), surface the zero-setup taste: a
+    // one-click run into the user's own workspace via the hosted write path.
+    const early = renderOnboarding({ hasKey: false, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false });
+    expect(early).toContain('action="/zenfix/payruns/create"');
+    expect(early).toContain("Run a sample Pay Run");
+    // Once a real intent has arrived, the sample prompt would be noise — drop it.
+    const afterApiRun = renderOnboarding({ hasKey: true, hasPolicy: true, hasApiRun: true, hasVerifiedPayment: false, complete: false });
+    expect(afterApiRun).not.toContain("Run a sample Pay Run");
+  });
+
   test("is empty once complete", () => {
     expect(renderOnboarding({ hasKey: true, hasPolicy: true, hasApiRun: true, hasVerifiedPayment: true, complete: true })).toBe("");
   });
