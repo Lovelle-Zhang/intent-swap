@@ -35,7 +35,7 @@ describe("hosted policy route", () => {
     store.get.mockReset();
     store.save.mockReset().mockResolvedValue(undefined);
     const { DEFAULT_POLICY_RULES } = await import("@/features/payrun/hosted/workspace-policy");
-    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, merchantAddresses: {} });
+    store.get.mockResolvedValue({ rules: DEFAULT_POLICY_RULES, version: 0, updatedAt: null, dailyBudgetAtomic: "0", agentBudgets: {}, agentLimits: {}, notifyWebhookUrl: null, notifyEmailEnabled: true, merchantAddresses: {} });
     process.env.ZENFIX_APP_ORIGIN = "https://zenfix.test";
   });
   afterEach(() => { delete process.env.ZENFIX_APP_ORIGIN; });
@@ -114,6 +114,27 @@ describe("hosted policy route", () => {
       notifyWebhookUrl: "https://hooks.example.com/zenfix",
     }));
     expect(store.save.mock.calls[0][6]).toBe("https://hooks.example.com/zenfix");
+  });
+
+  test("POST parses the verified-payment email checkbox as the ninth save argument", async () => {
+    const { POST } = await loadRoute();
+    // Checked box → "on" is present in the form → save with true.
+    await POST(postBody({
+      transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
+      notifyEmailEnabled: "on",
+    }));
+    expect(store.save.mock.calls[0][8]).toBe(true);
+    // A subsequent save with the box unchecked (absent) turns emails off.
+    await POST(postBody({ transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000" }));
+    expect(store.save.mock.calls[1][8]).toBe(false);
+  });
+
+  test("GET renders the verified-payment email toggle, checked by default", async () => {
+    const { GET } = await loadRoute();
+    const html = await (await GET(new Request("https://zenfix.test/zenfix/policy"))).text();
+    expect(html).toContain('name="notifyEmailEnabled"');
+    expect(html).toContain("verified on-chain");
+    expect(html).toContain("checked");
   });
 
   test("POST with an unsafe webhook URL returns 400 and never writes", async () => {

@@ -50,9 +50,12 @@ export function parseWebhookUrl(raw: string): WebhookParse {
   return { ok: true, url: trimmed };
 }
 
-export function renderWebhookField(value: string | null): string {
+export function renderWebhookField(value: string | null, emailEnabled: boolean = true): string {
   const v = value ?? "";
+  const checked = emailEnabled ? " checked" : "";
   return `<div class="card"><h2>Notifications</h2>
+    <div class="field"><label for="notifyEmailEnabled"><input type="checkbox" id="notifyEmailEnabled" name="notifyEmailEnabled" value="on"${checked}> Email me when a payment is verified on-chain</label>
+    <span class="hint">A receipt for every Pay Run that closes <b>Verified on-chain</b> — the decision, the amount, and a link to the transaction on the public explorer — sent to the email you signed in with. Forward it as proof; the recipient checks the chain themselves. On by default.</span></div>
     <div class="field"><label for="notifyWebhookUrl">Needs-review webhook</label>
     <input type="text" id="notifyWebhookUrl" name="notifyWebhookUrl" placeholder="https://your-app.example.com/zenfix/hook" value="${escapeHtml(v)}">
     <span class="hint">Optional. When a Pay Run needs review, ZenFix POSTs an advisory nudge here (no secret) — your receiver confirms via <code>GET /api/v1/payruns/{id}</code>. Paste a <b>Slack incoming webhook</b> (<code>hooks.slack.com/…</code>) and it&rsquo;s formatted as a Slack message automatically. Leave empty to disable.</span></div>
