@@ -1,0 +1,48 @@
+name: Apply migrations
+
+# Applies any pending supabase/migrations/*.sql to prod on every push to main,
+# so a schema-bearing PR can't silently 500 prod when someone forgets to run the
+# migration by hand (which is what happened with #92). Idempotent + tracked; see
+# scripts/apply-migrations.mjs. Requires the MIGRATION_DATABASE_URL repo secret
+# (a privileged, DIRECT Supabase connection string); without it the run skips.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: "One-time setup: record all current migrations as already-applied without running them (use on first enable against an up-to-date prod)."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate-prod
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply pending migrations
+        run: node scripts/apply-migrations.mjs
+        env:
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          MIGRATION_BASELINE: ${{ inputs.baseline && '1' || '0' }}
