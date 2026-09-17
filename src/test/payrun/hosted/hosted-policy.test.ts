@@ -50,10 +50,15 @@ describe("hosted policy route", () => {
     expect(html).toContain("Save policy");
   });
 
-  test("GET shows a saved notice after a successful write", async () => {
+  test("GET shows a saved confirmation toast + scroll-restore after a successful write", async () => {
     const { GET } = await loadRoute();
     const res = await GET(new Request("https://zenfix.test/zenfix/policy?status=saved"));
-    expect(await res.text()).toContain("Policy saved.");
+    const html = await res.text();
+    // A fixed toast (visible regardless of scroll), not just a top banner, plus
+    // the scroll-restoration script so the owner keeps their place across the reload.
+    expect(html).toContain('class="savedtoast"');
+    expect(html).toContain("Policy saved");
+    expect(html).toContain("zenfix_policy_scrollY");
   });
 
   test("POST with valid input saves the converted rules and redirects", async () => {

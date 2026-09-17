@@ -40,24 +40,31 @@ const HTML_HEADERS = { "content-type": "text/html; charset=utf-8", "cache-contro
 const LEAD =
   "These rules run on every Pay Run. Real payment intents are checked against them before anything is allowed.";
 
+// Save is a POST → 303 → GET reload, which resets scroll to the top and bounces
+// the owner away from where they were editing (the form is long). Restore their
+// scroll across that reload, and confirm the save with a fixed toast that shows
+// regardless of scroll position (rather than only a top banner they can't see).
+const SAVED_TOAST = `<div class="savedtoast" role="status">✓ Policy saved</div>`;
+const POLICY_SCROLL_SCRIPT = `<script>(function(){try{var K="zenfix_policy_scrollY";if(new URLSearchParams(location.search).get("status")==="saved"){var y=sessionStorage.getItem(K);if(y!==null){window.scrollTo(0,parseInt(y,10)||0);sessionStorage.removeItem(K);}}var f=document.querySelector('form[action="/zenfix/policy"][method="post"]');if(f){f.addEventListener("submit",function(){try{sessionStorage.setItem(K,String(window.scrollY));}catch(e){}});}}catch(e){}})();</script>`;
+
 function renderPage(
   values: PolicyFormValues,
   agentLimits: AgentLimitFormValues,
   webhookUrl: string,
   merchantAddresses: string,
-  notice: { readonly text: string; readonly variant: "ok" | "warn" } | null,
+  opts: { readonly saved?: boolean; readonly error?: string },
 ): string {
   return hostedPage({
     title: "ZenFix — Policy",
     heading: "Policy",
     active: "policy",
     lead: LEAD,
-    notice: notice?.text ?? null,
-    noticeVariant: notice?.variant,
+    notice: opts.error ?? null,
+    noticeVariant: opts.error ? "warn" : undefined,
     bodyHtml: renderPolicyForm(
       values,
       renderMerchantAddressField(merchantAddresses) + renderAgentLimitFields(agentLimits) + renderWebhookField(webhookUrl || null),
-    ) + renderSimulateForm(),
+    ) + renderSimulateForm() + (opts.saved ? SAVED_TOAST : "") + POLICY_SCROLL_SCRIPT,
   });
 }
 
@@ -87,14 +94,13 @@ export async function GET(request: Request) {
       return getWorkspacePolicy(getHostedSqlPool(), identity);
     });
     const saved = new URL(request.url).searchParams.get("status") === "saved";
-    const notice = saved ? { text: "Policy saved.", variant: "ok" as const } : null;
     return new Response(
       renderPage(
         valuesFromRules(view.rules, view.dailyBudgetAtomic, view.agentBudgets),
         agentLimitValuesFromLimits(view.agentLimits),
         view.notifyWebhookUrl ?? "",
         merchantAddressesToText(view.merchantAddresses),
-        notice,
+        { saved },
       ),
       { status: 200, headers: HTML_HEADERS },
     );
@@ -114,7 +120,7 @@ export async function POST(request: Request) {
   const merchants = parseMerchantAddresses(merchantRaw);
   const invalid = (message: string) =>
     new Response(
-      renderPage(valuesFromForm(form), agentLimitValues, webhookRaw, merchantRaw, { text: message, variant: "warn" }),
+      renderPage(valuesFromForm(form), agentLimitValues, webhookRaw, merchantRaw, { error: message }),
       { status: 400, headers: HTML_HEADERS },
     );
   if (!parsed.ok) return invalid(parsed.error);
