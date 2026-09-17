@@ -53,7 +53,19 @@ function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): s
     ? `<div class="card"><h2>Policy decision</h2><div class="detail-head">${statusBadge(humanize(decision.outcome), variantOf(decision.outcome))}<span class="meta"><span>Risk <b>${escapeHtml(decision.riskLevel)}</b></span><span>Next <b>${escapeHtml(humanize(decision.nextAction))}</b></span></span></div>${decision.reasonCodes.length ? `<div class="chips">${decision.reasonCodes.map((r) => `<span class="chip">${escapeHtml(r)}</span>`).join("")}</div>` : ""}${decision.checks.length ? `<ul class="checklist">${decision.checks.map((c) => `<li><span class="mk ${variantOf(c.outcome)}"></span><div><span class="rc">${escapeHtml(humanize(c.ruleClass))} · ${escapeHtml(c.reasonCode)}</span><p>${escapeHtml(c.explanation)}</p></div></li>`).join("")}</ul>` : ""}</div>`
     : "";
   const ledger = pr.ledgerJournal ? "balanced" : pr.ledgerDraft ? "drafted" : null;
-  const stagesCard = `<div class="card"><h2>Execution</h2><div class="stages">${stage("Funding", pr.fundingPreparation?.status)}${stage("Payment", pr.paymentExecution?.status)}${stage("Proof", pr.executionProof?.verificationStatus)}${stage("Ledger", ledger)}</div></div>`;
+  // These are ZenFix's own internal execution stages. An agent that executes on
+  // its own rail and reports back (the normal path) never populates them, so they
+  // were all "—" on a verified run — reading as "nothing happened" when the proof
+  // is right below. Only show the card once at least one stage has real state.
+  const stages = [
+    ["Funding", pr.fundingPreparation?.status],
+    ["Payment", pr.paymentExecution?.status],
+    ["Proof", pr.executionProof?.verificationStatus],
+    ["Ledger", ledger],
+  ] as const;
+  const stagesCard = stages.some(([, value]) => value)
+    ? `<div class="card"><h2>Execution</h2><div class="stages">${stages.map(([label, value]) => stage(label, value)).join("")}</div></div>`
+    : "";
   const report = pr.executionReport;
   const verificationCard = renderVerificationCard(report, pr.intent.quotedAmount);
   const reportCard = report

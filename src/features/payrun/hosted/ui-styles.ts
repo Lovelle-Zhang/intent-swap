@@ -146,6 +146,9 @@ pre.curl code{font-size:12.5px;color:var(--muted);white-space:pre;line-height:1.
 .verify-explore:hover{filter:brightness(1.08)}
 .verify-explore svg{width:13px;height:13px}
 .verify-hash{font-family:var(--font-mono);font-size:12px;color:var(--faint);word-break:break-all}
+.savedtoast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;background:color-mix(in srgb,var(--allow) 16%,var(--surface));color:var(--allow);border:1px solid color-mix(in srgb,var(--allow) 40%,transparent);border-radius:999px;padding:10px 20px;font-family:var(--font-mono);font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.4);animation:savedtoast-in .2s ease-out,savedtoast-out .4s ease-in 2.6s forwards}
+@keyframes savedtoast-in{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes savedtoast-out{to{opacity:0;transform:translate(-50%,8px);visibility:hidden}}
 .verify-stamp{font-family:var(--font-mono);font-size:11px;color:var(--faint);white-space:nowrap}
 .verify-points li.warn .verify-tick svg{color:var(--sandbox)}
 .verify-points li.warn b{color:var(--sandbox)}

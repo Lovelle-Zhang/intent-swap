@@ -80,6 +80,9 @@ describe("hosted PayRun detail", () => {
     expect(html).toContain(`https://basescan.org/tx/${tx}`);
     // Authorized amount (420000 atomic / 6 decimals) is surfaced as the honored floor.
     expect(html).toContain("0.42");
+    // Agent-reported (external) execution never fills ZenFix's own Funding/Payment/
+    // Proof/Ledger stages, so that all-"—" card is hidden rather than shown empty.
+    expect(html).not.toContain('class="stages"');
   });
 
   test("returns 404 when the pay run is not in the workspace", async () => {
