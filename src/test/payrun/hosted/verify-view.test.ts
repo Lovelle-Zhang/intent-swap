@@ -51,8 +51,10 @@ describe("renderVerificationCard", () => {
       usdc("20000000"),
     );
     expect(html).toContain("Payer wallet bound");
+    // The recipient-was-authorized claim lives in the pinned-match point; the lead
+    // point states only the raw on-chain fact (never "the authorized recipient").
     expect(html).toContain("Matched your pinned address");
-    expect(html).toContain("Paid the verified recipient");
+    expect(html).toContain("Real on-chain transfer");
     expect(html).toContain("Amount matches");
     expect(html).toContain("Transferred <b>20 USDC</b>");
     // Addresses are shortened, not dumped in full.

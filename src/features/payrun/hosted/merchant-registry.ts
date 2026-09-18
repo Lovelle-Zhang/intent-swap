@@ -49,7 +49,10 @@ export function renderMerchantAddressField(text: string): string {
   </div>`;
 }
 
-// The pinned address for a merchant, or null when none is configured.
+// The pinned address for a merchant, or null when none is configured. Uses an
+// own-property check so a merchantId like "__proto__"/"constructor" resolves to
+// null instead of an inherited Object.prototype value (which then 500'd on the
+// caller's string ops).
 export function lookupMerchantAddress(map: MerchantAddresses, merchantId: string): string | null {
-  return map[merchantId] ?? null;
+  return Object.prototype.hasOwnProperty.call(map, merchantId) ? map[merchantId] : null;
 }

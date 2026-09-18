@@ -11,7 +11,12 @@ const COLUMNS = [
 ] as const;
 
 function cell(value: string): string {
-  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  // Neutralize spreadsheet formula injection before RFC-4180 quoting: a field that
+  // starts with = + - @ (or tab/CR, which Excel also treats as a formula lead) is
+  // prefixed with a single quote so Excel/Sheets render it as text, not execute it.
+  // agent-supplied agentId/purpose land in this compliance export.
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\r\n]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
 }
 
 function row(run: HostedPayRunSummary): string {

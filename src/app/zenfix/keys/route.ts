@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/features/payrun/adapters/supabase/
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { AuthUnavailableError, AuthenticationRequiredError } from "@/features/payrun/hosted/errors";
 import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
+import { crossOriginRefused, isCrossOriginPost } from "@/features/payrun/hosted/origin-check";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
 import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import {
@@ -81,6 +82,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (isCrossOriginPost(request)) return crossOriginRefused();
   const form = await request.formData();
   const action = form.get("action");
   try {

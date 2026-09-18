@@ -32,6 +32,15 @@ describe("payRunsToCsv", () => {
     expect(cells.slice(-2)).toEqual(["", ""]); // decision + reason_codes empty
   });
 
+  test("neutralizes spreadsheet formula injection in agent-supplied fields", () => {
+    // agentId/purpose are agent-controlled; a leading =,+,-,@ must be defused with a
+    // single quote so Excel/Sheets treat it as text, not a formula.
+    const row = payRunsToCsv([run({ agentId: "=HYPERLINK(\"http://evil\")", purpose: "@SUM(A1:A9)" })]).split("\r\n")[1];
+    expect(row).toContain("'=HYPERLINK");
+    expect(row).toContain("'@SUM(A1:A9)");
+    expect(row).not.toMatch(/,=HYPERLINK/);
+  });
+
   test("filename carries the UTC date", () => {
     expect(csvFilename(new Date("2026-09-09T23:00:00.000Z"))).toBe("zenfix-pay-runs-2026-09-09.csv");
   });

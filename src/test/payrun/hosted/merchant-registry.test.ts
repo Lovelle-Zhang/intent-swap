@@ -38,6 +38,14 @@ describe("merchantAddressesToText + lookup", () => {
     expect(lookupMerchantAddress(map, "acme_api")).toBe(ADDR);
     expect(lookupMerchantAddress(map, "unknown")).toBeNull();
   });
+
+  test("a prototype-key merchant id resolves to null, not an inherited value", () => {
+    // Guard against returning Object.prototype members (which then 500 on .trim()).
+    const map = { acme_api: ADDR };
+    expect(lookupMerchantAddress(map, "__proto__")).toBeNull();
+    expect(lookupMerchantAddress(map, "constructor")).toBeNull();
+    expect(lookupMerchantAddress(map, "hasOwnProperty")).toBeNull();
+  });
 });
 
 describe("renderMerchantAddressField", () => {
