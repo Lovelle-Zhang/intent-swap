@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
 
-// Index the real ZenFix product pages; keep auth-gated routes and the parked
-// legacy Intent-Swap surfaces (DEX docs/swap, the moderated-study pilot cluster,
-// and other pre-ZenFix pages) out of search results.
+// Index the real public ZenFix pages; keep the auth-gated app, the API, and the
+// dev sandbox out of search results.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -13,21 +12,7 @@ export default function robots(): MetadataRoute.Robots {
           "/api/",
           "/auth/",
           "/zenfix/", // auth-gated app; /zenfix/sign-in stays allowed via the longer match above
-          "/swap",
-          "/docs",
-          "/pilot-validation",
-          "/command-center",
-          "/payruns",
-          "/conditional-order",
-          "/execute",
-          "/orders",
-          "/portfolio",
-          "/history",
-          "/activity",
-          "/subscribe",
-          "/preview",
           "/sandbox",
-          "/landing",
         ],
       },
     ],

@@ -10,9 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:rls": "vitest run src/test/payrun/hosted/schema-rls.test.ts",
-    "test:watch": "vitest",
-    "pilot:prepare": "vite-node scripts/prepare-pilot-validation.ts",
-    "smoke": "node scripts/smoke-legacy.mjs"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.1.2",
