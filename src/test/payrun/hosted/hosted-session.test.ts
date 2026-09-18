@@ -12,12 +12,34 @@ describe("hosted server session boundary", () => {
     expect(getUser).toHaveBeenCalledOnce();
   });
 
-  test("anonymous and auth provider failure fail closed", async () => {
+  test("a missing / invalid session is 'not signed in' (redirect), never a 503", async () => {
+    // No user, no error → plainly anonymous.
     await expect(requireVerifiedIdentity({
       getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
     })).rejects.toBeInstanceOf(AuthenticationRequiredError);
+    // supabase-js returns an AuthSessionMissingError (no user, non-5xx) when there is
+    // no session — that is "not signed in", so it must redirect to sign-in, NOT 503.
+    // (Regression guard: treating this as AuthUnavailableError made /zenfix dead-end
+    // in a 503 for every logged-out visitor.)
     await expect(requireVerifiedIdentity({
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: new Error("offline") }),
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: Object.assign(new Error("Auth session missing!"), { status: 400 }),
+      }),
+    })).rejects.toBeInstanceOf(AuthenticationRequiredError);
+  });
+
+  test("a genuine auth-service failure fails closed as unavailable (503)", async () => {
+    // getUser() throwing (transport failure) → unavailable.
+    await expect(requireVerifiedIdentity({
+      getUser: vi.fn().mockRejectedValue(new Error("network down")),
+    })).rejects.toBeInstanceOf(AuthUnavailableError);
+    // The auth API responding with a 5xx (no user) → unavailable, not a login redirect.
+    await expect(requireVerifiedIdentity({
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: Object.assign(new Error("bad gateway"), { status: 502 }),
+      }),
     })).rejects.toBeInstanceOf(AuthUnavailableError);
   });
 
