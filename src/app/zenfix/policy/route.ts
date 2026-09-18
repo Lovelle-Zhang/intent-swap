@@ -31,6 +31,7 @@ import {
   renderMerchantAddressField,
 } from "@/features/payrun/hosted/merchant-registry";
 import { renderSimulateForm } from "@/features/payrun/hosted/policy-simulate";
+import { crossOriginRefused, isCrossOriginPost } from "@/features/payrun/hosted/origin-check";
 import { hostedPage } from "@/features/payrun/hosted/ui";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +113,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (isCrossOriginPost(request)) return crossOriginRefused();
   const form = await request.formData();
   const agentLimitValues = agentLimitValuesFromForm(form);
   const webhookRaw = String(form.get("notifyWebhookUrl") ?? "");

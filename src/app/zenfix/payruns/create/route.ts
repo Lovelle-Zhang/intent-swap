@@ -10,6 +10,7 @@ import { createSupabaseServerClient } from "@/features/payrun/adapters/supabase/
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { AuthUnavailableError, AuthenticationRequiredError } from "@/features/payrun/hosted/errors";
 import { getHostedSqlPool } from "@/features/payrun/hosted/runtime";
+import { crossOriginRefused, isCrossOriginPost } from "@/features/payrun/hosted/origin-check";
 import { requireVerifiedIdentity } from "@/features/payrun/hosted/session";
 import { openWorkspacePersistence } from "@/features/payrun/hosted/workspace";
 
@@ -25,6 +26,7 @@ function isScenarioId(value: unknown): value is SandboxScenarioId {
 }
 
 export async function POST(request: Request) {
+  if (isCrossOriginPost(request)) return crossOriginRefused();
   let appOrigin: string;
   try {
     appOrigin = readZenFixAppOrigin();

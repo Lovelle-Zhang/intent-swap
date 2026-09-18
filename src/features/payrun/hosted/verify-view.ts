@@ -61,9 +61,13 @@ export function renderVerificationCard(
   // the generic guarantees, which still hold for any executed verified-rail run.
   const points: Point[] = [];
   points.push({
+    // State only what was proven: a real transfer to the address the chain shows.
+    // Whether that address was the AUTHORIZED one is a separate claim, made below
+    // only when a pinned merchant address actually matched — never assert "the
+    // authorized recipient" here, since without a pin no recipient is required.
     html: v
-      ? `<b>Paid the verified recipient.</b> A USDC transfer to ${addr(v.recipient)} was found on ${chain}'s USDC contract.`
-      : `<b>Real on-chain transfer.</b> A USDC transfer to the authorized recipient was found on ${chain}'s USDC contract.`,
+      ? `<b>Real on-chain transfer.</b> A USDC transfer to ${addr(v.recipient)} was found on ${chain}'s USDC contract.`
+      : `<b>Real on-chain transfer.</b> A USDC transfer was found on ${chain}'s USDC contract.`,
   });
   if (v?.pinnedMerchant) {
     points.push({ html: `<b>Matched your pinned address.</b> That recipient is the payout address you locked for this merchant — not one the agent chose.` });

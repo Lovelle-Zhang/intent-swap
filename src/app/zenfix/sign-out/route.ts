@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/features/payrun/adapters/supabase/server";
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
+import { crossOriginRefused, isCrossOriginPost } from "@/features/payrun/hosted/origin-check";
 
 export async function POST(request: Request) {
+  if (isCrossOriginPost(request)) return crossOriginRefused();
   let appOrigin: string;
   try {
     appOrigin = readZenFixAppOrigin();
