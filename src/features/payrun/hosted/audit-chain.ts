@@ -3,7 +3,7 @@ import type { SqlPool } from "../adapters/storage/postgres/sql";
 import { withHostedTransaction } from "../adapters/storage/postgres/transaction";
 import { AUDIT_GENESIS_HASH, hashAuditEntry } from "../adapters/storage/audit-hash";
 import type { AuditEvent } from "../domain/types";
-import { resolveApiKeyIdentity } from "./api-keys";
+import { authenticateApiKey } from "./api-keys";
 import { AuthUnavailableError } from "./errors";
 import { retryOnTransientUnavailable } from "./retry";
 import { resolvePersonalWorkspace, type VerifiedAuthIdentity } from "./workspace";
@@ -94,8 +94,11 @@ function bearer(request: Request): string | null {
 }
 
 export async function handleAuditRequest(pool: SqlPool, request: Request, payRunId: string): Promise<Response> {
-  const identity = await resolveApiKeyIdentity(pool, bearer(request));
-  if (!identity) return json({ error: "Unauthorized" }, 401);
+  const auth = await authenticateApiKey(pool, bearer(request));
+  if (!auth.ok) {
+    return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
+  }
+  const identity = auth.identity;
   try {
     const chain = await retryOnTransientUnavailable(() => getWorkspaceAuditChain(pool, identity, payRunId));
     if (chain.events.length === 0) return json({ error: "Pay Run not found" }, 404);

@@ -2,7 +2,7 @@ import { PersistenceUnavailableError } from "../adapters/storage";
 import { DuplicateRecordError } from "../adapters/storage/errors";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import { TerminalStateError, VersionConflictError } from "../domain/errors";
-import { resolveApiKeyIdentity } from "./api-keys";
+import { authenticateApiKey } from "./api-keys";
 import { AuthUnavailableError } from "./errors";
 import {
   buildExecutionReport,
@@ -38,8 +38,11 @@ const CONFLICT = { error: "Pay Run was already reported", status: "execution_rep
 export async function handleExecutionReport(
   pool: SqlPool, request: Request, payRunId: string,
 ): Promise<Response> {
-  const identity = await resolveApiKeyIdentity(pool, bearer(request));
-  if (!identity) return json({ error: "Unauthorized" }, 401);
+  const auth = await authenticateApiKey(pool, bearer(request));
+  if (!auth.ok) {
+    return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
+  }
+  const identity = auth.identity;
 
   let body: unknown;
   try {

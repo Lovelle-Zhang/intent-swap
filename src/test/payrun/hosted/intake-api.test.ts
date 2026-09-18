@@ -142,6 +142,20 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
     expect(detail!.auditEvents.length).toBeGreaterThanOrEqual(3);
   });
 
+  test("re-POSTing the same idempotencyKey replays the stored decision as 200, not a 500", async () => {
+    const body = intent({ idempotencyKey: "case-idempotent", amount: "30" });
+    const first = await post(`Bearer ${apiKey}`, body);
+    expect(first.status).toBe(200);
+    const firstJson = await first.json();
+    // A verbatim retry with the same key derives the same PayRun id; the create insert
+    // hits a unique-violation. It must replay the stored decision, not surface a 500.
+    const second = await post(`Bearer ${apiKey}`, body);
+    expect(second.status).toBe(200);
+    const secondJson = await second.json();
+    expect(secondJson.payRunId).toBe(firstJson.payRunId);
+    expect(secondJson.decision.outcome).toBe(firstJson.decision.outcome);
+  });
+
   test("the persisted audit trail is a hash chain that verifies end to end", async () => {
     const response = await post(`Bearer ${apiKey}`, intent({ idempotencyKey: "audit-chain" }));
     const { payRunId } = await response.json();
