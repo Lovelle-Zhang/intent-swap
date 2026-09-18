@@ -117,7 +117,7 @@ describe.sequential("onboarding activation state", () => {
     await createWorkspaceApiKey(pool, identity, "first key");
     expect(await getOnboardingState(pool, identity)).toMatchObject({ hasKey: true, hasPolicy: false, hasApiRun: false, hasVerifiedPayment: false, complete: false });
 
-    await saveWorkspacePolicy(pool, identity, DEFAULT_POLICY_RULES, "0", {});
+    await saveWorkspacePolicy(pool, identity, { rules: DEFAULT_POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {} });
     expect(await getOnboardingState(pool, identity)).toMatchObject({ hasKey: true, hasPolicy: true, hasApiRun: false, complete: false });
 
     // An api-source intent flips step 3 but the checklist is NOT complete — the

@@ -75,11 +75,11 @@ describe("hosted policy route", () => {
     expect(res.status).toBe(303);
     expect(res.headers.get("location")).toBe("https://zenfix.test/zenfix/policy?status=saved");
     expect(store.save).toHaveBeenCalledTimes(1);
-    const savedRules = store.save.mock.calls[0][2];
+    const savedRules = store.save.mock.calls[0][2].rules;
     expect(savedRules.transactionLimit.amountAtomic).toBe("100000000");
     expect(savedRules.allowedMerchantIds).toEqual(["merchant_known"]);
     expect(savedRules.requireReviewForNewMerchant).toBe(true);
-    expect(store.save.mock.calls[0][3]).toBe("0");
+    expect(store.save.mock.calls[0][2].dailyBudgetAtomic).toBe("0");
   });
 
   test("POST persists a submitted daily budget as atomic USDC", async () => {
@@ -90,10 +90,10 @@ describe("hosted policy route", () => {
       absoluteHardLimit: "1000",
       dailyBudget: "250",
     }));
-    expect(store.save.mock.calls[0][3]).toBe("250000000");
+    expect(store.save.mock.calls[0][2].dailyBudgetAtomic).toBe("250000000");
   });
 
-  test("POST parses per-agent limits and passes them to save as the sixth argument", async () => {
+  test("POST parses per-agent limits and passes them to save", async () => {
     const { POST } = await loadRoute();
     await POST(postBody({
       transactionLimit: "100",
@@ -102,31 +102,31 @@ describe("hosted policy route", () => {
       agentTxLimits: "agent_ops_01 = 25",
       agentMerchants: "agent_ops_01 = acme_api, data_co",
     }));
-    expect(store.save.mock.calls[0][5]).toEqual({
+    expect(store.save.mock.calls[0][2].agentLimits).toEqual({
       agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api", "data_co"] },
     });
   });
 
-  test("POST persists a valid notify webhook URL as the seventh save argument", async () => {
+  test("POST persists a valid notify webhook URL to save", async () => {
     const { POST } = await loadRoute();
     await POST(postBody({
       transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
       notifyWebhookUrl: "https://hooks.example.com/zenfix",
     }));
-    expect(store.save.mock.calls[0][6]).toBe("https://hooks.example.com/zenfix");
+    expect(store.save.mock.calls[0][2].notifyWebhookUrl).toBe("https://hooks.example.com/zenfix");
   });
 
-  test("POST parses the verified-payment email checkbox as the ninth save argument", async () => {
+  test("POST parses the verified-payment email checkbox and passes it to save", async () => {
     const { POST } = await loadRoute();
     // Checked box → "on" is present in the form → save with true.
     await POST(postBody({
       transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
       notifyEmailEnabled: "on",
     }));
-    expect(store.save.mock.calls[0][8]).toBe(true);
+    expect(store.save.mock.calls[0][2].notifyEmailEnabled).toBe(true);
     // A subsequent save with the box unchecked (absent) turns emails off.
     await POST(postBody({ transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000" }));
-    expect(store.save.mock.calls[1][8]).toBe(false);
+    expect(store.save.mock.calls[1][2].notifyEmailEnabled).toBe(false);
   });
 
   test("GET renders the verified-payment email toggle, checked by default", async () => {
@@ -147,13 +147,13 @@ describe("hosted policy route", () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 
-  test("POST persists valid merchant payout addresses as the eighth save argument", async () => {
+  test("POST persists valid merchant payout addresses to save", async () => {
     const { POST } = await loadRoute();
     await POST(postBody({
       transactionLimit: "100", reviewThreshold: "50", absoluteHardLimit: "1000",
       merchantAddresses: "acme_api = 0x1111111111111111111111111111111111111111",
     }));
-    expect(store.save.mock.calls[0][7]).toEqual({ acme_api: "0x1111111111111111111111111111111111111111" });
+    expect(store.save.mock.calls[0][2].merchantAddresses).toEqual({ acme_api: "0x1111111111111111111111111111111111111111" });
   });
 
   test("POST with a malformed merchant address returns 400 and never writes", async () => {
