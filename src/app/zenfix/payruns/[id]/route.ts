@@ -8,6 +8,7 @@ import { retryOnTransientUnavailable } from "@/features/payrun/hosted/retry";
 import { getWorkspacePayRun, type HostedPayRunDetail } from "@/features/payrun/hosted/workspace-payruns";
 import { renderReview, reviewNotice } from "@/features/payrun/hosted/review-view";
 import { renderVerificationCard } from "@/features/payrun/hosted/verify-view";
+import { isVerifiedRail } from "@/features/payrun/hosted/onchain-verify";
 import { escapeHtml, hostedPage, statusBadge } from "@/features/payrun/hosted/ui";
 import { formatAtomicMoney } from "@/features/payrun/presentation/money";
 
@@ -68,8 +69,15 @@ function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): s
     : "";
   const report = pr.executionReport;
   const verificationCard = renderVerificationCard(report, pr.intent.quotedAmount);
+  // When the verified hero above already shows the tx hash as a clickable explorer
+  // link, repeating it here as weaker plain code just dilutes the proof — so drop
+  // that row. Self-reported runs keep it: their hero variant doesn't show the hash.
+  const heroShowsHash = !!report && report.outcome === "executed" && isVerifiedRail(report.rail) && !!report.verification;
+  const hashRow = heroShowsHash
+    ? ""
+    : `<dt>Transaction hash</dt><dd>${report?.transactionHash ? `<code>${escapeHtml(report.transactionHash)}</code>` : "—"}</dd>`;
   const reportCard = report
-    ? `<div class="card"><h2>Execution report</h2><div class="detail-head">${statusBadge(humanize(report.outcome), report.outcome === "executed" ? "ok" : "blocked")}<span class="meta"><span>Rail <b>${escapeHtml(report.rail)}</b></span></span></div><dl><dt>Provider reference</dt><dd><code>${escapeHtml(report.providerReference)}</code></dd><dt>Transaction hash</dt><dd>${report.transactionHash ? `<code>${escapeHtml(report.transactionHash)}</code>` : "—"}</dd><dt>Reported</dt><dd class="mono">${escapeHtml(fmtTime(report.reportedAt))}</dd></dl></div>`
+    ? `<div class="card"><h2>Execution report</h2><div class="detail-head">${statusBadge(humanize(report.outcome), report.outcome === "executed" ? "ok" : "blocked")}<span class="meta"><span>Rail <b>${escapeHtml(report.rail)}</b></span></span></div><dl><dt>Provider reference</dt><dd><code>${escapeHtml(report.providerReference)}</code></dd>${hashRow}<dt>Reported</dt><dd class="mono">${escapeHtml(fmtTime(report.reportedAt))}</dd></dl></div>`
     : "";
   const trail = detail.auditEvents.length
     ? `<div class="card"><h2>Audit trail</h2><ol class="trail">${detail.auditEvents.map((e) => `<li><time>${escapeHtml(fmtTime(e.occurredAt))}</time><div class="act">${escapeHtml(humanize(e.actionCode))}<small>${escapeHtml(e.reasonCode)}</small></div></li>`).join("")}</ol></div>`
@@ -82,7 +90,10 @@ function renderDetail(detail: HostedPayRunDetail, statusParam: string | null): s
     workspace: { name: detail.workspace.name, projectId: detail.workspace.projectId },
     notice: notice?.notice ?? null,
     noticeVariant: notice?.variant,
-    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), payRunVariant(pr))}</div>${intentCard}${policyCard}${reviewCard}${stagesCard}${verificationCard}${reportCard}${trail}`,
+    // On an executed run the on-chain verification is the hero — lead with it,
+    // right under the status header, before the intent/policy detail. It renders
+    // empty for runs that haven't executed, so the order is unchanged for those.
+    bodyHtml: `<div class="detail-head"><code>${escapeHtml(pr.id)}</code>${statusBadge(humanize(pr.status), payRunVariant(pr))}</div>${verificationCard}${intentCard}${policyCard}${reviewCard}${stagesCard}${reportCard}${trail}`,
     actionsHtml: `<div class="actions"><a class="link" href="/zenfix/payruns">← All Pay Runs</a></div>`,
   });
 }
