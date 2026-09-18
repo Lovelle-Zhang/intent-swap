@@ -86,14 +86,21 @@ export async function POST(request: Request) {
   try {
     if (action === "create") {
       const label = String(form.get("label") ?? "");
-      const result = await retryOnTransientUnavailable(async () => {
-        const supabase = createSupabaseServerClient();
-        const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-        const created = await createWorkspaceApiKey(getHostedSqlPool(), identity, label);
-        const keys = await listWorkspaceApiKeys(getHostedSqlPool(), identity);
-        return { newKey: created.key, keys };
-      });
-      return new Response(renderPage(result.keys, "API key created — copy it now.", result.newKey), {
+      const supabase = createSupabaseServerClient();
+      const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
+      // Mint exactly once. createWorkspaceApiKey is a non-idempotent INSERT of a
+      // freshly generated secret, so it must NOT run inside retryOnTransientUnavailable
+      // — a retry there would commit a second live key that's never shown to the owner.
+      const created = await createWorkspaceApiKey(getHostedSqlPool(), identity, label);
+      // The list is an idempotent read and may be retried. If it still fails, the key
+      // is already minted and shown once here — never drop it behind a 503.
+      let keys: Awaited<ReturnType<typeof listWorkspaceApiKeys>> = [];
+      try {
+        keys = await retryOnTransientUnavailable(() => listWorkspaceApiKeys(getHostedSqlPool(), identity));
+      } catch {
+        keys = [];
+      }
+      return new Response(renderPage(keys, "API key created — copy it now.", created.key), {
         status: 201,
         headers: HTML_HEADERS,
       });

@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { PersistenceUnavailableError } from "../adapters/storage";
+import { DuplicateRecordError } from "../adapters/storage/errors";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { CanonicalPolicyDecision } from "../domain/types";
-import { resolveApiKeyIdentity } from "./api-keys";
+import { authenticateApiKey } from "./api-keys";
 import { AuthUnavailableError } from "./errors";
 import type { IntakeInput } from "./intake";
 import { evaluateWorkspaceIntent } from "./intake-evaluate";
@@ -11,6 +12,7 @@ import { persistIntakeDecision } from "./intake-persist";
 import { sendNeedsReviewWebhook } from "./webhook";
 import { usdcToAtomic } from "./policy-form";
 import { retryOnTransientUnavailable } from "./retry";
+import { getWorkspacePayRun } from "./workspace-payruns";
 import { openWorkspacePersistence } from "./workspace";
 
 // 2B-intake HTTP boundary: authenticate a real external agent by bearer API key,
@@ -73,8 +75,11 @@ function toResponseDecision(decision: CanonicalPolicyDecision) {
 }
 
 export async function handleIntakeRequest(pool: SqlPool, request: Request): Promise<Response> {
-  const identity = await resolveApiKeyIdentity(pool, bearer(request));
-  if (!identity) return json({ error: "Unauthorized" }, 401);
+  const auth = await authenticateApiKey(pool, bearer(request));
+  if (!auth.ok) {
+    return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
+  }
+  const identity = auth.identity;
 
   let body: unknown;
   try {
@@ -97,7 +102,25 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
     );
     try {
       const { evaluation, policy } = await evaluateWorkspaceIntent(pool, identity, workspace.projectId, input, now);
-      await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
+      try {
+        await persistIntakeDecision(persistence, workspace.projectId, evaluation, input.idempotencyKey, now);
+      } catch (error) {
+        // The PayRun id is derived from (projectId, idempotencyKey), so a repeat with
+        // the same key hits a unique-violation on insert. The docs promise a reused
+        // key is a safe retry — replay the already-stored decision as an idempotent
+        // 200 rather than surfacing a 500.
+        if (error instanceof DuplicateRecordError) {
+          const existing = await getWorkspacePayRun(pool, identity, evaluation.payRunId);
+          const decided = existing?.payRun.policyDecisions.at(-1) ?? null;
+          if (decided) {
+            return json({ payRunId: evaluation.payRunId, decision: toResponseDecision(decided) }, 200);
+          }
+          // A prior attempt left the run mid-decision (rare partial commit); ask the
+          // caller to retry rather than claim a decision we don't have.
+          return json({ error: "This idempotencyKey is still being processed; retry shortly" }, 409);
+        }
+        throw error;
+      }
       // Best-effort needs_review nudge; never blocks or fails the decision.
       if (evaluation.decision.outcome === "needs_review" && policy.notifyWebhookUrl) {
         const q = evaluation.intent.quotedAmount;

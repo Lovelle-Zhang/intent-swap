@@ -1,4 +1,5 @@
 import { PersistenceUnavailableError } from "@/features/payrun/adapters/storage";
+import { TerminalStateError, VersionConflictError } from "@/features/payrun/domain/errors";
 import { createSupabaseServerClient } from "@/features/payrun/adapters/supabase/server";
 import { readZenFixAppOrigin } from "@/features/payrun/hosted/config";
 import { AuthUnavailableError, AuthenticationRequiredError } from "@/features/payrun/hosted/errors";
@@ -53,6 +54,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
       const { persistence } = await openWorkspacePersistence(pool, identity);
       try {
         await decideReview(persistence, identity, detail.payRun, action, new Date().toISOString());
+      } catch (error) {
+        // A concurrent decide (double-click, two tabs) already moved the run out of
+        // pending_review; the loser's compare-and-set loses. That's "already decided",
+        // not a 500 — fall through as if the run was no longer pending.
+        if (error instanceof VersionConflictError || error instanceof TerminalStateError) {
+          return "not_pending";
+        }
+        throw error;
       } finally {
         await persistence.close();
       }

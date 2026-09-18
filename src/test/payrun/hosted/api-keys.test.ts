@@ -4,12 +4,14 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { SqlClient, SqlPool, SqlQueryResult } from "@/features/payrun/adapters/storage/postgres/sql";
 import type { VerifiedAuthIdentity } from "@/features/payrun/hosted/workspace";
 import {
+  authenticateApiKey,
   createWorkspaceApiKey,
   isWellFormedApiKey,
   listWorkspaceApiKeys,
   resolveApiKeyIdentity,
   revokeWorkspaceApiKey,
 } from "@/features/payrun/hosted/api-keys";
+import { PersistenceUnavailableError } from "@/features/payrun/adapters/storage";
 import { loadHostedMigrationsSql } from "./hosted-migrations";
 
 const USER_A = "00000000-0000-4000-8000-00000000000a";
@@ -101,6 +103,19 @@ describe.sequential("workspace API keys", () => {
   test("garbage and unknown keys resolve to null", async () => {
     expect(await resolveApiKeyIdentity(pool, "not-a-key")).toBeNull();
     expect(await resolveApiKeyIdentity(pool, `zfk_live_${"z".repeat(32)}`)).toBeNull();
+  });
+
+  test("a DB outage while resolving a key is 503, not a 500; a malformed key stays 401", async () => {
+    // A recycled dead pooler connection: connect() throws. A well-formed key that
+    // needs a lookup must surface as unavailable (503), never escape as a raw 500.
+    const failing: SqlPool = {
+      connect: async () => { throw new Error("Connection terminated unexpectedly"); },
+      end: async () => {},
+    };
+    expect(await authenticateApiKey(failing, `zfk_live_${"a".repeat(32)}`)).toEqual({ ok: false, status: 503 });
+    // A malformed key never touches the DB → 401 even while the DB is down.
+    expect(await authenticateApiKey(failing, "not-a-key")).toEqual({ ok: false, status: 401 });
+    await expect(resolveApiKeyIdentity(failing, `zfk_live_${"a".repeat(32)}`)).rejects.toBeInstanceOf(PersistenceUnavailableError);
   });
 
   test("a revoked key no longer resolves", async () => {

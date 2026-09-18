@@ -1,7 +1,7 @@
 import { PersistenceUnavailableError } from "../adapters/storage";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { PayRun } from "../domain/types";
-import { resolveApiKeyIdentity } from "./api-keys";
+import { authenticateApiKey } from "./api-keys";
 import { isVerifiedRail } from "./onchain-verify";
 import { AuthUnavailableError } from "./errors";
 import { retryOnTransientUnavailable } from "./retry";
@@ -77,8 +77,11 @@ function unavailable(error: unknown): Response {
 }
 
 export async function handleListPayRuns(pool: SqlPool, request: Request): Promise<Response> {
-  const identity = await resolveApiKeyIdentity(pool, bearer(request));
-  if (!identity) return json({ error: "Unauthorized" }, 401);
+  const auth = await authenticateApiKey(pool, bearer(request));
+  if (!auth.ok) {
+    return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
+  }
+  const identity = auth.identity;
   const params = new URL(request.url).searchParams;
   const status = params.get("status");
   const agentId = params.get("agentId");
@@ -98,8 +101,11 @@ export async function handleListPayRuns(pool: SqlPool, request: Request): Promis
 }
 
 export async function handleGetPayRun(pool: SqlPool, request: Request, id: string): Promise<Response> {
-  const identity = await resolveApiKeyIdentity(pool, bearer(request));
-  if (!identity) return json({ error: "Unauthorized" }, 401);
+  const auth = await authenticateApiKey(pool, bearer(request));
+  if (!auth.ok) {
+    return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
+  }
+  const identity = auth.identity;
   try {
     const detail = await retryOnTransientUnavailable(() => getWorkspacePayRun(pool, identity, id));
     if (!detail) return json({ error: "Pay Run not found" }, 404);

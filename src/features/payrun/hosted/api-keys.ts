@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
+import { PersistenceUnavailableError } from "../adapters/storage";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import { withHostedTransaction } from "../adapters/storage/postgres/transaction";
 import type { VerifiedAuthIdentity } from "./workspace";
@@ -117,7 +118,14 @@ export async function resolveApiKeyIdentity(
 ): Promise<VerifiedAuthIdentity | null> {
   if (!isWellFormedApiKey(presentedKey)) return null;
   const hash = hashApiKey(presentedKey);
-  const client = await pool.connect();
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (error) {
+    // A pooler blip (dead recycled connection) while resolving the key must surface
+    // as unavailable (→ 503), not a raw error that escapes the handler as a 500.
+    throw new PersistenceUnavailableError("Could not resolve the API key", { cause: error });
+  }
   try {
     const res = await client.query<{ uid: string | null }>(
       "SELECT public.zenfix_resolve_api_key($1) AS uid",
@@ -125,7 +133,30 @@ export async function resolveApiKeyIdentity(
     );
     const uid = res.rows[0]?.uid ?? null;
     return uid ? { userId: uid } : null;
+  } catch (error) {
+    throw new PersistenceUnavailableError("Could not resolve the API key", { cause: error });
   } finally {
     client.release();
+  }
+}
+
+export type ApiKeyAuthResult =
+  | { readonly ok: true; readonly identity: VerifiedAuthIdentity }
+  | { readonly ok: false; readonly status: 401 | 503 };
+
+// Inbound API auth for the bearer endpoints: distinguishes an unauthorized request
+// (missing/malformed/unknown/revoked key → 401) from a transient persistence failure
+// while checking the key (→ 503), so a DB blip is never a 500. Handlers call this and
+// answer with the returned status.
+export async function authenticateApiKey(
+  pool: SqlPool,
+  presentedKey: unknown,
+): Promise<ApiKeyAuthResult> {
+  try {
+    const identity = await resolveApiKeyIdentity(pool, presentedKey);
+    return identity ? { ok: true, identity } : { ok: false, status: 401 };
+  } catch (error) {
+    if (error instanceof PersistenceUnavailableError) return { ok: false, status: 503 };
+    throw error;
   }
 }
