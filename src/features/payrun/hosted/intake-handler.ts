@@ -5,6 +5,7 @@ import { DuplicateRecordError } from "../adapters/storage/errors";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { CanonicalPolicyDecision } from "../domain/types";
 import { authenticateApiKey } from "./api-keys";
+import { checkApiRateLimit, rateLimited } from "./rate-limit";
 import { AuthUnavailableError } from "./errors";
 import type { IntakeInput } from "./intake";
 import { evaluateWorkspaceIntent } from "./intake-evaluate";
@@ -80,6 +81,8 @@ export async function handleIntakeRequest(pool: SqlPool, request: Request): Prom
     return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
   }
   const identity = auth.identity;
+  const rate = await checkApiRateLimit(identity.userId);
+  if (!rate.ok) return rateLimited(rate.retryAfterSeconds);
 
   let body: unknown;
   try {

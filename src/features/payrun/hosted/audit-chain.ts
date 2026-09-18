@@ -4,6 +4,7 @@ import { withHostedTransaction } from "../adapters/storage/postgres/transaction"
 import { AUDIT_GENESIS_HASH, hashAuditEntry } from "../adapters/storage/audit-hash";
 import type { AuditEvent } from "../domain/types";
 import { authenticateApiKey } from "./api-keys";
+import { checkApiRateLimit, rateLimited } from "./rate-limit";
 import { AuthUnavailableError } from "./errors";
 import { retryOnTransientUnavailable } from "./retry";
 import { resolvePersonalWorkspace, type VerifiedAuthIdentity } from "./workspace";
@@ -99,6 +100,8 @@ export async function handleAuditRequest(pool: SqlPool, request: Request, payRun
     return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
   }
   const identity = auth.identity;
+  const rate = await checkApiRateLimit(identity.userId);
+  if (!rate.ok) return rateLimited(rate.retryAfterSeconds);
   try {
     const chain = await retryOnTransientUnavailable(() => getWorkspaceAuditChain(pool, identity, payRunId));
     if (chain.events.length === 0) return json({ error: "Pay Run not found" }, 404);
