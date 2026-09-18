@@ -2,6 +2,7 @@ import { PersistenceUnavailableError } from "../adapters/storage";
 import type { SqlPool } from "../adapters/storage/postgres/sql";
 import type { PayRun } from "../domain/types";
 import { authenticateApiKey } from "./api-keys";
+import { checkApiRateLimit, rateLimited } from "./rate-limit";
 import { isVerifiedRail } from "./onchain-verify";
 import { AuthUnavailableError } from "./errors";
 import { retryOnTransientUnavailable } from "./retry";
@@ -82,6 +83,8 @@ export async function handleListPayRuns(pool: SqlPool, request: Request): Promis
     return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
   }
   const identity = auth.identity;
+  const rate = await checkApiRateLimit(identity.userId);
+  if (!rate.ok) return rateLimited(rate.retryAfterSeconds);
   const params = new URL(request.url).searchParams;
   const status = params.get("status");
   const agentId = params.get("agentId");
@@ -106,6 +109,8 @@ export async function handleGetPayRun(pool: SqlPool, request: Request, id: strin
     return json(auth.status === 503 ? { error: "ZenFix is temporarily unavailable" } : { error: "Unauthorized" }, auth.status);
   }
   const identity = auth.identity;
+  const rate = await checkApiRateLimit(identity.userId);
+  if (!rate.ok) return rateLimited(rate.retryAfterSeconds);
   try {
     const detail = await retryOnTransientUnavailable(() => getWorkspacePayRun(pool, identity, id));
     if (!detail) return json({ error: "Pay Run not found" }, 404);

@@ -12,6 +12,7 @@ const messages: Record<string, string> = {
   auth_unavailable: "Sign-in is temporarily unavailable. Please try again later.",
   expired_link: "That sign-in link is invalid or expired. Request a new one.",
   signed_out: "You have signed out.",
+  rate_limited: "Too many sign-in attempts. Please wait a few minutes and try again.",
 };
 
 function Logo() {
