@@ -194,28 +194,29 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   const stubRpc = (result: unknown) =>
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ result }), { status: 200 })));
 
-  test("a base-sepolia executed claim is accepted only after the on-chain transfer verifies", async () => {
-    const payRunId = await createRun({ idempotencyKey: "exec-verified", amount: "30" });
+  test("a base-sepolia claim WITHOUT a pinned merchant address is self-reported, not verified", async () => {
+    // The verified badge needs an owner-pinned payout address as its trust anchor.
+    // Without one, an unbound transfer would be forgeable, so we grant no badge —
+    // the outcome is recorded as the agent's claim (self-reported), not proof-backed.
+    const payRunId = await createRun({ idempotencyKey: "exec-unpinned", amount: "30" });
     stubRpc(transferReceipt(30_000_000n));
     try {
       const res = await report(payRunId, `Bearer ${apiKey}`, {
         outcome: "executed", providerReference: TX, rail: "base-sepolia", transactionHash: TX,
       });
       expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.verification).toEqual({ verified: true, chain: "base-sepolia", amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}`, pinnedMerchant: false });
+      expect((await res.json()).verification).toEqual({ verified: false });
     } finally {
       vi.unstubAllGlobals();
     }
     const persisted = (await getWorkspacePayRun(pool, identity, payRunId))!.payRun;
     expect(persisted.status).toBe("execution_reported");
-    // Tier 2: what we proved on-chain is persisted on the report for the receipt.
-    expect(persisted.executionReport?.verification).toEqual({
-      amountAtomic: "30000000", recipient: `0x${"b".repeat(40)}`, sender: null, pinnedMerchant: false,
-    });
+    expect(persisted.executionReport?.verification).toBeUndefined();
   });
 
-  test("a base-sepolia claim whose tx cannot be verified is rejected (422) and stays awaiting execution", async () => {
+  test("a pinned-merchant base-sepolia claim whose tx cannot be verified is rejected (422) and stays awaiting execution", async () => {
+    // Verification only runs when the merchant is pinned; then an unfindable tx fails.
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
     const payRunId = await createRun({ idempotencyKey: "exec-unverified", amount: "30" });
     stubRpc(null); // tx not found / not yet confirmed
     try {
@@ -298,7 +299,9 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   // Replay protection: a verified transfer binds to exactly one Pay Run. The same
   // tx reported against a second run is rejected and that run stays awaiting.
   test("a verified transaction can be claimed by only one Pay Run (reuse is 409)", async () => {
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, {}); // clear pinned
+    // Pin to the transfer's recipient so both claims verify — only then is a claim
+    // row written and the second reuse rejected.
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
     const reuseTx = `0x${"e".repeat(64)}`;
     const runA = await createRun({ idempotencyKey: "reuse-a", amount: "30" });
     const runB = await createRun({ idempotencyKey: "reuse-b", amount: "30" });
@@ -326,7 +329,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
 
   // Case-insensitive binding: the same tx in different hex casing is still one claim.
   test("transaction-hash reuse is case-insensitive", async () => {
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, {});
+    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
     const lower = `0x${"f".repeat(64)}`;
     const upper = `0x${"F".repeat(64)}`;
     const runA = await createRun({ idempotencyKey: "reuse-case-a", amount: "30" });

@@ -36,24 +36,31 @@ export async function resolveOnchainProof(
   if (input.outcome !== "executed" || !isVerifiedRail(input.rail)) {
     return { ok: true, verified: null };
   }
-  // If the owner pinned a payout address for this merchant, that address is
-  // authoritative — the transfer must have gone there, not merely to an address
-  // the agent named. Otherwise fall back to the claimed recipient.
+  // The "Verified on-chain" badge requires an OWNER-PINNED payout address as its
+  // trust anchor. Only a pinned address is something the agent can't choose: it
+  // lets us prove the money reached the destination the OWNER approved. A recipient
+  // or sender the agent *declares* per-request can be set to match any public USDC
+  // transfer, so without a pin a "verified" badge would be forgeable (any large
+  // transfer would pass). So: no pinned address → we don't verify, and the outcome
+  // is recorded as self-reported (the agent's claim), never as proof-backed.
   const policy = await getWorkspacePolicy(pool, identity);
   const pinned = lookupMerchantAddress(policy.merchantAddresses, current.intent.merchant.merchantId);
-  const expectedRecipient = pinned ?? input.recipient;
-  // If the agent names the paying wallet, bind the proof to it too: the on-chain
-  // transfer must be FROM that wallet (x402/EIP-3009 exposes the authorizing
-  // wallet as `from` even when a facilitator submits the tx).
+  if (!pinned) {
+    return { ok: true, verified: null };
+  }
+  // The transfer must have gone to the pinned address. If the agent also names the
+  // paying wallet, bind the proof to it too: the on-chain transfer must be FROM that
+  // wallet (x402/EIP-3009 exposes the authorizing wallet as `from` even when a
+  // facilitator submits the tx) — extra assurance on top of the pinned anchor.
   const result = await verifyUsdcTransfer(
-    input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, expectedRecipient, input.sender,
+    input.rail, input.transactionHash ?? "", current.intent.quotedAmount.amountAtomic, pinned, input.sender,
   );
   if (!result.ok) return { ok: false, reason: result.reason };
   return {
     ok: true,
     verified: {
       chain: input.rail, amountAtomic: result.amountAtomic,
-      recipient: result.recipient, pinnedMerchant: Boolean(pinned),
+      recipient: result.recipient, pinnedMerchant: true,
     },
   };
 }

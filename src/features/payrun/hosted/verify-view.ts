@@ -42,12 +42,18 @@ export function renderVerificationCard(
   if (!report || report.outcome !== "executed") return "";
   const amt = escapeHtml(formatAtomicMoney(authorized));
 
-  if (!isVerifiedRail(report.rail)) {
+  // "Verified on-chain" is claimed ONLY when a verification was actually persisted
+  // (which requires a pinned merchant payout address — the trust anchor). A verified
+  // rail without that anchor is recorded as self-reported, not proof-backed.
+  if (!isVerifiedRail(report.rail) || !report.verification) {
     const rail = escapeHtml(railLabel(report.rail));
+    const why = isVerifiedRail(report.rail)
+      ? `ZenFix can independently verify a payment only against a payout address you've <b>pinned</b> for this merchant — without one, an unrelated transfer could satisfy the check, so this is recorded as <b>claimed</b>, not proven. Pin the merchant's address on Policy to earn an on-chain-verified receipt.`
+      : `ZenFix can't confirm it from the chain, and doesn't hold the merchant credentials that could — so it's recorded as <b>claimed</b>, not proven. Run the payment on a verified rail (Base) with a pinned merchant address for independent on-chain proof.`;
     return `<div class="card verify plain">
       <div class="verify-head"><span class="verify-seal">${CLOCK}</span>
         <span class="verify-title">Self-reported<small>Not verified on-chain</small></span></div>
-      <p class="verify-lead">This outcome was reported by the agent on the <b>${rail}</b> rail. ZenFix can't confirm it from the chain, and doesn't hold the merchant credentials that could — so it's recorded as <b>claimed</b>, not proven. Run the payment on a verified rail (Base) for independent on-chain proof.</p>
+      <p class="verify-lead">This outcome was reported by the agent on the <b>${rail}</b> rail. ${why}</p>
     </div>`;
   }
 
