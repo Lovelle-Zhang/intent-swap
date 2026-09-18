@@ -136,9 +136,15 @@ export async function POST(request: Request) {
     await retryOnTransientUnavailable(async () => {
       const supabase = createSupabaseServerClient();
       const identity = await requireVerifiedIdentity({ getUser: () => supabase.auth.getUser() });
-      return saveWorkspacePolicy(
-        getHostedSqlPool(), identity, parsed.rules, parsed.dailyBudgetAtomic, parsed.agentBudgets, agentLimits.limits, webhook.url, merchants.addresses, emailEnabled,
-      );
+      return saveWorkspacePolicy(getHostedSqlPool(), identity, {
+        rules: parsed.rules,
+        dailyBudgetAtomic: parsed.dailyBudgetAtomic,
+        agentBudgets: parsed.agentBudgets,
+        agentLimits: agentLimits.limits,
+        notifyWebhookUrl: webhook.url,
+        merchantAddresses: merchants.addresses,
+        notifyEmailEnabled: emailEnabled,
+      });
     });
     const appOrigin = readZenFixAppOrigin();
     return Response.redirect(new URL("/zenfix/policy?status=saved", appOrigin), 303);

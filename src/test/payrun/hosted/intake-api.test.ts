@@ -121,7 +121,7 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
     holder.pool = pool;
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {});
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {} });
     apiKey = (await createWorkspaceApiKey(pool, identity, "intake agent")).key;
     ({ POST } = await import("@/app/api/v1/payruns/route"));
   }, 60_000);
@@ -229,9 +229,9 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
   let unlimitedKey: string;
 
   beforeAll(async () => {
-    await saveWorkspacePolicy(pool, identityBudget, NO_REVIEW_RULES, "100000000", {}); // 100 USDC/day
+    await saveWorkspacePolicy(pool, identityBudget, { rules: NO_REVIEW_RULES, dailyBudgetAtomic: "100000000", agentBudgets: {} }); // 100 USDC/day
     budgetKey = (await createWorkspaceApiKey(pool, identityBudget, "budget agent")).key;
-    await saveWorkspacePolicy(pool, identityUnlimited, NO_REVIEW_RULES, "0", {}); // unlimited
+    await saveWorkspacePolicy(pool, identityUnlimited, { rules: NO_REVIEW_RULES, dailyBudgetAtomic: "0", agentBudgets: {} }); // unlimited
     unlimitedKey = (await createWorkspaceApiKey(pool, identityUnlimited, "unlimited agent")).key;
   });
 
@@ -269,7 +269,7 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
   let agentKey: string;
 
   beforeAll(async () => {
-    await saveWorkspacePolicy(pool, identityAgent, NO_REVIEW_RULES, "0", { agent_ops_01: "40000000" });
+    await saveWorkspacePolicy(pool, identityAgent, { rules: NO_REVIEW_RULES, dailyBudgetAtomic: "0", agentBudgets: { agent_ops_01: "40000000" } });
     agentKey = (await createWorkspaceApiKey(pool, identityAgent, "per-agent")).key;
   });
 
@@ -314,8 +314,11 @@ describe.sequential("POST /api/v1/payruns (real intake)", () => {
   let limitKey: string;
 
   beforeAll(async () => {
-    await saveWorkspacePolicy(pool, identityLimit, LIMIT_RULES, "0", {}, {
-      agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api"] },
+    await saveWorkspacePolicy(pool, identityLimit, {
+      rules: LIMIT_RULES,
+      dailyBudgetAtomic: "0",
+      agentBudgets: {},
+      agentLimits: { agent_ops_01: { perTxAtomic: "25000000", merchants: ["acme_api"] } },
     });
     limitKey = (await createWorkspaceApiKey(pool, identityLimit, "limited agent")).key;
   });

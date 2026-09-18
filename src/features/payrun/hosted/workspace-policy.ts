@@ -97,17 +97,33 @@ export async function getWorkspacePolicy(
   );
 }
 
+// The fields that make up a saved policy. Grouped into one object because the
+// four trailing settings were optional positional args — a call reading
+// `..., "0", {}, {}, null, {...}` gave no clue which slot was which.
+export interface SaveWorkspacePolicyInput {
+  readonly rules: PolicyRuleSnapshot;
+  readonly dailyBudgetAtomic: string; // atomic USDC; "0" = unlimited
+  readonly agentBudgets: Record<string, string>; // agentId -> atomic USDC; {} = no per-agent caps
+  readonly agentLimits?: AgentLimits; // default {} = no per-agent overrides
+  readonly notifyWebhookUrl?: string | null; // default null = disabled
+  readonly merchantAddresses?: MerchantAddresses; // default {} = no pinned addresses
+  readonly notifyEmailEnabled?: boolean; // default true (opt-out)
+}
+
 export async function saveWorkspacePolicy(
   pool: SqlPool,
   identity: VerifiedAuthIdentity,
-  rules: PolicyRuleSnapshot,
-  dailyBudgetAtomic: string,
-  agentBudgets: Record<string, string>,
-  agentLimits: AgentLimits = {},
-  notifyWebhookUrl: string | null = null,
-  merchantAddresses: MerchantAddresses = {},
-  notifyEmailEnabled: boolean = true,
+  input: SaveWorkspacePolicyInput,
 ): Promise<WorkspacePolicyView> {
+  const {
+    rules,
+    dailyBudgetAtomic,
+    agentBudgets,
+    agentLimits = {},
+    notifyWebhookUrl = null,
+    merchantAddresses = {},
+    notifyEmailEnabled = true,
+  } = input;
   const workspace = await resolvePersonalWorkspace(pool, identity);
   return withHostedTransaction(
     { pool, userId: identity.userId, requireProjectId: workspace.projectId },
