@@ -258,7 +258,9 @@ async function main() {
 
     const homepage = await requireStatus(`${appBase}/`, 200);
     const homepageHtml = await homepage.text();
-    assert(homepageHtml.includes("Intent Swap"), "Homepage marker is missing");
+    // The homepage is the ZenFix landing; the old "Intent Swap" marker only passed
+    // incidentally via a legacy footer link that has since been removed.
+    assert(homepageHtml.includes("ZenFix PayRun"), "Homepage marker is missing");
     console.log("PASS homepage / (200)");
 
     const swapPage = await requireStatus(`${appBase}/execute`, 200);
