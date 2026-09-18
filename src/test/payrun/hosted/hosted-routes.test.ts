@@ -115,7 +115,11 @@ describe("hosted auth and workspace HTTP boundary", () => {
   });
 
   test("auth verification outage returns 503 at the protected handler", async () => {
-    auth.getUserError = new Error("auth offline");
+    // A genuine auth-service failure — no verified user AND the auth API responds
+    // 5xx — fails closed with 503. (An anonymous visitor, by contrast, redirects to
+    // sign-in; see the test above. A missing session must never dead-end in a 503.)
+    auth.user = null;
+    auth.getUserError = Object.assign(new Error("auth offline"), { status: 503 });
     const { GET } = await import("@/app/zenfix/workspace/route");
     const response = await GET(new Request("https://evil.test/zenfix/workspace"));
     expect(response.status).toBe(503);
