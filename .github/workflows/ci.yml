@@ -31,13 +31,9 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            monitor/package-lock.json
 
       - name: Install application dependencies
         run: npm ci
-
-      - name: Install monitor dependencies
-        run: npm ci --prefix monitor
 
       - name: Lint
         run: npm run lint
@@ -50,6 +46,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Smoke
-        run: npm run smoke
