@@ -28,7 +28,12 @@ describe("renderVerificationCard", () => {
   });
 
   test("verified rail: shows what was proven, a Basescan link, and when it was checked", () => {
-    const html = renderVerificationCard(report(), usdc("20000000"));
+    // The verified card requires a persisted verification (only granted with a
+    // pinned merchant anchor); a verified rail without it is self-reported.
+    const html = renderVerificationCard(
+      report({ verification: { amountAtomic: "20000000", recipient: `0x${"b".repeat(40)}`, sender: null, pinnedMerchant: true } }),
+      usdc("20000000"),
+    );
     expect(html).toContain("Verified on-chain");
     expect(html).toContain("Base mainnet");
     expect(html).toContain("not self-reported");

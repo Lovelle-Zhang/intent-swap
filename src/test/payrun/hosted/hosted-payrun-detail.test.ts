@@ -71,6 +71,9 @@ describe("hosted PayRun detail", () => {
       payRunId: "payrun_abc", outcome: "executed", providerReference: "ref_1",
       rail: "base-mainnet", transactionHash: tx, artifactReference: null,
       reportedAt: "2026-07-13T10:00:02.000Z", reportedBy: { kind: "agent", id: "agent_1" },
+      // The verified panel requires a persisted verification (granted only with a
+      // pinned merchant anchor); without it the run reads as self-reported.
+      verification: { amountAtomic: "420000", recipient: `0x${"b".repeat(40)}`, sender: null, pinnedMerchant: true },
     };
     read.get.mockResolvedValue(fixture);
     const { GET } = await import("@/app/zenfix/payruns/[id]/route");
