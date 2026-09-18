@@ -86,6 +86,30 @@ describe("hosted PayRun detail", () => {
     // Agent-reported (external) execution never fills ZenFix's own Funding/Payment/
     // Proof/Ledger stages, so that all-"—" card is hidden rather than shown empty.
     expect(html).not.toContain('class="stages"');
+    // The on-chain proof is the hero: it leads, ahead of the intent detail.
+    expect(html.indexOf("Verified on-chain")).toBeLessThan(html.indexOf("<h2>Intent</h2>"));
+    // The verified hero already links the hash on the explorer, so the Execution
+    // report card below must not repeat it as a weaker plain-code row.
+    expect(html).not.toContain("Transaction hash");
+  });
+
+  test("a self-reported executed run keeps the tx hash in the report card (its hero doesn't show it)", async () => {
+    const fixture = detailFixture();
+    const tx = `0x${"c".repeat(64)}`;
+    (fixture.payRun as Record<string, unknown>).executionReport = {
+      payRunId: "payrun_abc", outcome: "executed", providerReference: "ref_2",
+      // A non-verified rail: recorded as self-reported, no on-chain verification.
+      rail: "base", transactionHash: tx, artifactReference: null,
+      reportedAt: "2026-07-13T10:00:02.000Z", reportedBy: { kind: "agent", id: "agent_1" },
+    };
+    read.get.mockResolvedValue(fixture);
+    const { GET } = await import("@/app/zenfix/payruns/[id]/route");
+    const res = await GET(new Request("https://zenfix.test/zenfix/payruns/payrun_abc"), { params: { id: "payrun_abc" } });
+    const html = await res.text();
+    expect(html).toContain("Self-reported");
+    // The self-reported hero omits the hash, so the report card must still carry it.
+    expect(html).toContain("Transaction hash");
+    expect(html).toContain(tx);
   });
 
   test("returns 404 when the pay run is not in the workspace", async () => {
