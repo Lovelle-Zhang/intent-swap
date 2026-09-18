@@ -63,7 +63,10 @@ export function renderVerifiedPaymentEmail(data: VerifiedPaymentEmailData): Rend
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f3;padding:28px 0"><tr><td align="center">
 <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:92%;background:#ffffff;border:1px solid #e7e5e4;border-radius:16px;overflow:hidden">
   <tr><td style="padding:22px 26px 0">
-    <span style="font:700 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1c1917">ZenFix</span>${testnet ? ` <span style="font:600 10px system-ui;letter-spacing:.08em;color:#b45309;border:1px solid #f4c67a;border-radius:5px;padding:2px 6px">TEST MODE</span>` : ""}
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="vertical-align:middle"><span style="display:inline-block;width:26px;height:26px;border:1px solid #e7e5e4;border-radius:8px;background:#faf9f8;text-align:center;line-height:23px;font:700 13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#0b8f7d">[<span style="color:#ca8a04">&bull;</span>]</span></td>
+      <td style="vertical-align:middle;padding-left:9px"><span style="font:700 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1c1917">ZenFix</span>${testnet ? ` <span style="font:600 10px system-ui;letter-spacing:.08em;color:#b45309;border:1px solid #f4c67a;border-radius:5px;padding:2px 6px">TEST MODE</span>` : ""}</td>
+    </tr></table>
   </td></tr>
   <tr><td style="padding:16px 26px 0">
     <span style="display:inline-block;background:#e7f8f4;color:#06705f;font:600 12px system-ui;letter-spacing:.04em;border-radius:999px;padding:5px 12px">✓ Verified on-chain</span>
@@ -84,7 +87,7 @@ export function renderVerifiedPaymentEmail(data: VerifiedPaymentEmailData): Rend
   <tr><td style="padding:12px 26px 0;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#57534e;line-height:1.5">
     You don't have to trust ZenFix — open the transaction on the public explorer and see it for yourself. Or read the tamper-evident <a href="${escapeHtml(auditUrl)}" style="color:#0b8f7d">audit trail</a> and the <a href="${escapeHtml(runUrl)}" style="color:#0b8f7d">Pay Run</a>.
   </td></tr>
-  <tr><td style="padding:18px 26px 24px;margin-top:8px;font:12px system-ui;color:#a8a29e;line-height:1.5;border-top:1px solid #f0efee">
+  <tr><td style="padding:18px 26px 24px;font:12px system-ui;color:#a8a29e;line-height:1.5;border-top:1px solid #f0efee">
     ZenFix is the authorization and audit layer for agent payments — it decides and verifies, and never holds your funds or keys.${testnet ? " Test mode on Base Sepolia — no real funds." : ""}<br>
     You're getting this because on-chain verification emails are on for your workspace. Turn them off on the <a href="${escapeHtml(data.appOrigin)}/zenfix/policy" style="color:#a8a29e">Policy page</a>.
   </td></tr>
