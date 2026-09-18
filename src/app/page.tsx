@@ -169,7 +169,6 @@ export default function HomePage() {
             <a href="/api-docs">API docs</a>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
-            <Link href="/swap">Intent Swap</Link>
           </nav>
         </div>
       </footer>

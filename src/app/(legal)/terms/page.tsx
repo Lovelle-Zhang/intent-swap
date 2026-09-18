@@ -6,17 +6,21 @@ export default function TermsPage() {
   return (
     <>
       <h1>Terms of Service</h1>
-      <p className="updated">Last updated September 4, 2026</p>
+      <p className="updated">Last updated September 18, 2026</p>
       <p className="intro">
-        ZenFix PayRun (&ldquo;ZenFix&rdquo;) is a <strong>sandbox demonstration</strong> provided for
-        evaluation. By signing in and using it, you agree to these terms.
+        ZenFix PayRun (&ldquo;ZenFix&rdquo;) is an agent payment control layer, currently in test mode on
+        Base Sepolia and provided for evaluation. By signing in and using it, you agree to these terms.
       </p>
 
       <section>
-        <h2>No real funds</h2>
+        <h2>No custody, no money movement</h2>
         <p>
-          ZenFix does not process real payments. All balances, amounts, and &ldquo;USDC&rdquo; figures
-          are simulated for demonstration only. Nothing here is a financial service, and no money moves.
+          ZenFix is not a bank, custodian, exchange, money transmitter, broker, or financial-services
+          provider. It never holds, custodies, moves, or transmits your funds, private keys, or any
+          other asset — your agents execute any payment themselves on their own rails, and ZenFix only
+          authorizes, records, and verifies them. The hosted service runs in test mode on Base Sepolia;
+          amounts shown in test mode are testnet USDC, which has no monetary value and cannot be
+          exchanged for real money. Nothing in ZenFix is financial, investment, tax, or legal advice.
         </p>
       </section>
 

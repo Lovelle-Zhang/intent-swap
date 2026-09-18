@@ -6,18 +6,22 @@ export default function PrivacyPage() {
   return (
     <>
       <h1>Privacy Policy</h1>
-      <p className="updated">Last updated September 4, 2026</p>
+      <p className="updated">Last updated September 18, 2026</p>
       <p className="intro">
-        ZenFix PayRun (&ldquo;ZenFix&rdquo;) is a <strong>sandbox demonstration</strong> of an agent
-        payment control layer. It moves no real money — every amount shown is simulated.
+        ZenFix PayRun (&ldquo;ZenFix&rdquo;) is an agent payment control layer: it authorizes and audits
+        the payments your AI agents attempt, and verifies them on-chain. It never holds your funds or
+        keys and never moves money itself. The hosted service runs in <strong>test mode on Base
+        Sepolia</strong>, a public testnet; test-mode amounts are testnet USDC with no monetary value.
       </p>
 
       <section>
         <h2>What we collect</h2>
         <p>
           When you sign in with Google, we receive your email address and basic profile (your name)
-          solely to identify your account. Inside the app you can create sandbox Pay Runs; the records
-          you create are stored in your own persistent workspace.
+          solely to identify your account. Inside the app you create Pay Runs; those records — the
+          intent your agent submits (agent id, purpose, merchant, amount) and any on-chain references it
+          reports back (public transaction hashes and wallet addresses) — are stored in your own
+          persistent workspace. API keys are stored only as a hash; the full key is shown once.
         </p>
       </section>
 
@@ -35,6 +39,14 @@ export default function PrivacyPage() {
         <p>
           Account and Pay Run data are stored in our managed Postgres database (Supabase). Sign-in is
           handled via Google OAuth; we never see or store your Google password.
+        </p>
+      </section>
+
+      <section>
+        <h2>Cookies</h2>
+        <p>
+          We set first-party session cookies (via Supabase) so you stay signed in. We use no
+          third-party, analytics, or advertising cookies.
         </p>
       </section>
 

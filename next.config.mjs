@@ -8,6 +8,10 @@ const nextConfig = {
     return [
       { source: "/zenfix", destination: "/zenfix/workspace", permanent: false },
       { source: "/zenfix/overview", destination: "/zenfix/workspace", permanent: false },
+      // /docs still served the legacy Intent-Swap DEX documentation (mainnet
+      // contract, $/mo pricing) — a different product. Send it to the real
+      // ZenFix API reference instead of exposing the wrong product publicly.
+      { source: "/docs", destination: "/api-docs", permanent: false },
     ];
   },
   experimental: {
