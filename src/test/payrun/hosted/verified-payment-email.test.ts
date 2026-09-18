@@ -24,6 +24,14 @@ describe("renderVerifiedPaymentEmail", () => {
     expect(email.html).toContain("0.42 USDC");
   });
 
+  test("carries the ZenFix brand mark so a forwarded receipt is recognizable", () => {
+    const email = renderVerifiedPaymentEmail(BASE);
+    // The bracket-and-dot lockup, reproduced email-safe (no SVG/img — Gmail strips
+    // both). Tolerant of color tweaks, but the [•] mark must be present.
+    expect(email.html).toMatch(/\[<span[^>]*>&bull;<\/span>\]/);
+    expect(email.html).toContain("ZenFix");
+  });
+
   test("links the PUBLIC explorer so the reader can verify it themselves", () => {
     const email = renderVerifiedPaymentEmail(BASE);
     const explorer = `https://sepolia.basescan.org/tx/${BASE.transactionHash}`;
