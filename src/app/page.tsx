@@ -71,9 +71,9 @@ export default function HomePage() {
       <section className="hero">
         <div className="wrap">
           <div>
-            <span className="kicker"><span className="dot" /><span className="eyebrow">Agent Payment Control Layer</span></span>
-            <h1>Your agents are spending.<br /><em>Prove</em> every payment.</h1>
-            <p className="lede">ZenFix sits between your AI agents and the money. Every payment they attempt is checked against your rules — then <em>verified on-chain</em> that it really happened, to the address you approved. It never holds your funds or keys.</p>
+            <span className="kicker"><span className="dot" /><span className="eyebrow">Verified agent payments</span></span>
+            <h1>Don&rsquo;t trust your agents.<br /><em>Verify</em> them on-chain.</h1>
+            <p className="lede">For every payment your AI agents make, ZenFix reads the public chain and confirms it really happened — the right amount, to the address you approved — before it&rsquo;s marked done. <em>A receipt anyone can re-check.</em> It never holds your funds or keys.</p>
             <div className="cta">
               <Link className="btn btn-primary" href="/zenfix/sign-in">Start free on testnet →</Link>
               <a className="btn btn-ghost" href="#verify">See how it works</a>
