@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { Bricolage_Grotesque, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { SignInForm } from "./SignInForm";
 import "./signin.css";
+
+// Explicit canonical: the page is reached with several ?status=… variants
+// (sent, expired_link, …); point them all at the clean URL so Google indexes one.
+export const metadata: Metadata = {
+  title: "Sign in — ZenFix PayRun",
+  alternates: { canonical: "/zenfix/sign-in" },
+};
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-display" });
 const body = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });

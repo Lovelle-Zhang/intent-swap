@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Privacy Policy — ZenFix PayRun" };
+export const metadata: Metadata = { title: "Privacy Policy — ZenFix PayRun", alternates: { canonical: "/privacy" } };
 
 export default function PrivacyPage() {
   return (
