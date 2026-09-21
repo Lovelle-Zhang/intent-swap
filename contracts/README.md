@@ -1,3 +1,28 @@
+# DisbursementVault — M1 PoC ("B with teeth")
+
+Proves ZenFix's core mechanic on-chain: an agent/disburser can move money **only inside a
+scoped envelope** the funder granted — right token, allow-listed recipients, per-tx & daily
+caps, before expiry. Anything outside **reverts**. The funder stays **non-custodial**
+(`revoke` / `withdraw` any time). ZenFix never holds the keys.
+
+- `src/DisbursementVault.sol` — the credential + enforcement (~110 lines incl. docs).
+- `test/DisbursementVault.t.sol` — the 7 "teeth" money-shots + guards.
+
+## Run
+
+```bash
+# one-time: install Foundry (https://getfoundry.sh) and the std lib
+curl -L https://foundry.paradigm.xyz | bash && foundryup
+forge install foundry-rs/forge-std --no-commit   # into contracts/lib (gitignored)
+
+forge test -vv
+```
+
+## What it deliberately skips (see the PoC spec)
+
+Single disburser key (no 2-of-2 co-sign), no delay/cancel window, standalone vault (production
+migrates the rules to a module on the funder's OWN account — ERC-7579 / Spend Permissions),
+Base Sepolia only. This PoC demonstrates the enforcement semantics, not the production topology.
 
 ## M2b — deploy + wire the real chain
 
