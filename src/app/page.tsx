@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "ZenFix PayRun — Agent Payment Control Layer",
   description:
     "ZenFix authorizes and audits every payment your AI agents attempt — checked against your rules, then verified on-chain that it really happened, to the address you approved. It never holds your funds or keys. Test mode on Base Sepolia.",
+  // Explicit canonical so Google indexes one URL. Absolute via metadataBase
+  // (https://intent-swap.app) — this collapses duplicates crawled on the
+  // *.vercel.app deploy host or via query strings onto the real page.
+  alternates: { canonical: "/" },
 };
 
 const CHECKS = ["Within daily budget", "Recipient allow-listed", "Policy: purchase ≤ $1"];

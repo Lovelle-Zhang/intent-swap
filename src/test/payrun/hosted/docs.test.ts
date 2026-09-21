@@ -11,6 +11,8 @@ describe("public API docs page", () => {
     expect(res.headers.get("cache-control")).toContain("public");
     const html = await res.text();
     expect(html).toContain("API Reference");
+    // Explicit canonical so Google indexes one URL (fixes "duplicate, no canonical").
+    expect(html).toContain('<link rel="canonical" href="https://intent-swap.app/api-docs">');
   });
 
   test("documents both endpoints, auth, policy, and status codes", () => {
