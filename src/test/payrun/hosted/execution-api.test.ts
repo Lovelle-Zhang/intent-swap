@@ -112,7 +112,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     await db.exec("GRANT zenfix_app TO zenfix_login");
     pool = new Pool(db);
     holder.pool = pool;
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {});
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {} });
     apiKey = (await createWorkspaceApiKey(pool, identity, "exec agent")).key;
     ({ POST: INTAKE_POST } = await import("@/app/api/v1/payruns/route"));
     ({ POST: EXEC_POST } = await import("@/app/api/v1/payruns/[id]/execution/route"));
@@ -216,7 +216,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
 
   test("a pinned-merchant base-sepolia claim whose tx cannot be verified is rejected (422) and stays awaiting execution", async () => {
     // Verification only runs when the merchant is pinned; then an unfindable tx fails.
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {}, merchantAddresses: { acme_api: `0x${"b".repeat(40)}` } });
     const payRunId = await createRun({ idempotencyKey: "exec-unverified", amount: "30" });
     stubRpc(null); // tx not found / not yet confirmed
     try {
@@ -235,7 +235,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   // not merely one the agent names. This is the "paid the approved merchant" check.
   const PINNED = "a".repeat(40);
   test("a pinned merchant address is authoritative: a transfer to it verifies", async () => {
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {}, merchantAddresses: { acme_api: `0x${PINNED}` } });
     const payRunId = await createRun({ idempotencyKey: "exec-pinned-ok", amount: "30" });
     // A distinct tx per committing test: a verified transfer binds to one run only.
     const txPinned = `0x${"1".repeat(64)}`;
@@ -271,7 +271,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
     const SENDER = `0x${"0".repeat(39)}1`; // transferReceipt's from
     // Self-contained: pin acme_api, and pay to the pinned address so only the
     // sender constraint is under test here.
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${PINNED}` });
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {}, merchantAddresses: { acme_api: `0x${PINNED}` } });
     const payRunId = await createRun({ idempotencyKey: "exec-payer", amount: "30" });
     const txPayer = `0x${"2".repeat(64)}`; // distinct tx: bound to this run only
     try {
@@ -301,7 +301,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
   test("a verified transaction can be claimed by only one Pay Run (reuse is 409)", async () => {
     // Pin to the transfer's recipient so both claims verify — only then is a claim
     // row written and the second reuse rejected.
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {}, merchantAddresses: { acme_api: `0x${"b".repeat(40)}` } });
     const reuseTx = `0x${"e".repeat(64)}`;
     const runA = await createRun({ idempotencyKey: "reuse-a", amount: "30" });
     const runB = await createRun({ idempotencyKey: "reuse-b", amount: "30" });
@@ -329,7 +329,7 @@ describe.sequential("POST /api/v1/payruns/:id/execution (execution report)", () 
 
   // Case-insensitive binding: the same tx in different hex casing is still one claim.
   test("transaction-hash reuse is case-insensitive", async () => {
-    await saveWorkspacePolicy(pool, identity, POLICY_RULES, "0", {}, {}, null, { acme_api: `0x${"b".repeat(40)}` });
+    await saveWorkspacePolicy(pool, identity, { rules: POLICY_RULES, dailyBudgetAtomic: "0", agentBudgets: {}, merchantAddresses: { acme_api: `0x${"b".repeat(40)}` } });
     const lower = `0x${"f".repeat(64)}`;
     const upper = `0x${"F".repeat(64)}`;
     const runA = await createRun({ idempotencyKey: "reuse-case-a", amount: "30" });
